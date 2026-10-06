@@ -1,13 +1,24 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, MessageCircleQuestion } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, MessageCircle, MessageCircleQuestion } from 'lucide-react'
 import { useLang } from '../i18n'
+import { setConsultService } from '../consult'
 import { categories, getCategory } from '../data/site'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import Reveal from '../components/Reveal'
 import CtaBand from '../components/CtaBand'
 import NotFound from './NotFound'
+
+// Small "Consult" button: remembers this service in a cookie and opens the Contact form.
+function ConsultLink({ item }) {
+  const { t } = useLang()
+  return (
+    <Link to="/contact" onClick={() => setConsultService(item.key)} className="btn-ghost !px-4 !py-1.5 !text-xs">
+      <MessageCircle size={13} /> {t({ en: 'Consult', zh: '咨询' })}
+    </Link>
+  )
+}
 
 function Detail({ item, index }) {
   const { t } = useLang()
@@ -16,6 +27,15 @@ function Detail({ item, index }) {
       <div className="lg:col-span-5">
         <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>
         <h3 className="mt-2 font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
+        <div className="mt-4"><ConsultLink item={item} /></div>
+        {item.photo && !item.poster && (
+          <img src={item.photo} alt={t(item.name)} loading="lazy" className="mt-6 aspect-[4/3] w-full rounded-[1.5rem] bg-sand object-cover" />
+        )}
+        {item.poster && (
+          <a href={item.poster} target="_blank" rel="noreferrer" className="mt-6 block overflow-hidden rounded-[1.5rem] bg-sand">
+            <img src={item.poster} alt={t(item.name)} loading="lazy" className="w-full" />
+          </a>
+        )}
         <p className="mt-5 text-lg leading-relaxed text-muted">{t(item.body)}</p>
         {item.facts && (
           <dl className="mt-8 divide-y divide-ink/10 rounded-[1.5rem] bg-sand px-6">
@@ -37,6 +57,29 @@ function Detail({ item, index }) {
                 <li key={b} className="flex items-start gap-2"><Check size={18} className="mt-0.5 shrink-0 text-gold" />{b}</li>
               ))}
             </ul>
+          </div>
+        )}
+        {item.packages && (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {item.packages.map((pk, i) => (
+              <div key={i} className="flex flex-col rounded-[1.5rem] border border-ink/10 p-6">
+                <p className="font-display text-xl">{t(pk.name)}</p>
+                <p className="mt-3 flex items-baseline gap-2">
+                  <span className="font-display text-4xl">{pk.price}</span>
+                  <span className="text-sm text-muted line-through">{pk.was}</span>
+                  <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs text-gold">{t(pk.tag)}</span>
+                </p>
+                <p className="mt-2 text-sm text-muted">{t(pk.perks).join(' · ')}</p>
+                <ol className="mt-5 space-y-3">
+                  {t(pk.steps).map((st, n) => (
+                    <li key={st} className="flex gap-3 text-sm">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink text-xs text-ivory">{n + 1}</span>
+                      <span className="pt-0.5 leading-relaxed">{st}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
           </div>
         )}
         {item.steps && (
@@ -66,6 +109,7 @@ function Treatment({ item, index }) {
       <Reveal id={item.id} className="scroll-mt-28 rounded-[2rem] bg-sand p-8">
         <h3 className="font-display text-2xl">{t(item.name)}</h3>
         <p className="mt-3 leading-relaxed text-muted">{t(item.body)}</p>
+        <div className="mt-5"><ConsultLink item={item} /></div>
       </Reveal>
     )
   }
@@ -96,11 +140,12 @@ function Treatment({ item, index }) {
             ))}
           </ol>
         )}
-        {item.faq && (
-          <Link to={`/faq#${item.faq}`} className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-ink underline decoration-gold decoration-2 underline-offset-4 hover:text-gold">
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <ConsultLink item={item} />
+          <Link to={`/faq#${encodeURIComponent(item.key)}`} className="inline-flex items-center gap-2 text-sm font-medium text-ink underline decoration-gold decoration-2 underline-offset-4 hover:text-gold">
             <MessageCircleQuestion size={16} /> {t(ui.readFaq)}
           </Link>
-        )}
+        </div>
       </div>
     </Reveal>
   )
@@ -120,9 +165,9 @@ export default function Category() {
 
   const idx = categories.indexOf(cat)
   const next = categories[(idx + 1) % categories.length]
-  const detailed = cat.treatments.filter((x) => !x.image && x.steps)
+  const detailed = cat.treatments.filter((x) => !x.image && (x.steps || x.packages))
   const withImages = cat.treatments.filter((x) => x.image)
-  const textOnly = cat.treatments.filter((x) => !x.image && !x.steps)
+  const textOnly = cat.treatments.filter((x) => !x.image && !x.steps && !x.packages)
 
   return (
     <>

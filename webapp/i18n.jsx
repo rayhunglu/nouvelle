@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-const LangContext = createContext({ lang: 'en', setLang: () => {}, t: (v) => v })
+const LangContext = createContext({ lang: 'zh', setLang: () => {}, t: (v) => v })
 
 function readStored() {
   try {
-    return localStorage.getItem('lang') === 'zh' ? 'zh' : 'en'
+    return localStorage.getItem('lang') === 'en' ? 'en' : 'zh'
   } catch {
-    return 'en'
+    return 'zh'
   }
 }
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, Menu, Phone, X } from 'lucide-react'
+import { ChevronDown, LayoutDashboard, LogIn, Menu, Phone, X } from 'lucide-react'
 import { useLang } from '../i18n'
+import { useAuth } from '../auth'
 import { business, categories } from '../data/site'
 import { brands } from '../data/shop'
 import { ui } from './ui'
@@ -96,6 +97,7 @@ function MobileGroup({ label, items }) {
 
 export default function Header() {
   const { t } = useLang()
+  const { user } = useAuth()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -129,7 +131,10 @@ export default function Header() {
 
         <div className="hidden items-center gap-4 lg:flex">
           <LangToggle />
-          <a href={business.phoneHref} className="btn-primary !py-2.5">
+          <Link to={user ? '/crm' : '/login'} className="btn-ghost !py-2.5">
+            {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
+          </Link>
+          <a href={business.phoneHref} className="btn-primary hidden !py-2.5 xl:inline-flex">
             <Phone size={15} /> {business.phone}
           </a>
         </div>
@@ -153,7 +158,10 @@ export default function Header() {
             {[['/gallery', ui.nav.gallery], ['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
-            <a href={business.phoneHref} className="btn-primary mt-8"><Phone size={15} /> {business.phone}</a>
+            <Link to={user ? '/crm' : '/login'} className="btn-ghost mt-8">
+              {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
+            </Link>
+            <a href={business.phoneHref} className="btn-primary mt-3"><Phone size={15} /> {business.phone}</a>
           </nav>
         </div>
       )}

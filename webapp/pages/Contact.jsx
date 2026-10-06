@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Clock, MapPin, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
-import { business, categories } from '../data/site'
+import { business, serviceGroups } from '../data/site'
+import { clearConsultService, getConsultService, setConsultService } from '../consult'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import Reveal from '../components/Reveal'
 
 const field = 'w-full rounded-2xl border border-ink/10 bg-ivory px-4 py-3.5 outline-none transition focus:border-gold'
 
-function useApiSubmit(endpoint) {
+function useApiSubmit(endpoint, onSuccess) {
   const [sent, setSent] = useState(false)
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -21,7 +22,10 @@ function useApiSubmit(endpoint) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (res.ok) setSent(true)
+      if (res.ok) {
+        setSent(true)
+        onSuccess?.()
+      }
     } catch {
       // network/API error — form stays visible so the visitor can retry
     }
@@ -40,9 +44,33 @@ function Sent({ text }) {
 
 export default function Contact() {
   const { t } = useLang()
-  const [sent, onSubmit] = useApiSubmit('contact')
+  const [sent, onSubmit] = useApiSubmit('contact', clearConsultService)
   const [applied, onApply] = useApiSubmit('careers')
   const loc = business.locations[0]
+
+  // A "Consult" button on a service page leaves the service key in a cookie.
+  // It only seeds the form once; after that the visitor can change both selects.
+  const findService = (key) => {
+    for (const g of serviceGroups) for (const sec of g.sections) for (const x of sec.items) {
+      if (x.key === key) return { group: g.id, value: x.value }
+    }
+    return null
+  }
+  const [preset] = useState(() => findService(getConsultService()))
+  const [group, setGroup] = useState(preset?.group || '')
+  const [interest, setInterest] = useState(preset?.value || '')
+
+  // Keep the cookie in step with the visitor's choice (cleared when nothing is chosen).
+  const chooseService = (value) => {
+    setInterest(value)
+    const item = serviceGroups.flatMap((g) => g.sections.flatMap((sec) => sec.items)).find((x) => x.value === value)
+    if (item) setConsultService(item.key); else clearConsultService()
+  }
+  const activeGroup = serviceGroups.find((g) => g.id === group)
+  const formRef = useRef(null)
+  useEffect(() => {
+    if (preset) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [preset])
 
   return (
     <>
@@ -60,14 +88,38 @@ export default function Contact() {
           {sent ? (
             <div className="mt-8"><Sent text={t({ en: 'Thank you — we’ll be in touch soon.', zh: '感谢留言，我们会尽快联系您。' })} /></div>
           ) : (
-            <form onSubmit={onSubmit} className="mt-8 grid gap-4 sm:grid-cols-2">
+            <form ref={formRef} onSubmit={onSubmit} className="mt-8 grid gap-4 sm:grid-cols-2">
               <input required name="name" placeholder={t({ en: 'Name', zh: '姓名' })} className={field} autoComplete="name" />
               <input required name="phone" type="tel" placeholder={t({ en: 'Phone', zh: '电话' })} className={field} autoComplete="tel" />
               <input required name="email" type="email" placeholder={t({ en: 'Email', zh: '邮箱' })} className={`${field} sm:col-span-2`} autoComplete="email" />
-              <select name="interest" defaultValue="" className={`${field} sm:col-span-2`}>
-                <option value="" disabled>{t({ en: 'I’m interested in…', zh: '感兴趣的项目…' })}</option>
-                {categories.map((c) => <option key={c.slug} value={c.slug}>{t(c.name)}</option>)}
+              {/* Step 1: big title */}
+              <select
+                value={group}
+                onChange={(e) => { setGroup(e.target.value); chooseService('') }}
+                aria-label={t({ en: 'Service category', zh: '服务类别' })}
+                className={field}
+              >
+                <option value="">{t({ en: 'Category…', zh: '选择类别…' })}</option>
+                {serviceGroups.map((g) => <option key={g.id} value={g.id}>{t(g.name)}</option>)}
               </select>
+              {/* Step 2: services in that category */}
+              <select
+                value={interest}
+                onChange={(e) => chooseService(e.target.value)}
+                disabled={!activeGroup}
+                aria-label={t({ en: 'Service', zh: '服务项目' })}
+                className={`${field} disabled:opacity-50`}
+              >
+                <option value="">{activeGroup ? t({ en: 'Service…', zh: '选择项目…' }) : t({ en: 'Pick a category first', zh: '请先选择类别' })}</option>
+                {activeGroup && (activeGroup.sections.length > 1
+                  ? activeGroup.sections.map((sec) => (
+                    <optgroup key={sec.slug} label={t(sec.name)}>
+                      {sec.items.map((x) => <option key={x.key} value={x.value}>{t(x.name)}</option>)}
+                    </optgroup>
+                  ))
+                  : activeGroup.sections.flatMap((sec) => sec.items).map((x) => <option key={x.key} value={x.value}>{t(x.name)}</option>))}
+              </select>
+              <input type="hidden" name="interest" value={interest} />
               <textarea name="message" rows={5} placeholder={t({ en: 'How can we help?', zh: '请留言…' })} className={`${field} sm:col-span-2`} />
               <button className="btn-primary sm:col-span-2 sm:justify-self-start">{t({ en: 'Send message', zh: '发送' })}</button>
             </form>

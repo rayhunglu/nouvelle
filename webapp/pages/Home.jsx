@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, MapPin, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react'
 import { useLang } from '../i18n'
-import { business, categories, heroImage, getCategory } from '../data/site'
+import { business, categories, heroImage } from '../data/site'
 import { ui } from '../components/ui'
 import Icon from '../components/Icon'
 import Reveal from '../components/Reveal'
@@ -27,7 +27,6 @@ const pillars = [
 
 export default function Home() {
   const { t } = useLang()
-  const featured = getCategory('hormone-stem-cell')
 
   return (
     <>
@@ -115,24 +114,6 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Featured */}
-      <section className="container-x grid items-center gap-12 py-20 sm:py-28 lg:grid-cols-2">
-        <Reveal className="overflow-hidden rounded-[2.5rem] bg-sand">
-          <img src={featured.treatments[1].image} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
-        </Reveal>
-        <Reveal delay={100}>
-          <p className="eyebrow mb-4">{t({ en: 'Whole-body anti-aging', zh: '全身抗衰老' })}</p>
-          <h2 className="font-display text-4xl font-light leading-tight sm:text-5xl">{t(featured.name)}</h2>
-          <p className="mt-6 text-lg leading-relaxed text-muted">{t(featured.intro)}</p>
-          <ul className="mt-8 grid grid-cols-2 gap-3">
-            {t(featured.treatments[0].bullets).slice(0, 4).map((b) => (
-              <li key={b} className="flex items-center gap-2 text-sm"><span className="h-1.5 w-1.5 rounded-full bg-gold" />{b}</li>
-            ))}
-          </ul>
-          <Link to={`/treatments/${featured.slug}`} className="btn-primary mt-10">{t(ui.learnMore)} <ArrowRight size={16} /></Link>
-        </Reveal>
       </section>
 
       {/* Locations */}

@@ -1,3 +1,5 @@
+import { business, categories } from './site.js'
+
 // FAQ topics consolidated from the original 12 separate "Q&A" pages into one searchable page.
 // General educational info only — the clinic should review the medical wording before launch.
 export const faqTopics = [
@@ -202,3 +204,76 @@ export const faqTopics = [
     ],
   },
 ]
+
+// ---------------------------------------------------------------------------
+// FAQ organised like the menu: big title = category, small title = service.
+// Hand-written answers (above) come first; every service also gets questions
+// built from its own page content so nothing on the site can drift out of sync.
+// ---------------------------------------------------------------------------
+const L = (en, zh) => ({ en, zh })
+const handById = Object.fromEntries(faqTopics.map((tp) => [tp.id, tp.items]))
+
+const FACT_QUESTIONS = {
+  'Typical session': L('How long does a session take?', '一次需要多久？'),
+  'Best for': L('Who is it suited for?', '适合哪些人？'),
+  Aftercare: L('What should I do afterward?', '做完后需要注意什么？'),
+  'Good to know': L('Is there anything else I should know?', '还有什么需要知道的？'),
+  'Severe acne?': L('What if my acne is severe?', '如果痘痘比较严重怎么办？'),
+  'Pairs well with': L('What pairs well with it?', '可以搭配什么项目？'),
+  Look: L('How noticeable are the results?', '效果有多明显？'),
+  'Wear time': L('How long does it last?', '可以维持多久？'),
+  'Fill schedule': L('How often are fills needed?', '多久需要补一次？'),
+}
+
+const bookingAnswer = L(
+  `Tap “Consult” on the service page to send us a message, or call ${business.phone}. We’ll arrange a consultation to build the right plan for you.`,
+  `请点击服务页面上的「咨询」按钮留言，或致电 ${business.phone}。我们会为您安排咨询，制定合适的方案。`,
+)
+
+function autoItems(item, hasHand) {
+  const out = []
+  if (!hasHand) {
+    out.push({ q: L(`What is ${item.name.en}?`, `什么是${item.name.zh}？`), a: item.body })
+  }
+  if (item.bullets) {
+    out.push({
+      q: L('What can it help with?', '能带来哪些改善？'),
+      a: { en: item.bullets.en.join('; ') + '.', zh: item.bullets.zh.join('、') + '。' },
+    })
+  }
+  if (item.steps) {
+    out.push({
+      q: L('What does the process involve?', '流程是怎样的？'),
+      a: {
+        en: item.steps.en.map((st, i) => `${i + 1}. ${st}`).join(' '),
+        zh: item.steps.zh.map((st, i) => `${i + 1}. ${st}`).join('；'),
+      },
+    })
+  }
+  if (item.packages) {
+    out.push({
+      q: L('What options and prices are available?', '有哪些方案和价格？'),
+      a: {
+        en: item.packages.map((p) => `${p.name.en}: ${p.price} (regular ${p.was}), ${p.tag.en}`).join('; ') + '.',
+        zh: item.packages.map((p) => `${p.name.zh}：${p.price}（原价 ${p.was}），${p.tag.zh}`).join('；') + '。',
+      },
+    })
+  }
+  for (const f of item.facts || []) {
+    const q = FACT_QUESTIONS[f.label.en]
+    if (q) out.push({ q, a: f.value })
+  }
+  out.push({ q: L('How do I book or ask a question?', '如何预约或咨询？'), a: bookingAnswer })
+  return out
+}
+
+export const faqCategories = categories.map((c) => ({
+  slug: c.slug,
+  name: c.name,
+  services: c.treatments.map((x) => {
+    // HydraFacial's written answers are about the scalp version (Keravive), so they belong to the hair service only.
+    const handKey = x.faq && !(x.faq === 'hydrafacial' && c.slug === 'skin') ? x.faq : null
+    const hand = handKey ? handById[handKey] || [] : []
+    return { key: x.key, name: x.name, items: [...hand, ...autoItems(x, hand.length > 0)] }
+  }),
+}))

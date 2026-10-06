@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -10,6 +10,12 @@ import Shop from './pages/Shop'
 import Faq from './pages/Faq'
 import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
+import Login from './pages/Login'
+import CrmLayout from './crm/Layout'
+import Dashboard from './crm/Dashboard'
+import Customers from './crm/Customers'
+import Appointments from './crm/Appointments'
+import Finance from './crm/Finance'
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -19,13 +25,34 @@ function ScrollToTop() {
   return null
 }
 
+function SiteLayout() {
+  return (
+    <>
+      <Header />
+      <main>
+        <Outlet />
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 export default function App() {
   return (
     <>
       <ScrollToTop />
-      <Header />
-      <main>
-        <Routes>
+      <Routes>
+        {/* Staff area: own layout, no marketing header/footer */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/crm" element={<CrmLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="appointments" element={<Appointments />} />
+          <Route path="finance" element={<Finance />} />
+        </Route>
+
+        {/* Public website */}
+        <Route element={<SiteLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/treatments" element={<Treatments />} />
           <Route path="/treatments/:slug" element={<Category />} />
@@ -35,9 +62,8 @@ export default function App() {
           <Route path="/faq" element={<Faq />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </main>
-      <Footer />
+        </Route>
+      </Routes>
     </>
   )
 }

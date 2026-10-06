@@ -35,7 +35,6 @@ All copy lives in `webapp/data/site.js` and `webapp/data/faqs.js` as `{ en, zh }
 `Contact.jsx` posts to `/api/contact` and `/api/careers` (handled in `src/routes/contact.js`), which currently just validate required fields and `console.log` the submission — swap that for a real email/CRM/storage call before launch. The careers form's resume file isn't uploaded yet (no multer wiring on the backend).
 
 ## Before launch
-- [ ] **Hours conflict.** The old home page says 10am–6pm by appointment; the old Contact page says Mon–Fri 9am–7pm. The new site uses the Contact page hours.
 - [ ] **Wire the contact/careers API routes** to a real destination (email, CRM, DB) instead of `console.log`, and add file upload (multer) for resumes.
 - [ ] **Images are hotlinked** from the old site's CDN (`img1.wsimg.com`). Download them into `/public` before the old site is cancelled.
 - [ ] **Copy review.** All text was rewritten. The clinic should check medical claims and FAQ answers.

@@ -3,6 +3,8 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var session = require('express-session');
+var crypto = require('crypto');
 
 module.exports.createServer = () => {
   const app = express();
@@ -11,6 +13,22 @@ module.exports.createServer = () => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());
+
+  // Session auth (CRM login). MemoryStore is fine for a single-process prototype;
+  // use a persistent store (e.g. connect-redis) for production.
+  const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+  if (!process.env.SESSION_SECRET) {
+    console.warn('[session] SESSION_SECRET not set; using a random secret (sessions reset on restart).');
+  }
+  const isProd = process.env.NODE_ENV === 'production';
+  if (isProd) app.set('trust proxy', 1);
+  app.use(session({
+    name: 'nouvelle.sid',
+    secret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax', secure: isProd, maxAge: 1000 * 60 * 60 * 8 },
+  }));
 
   require('./config/routes')(app);
 

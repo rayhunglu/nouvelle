@@ -1,5 +1,4 @@
-// Business details. Hours follow the original Contact page; the original home page
-// lists "10am–6pm, by appointment" — confirm with the clinic which is current.
+// Business details.
 export const business = {
   name: 'Nouvelle Anti-Aging Center',
   phone: '(425) 598-1111',
@@ -15,9 +14,7 @@ export const business = {
     },
   ],
   hours: [
-    { day: { en: 'Monday – Friday', zh: '周一至周五' }, time: { en: '9:00 am – 7:00 pm', zh: '上午 9:00 – 晚上 7:00' } },
-    { day: { en: 'Saturday', zh: '周六' }, time: { en: 'By appointment', zh: '需预约' } },
-    { day: { en: 'Sunday', zh: '周日' }, time: { en: 'Closed', zh: '休息' } },
+    { day: { en: 'Monday – Sunday', zh: '周一至周日' }, time: { en: '10:00 am – 7:00 pm', zh: '上午 10:00 – 晚上 7:00' } },
   ],
   holidayNote: { en: 'Closed on major holidays.', zh: '重大节日休息。' },
 }
@@ -41,7 +38,7 @@ export const categories = [
       en: 'Precise, conservative injectable work that softens lines, restores volume and defines your contours — without surgery or long recovery.',
       zh: '精准、适度的注射美容，淡化细纹、恢复饱满、勾勒轮廓——无需手术，恢复期短。',
     },
-    cover: img('Botox%20Ad.jpg'),
+    cover: '/images/services/injectables.jpg',
     treatments: [
       {
         name: { en: 'Botox', zh: '肉毒杆菌素注射' },
@@ -112,7 +109,7 @@ export const categories = [
       en: 'Medical-grade devices for tightening, resurfacing and correcting pigment — matched to your skin type and goals.',
       zh: '医疗级设备，紧致、焕肤、祛斑——根据您的肤质与目标量身选择。',
     },
-    cover: img('Thermage%20flx%205th.jpg'),
+    cover: '/images/services/skin.jpg',
     treatments: [
       {
         name: { en: 'Thermage FLX (5th Gen)', zh: '热玛吉第五代' },
@@ -214,7 +211,7 @@ export const categories = [
       en: 'Healthy hair starts at the scalp. Our programs combine deep cleansing with regenerative therapies to support growth.',
       zh: '健康秀发从头皮开始。我们结合深层清洁与再生疗法，促进毛发生长。',
     },
-    cover: img('PRP%20Hair%20Restoration-cf4ad73.jpg'),
+    cover: '/images/services/hair.jpg',
     treatments: [
       {
         name: { en: 'HydraFacial Keravive', zh: '水动力头皮毛囊深层清洁' },
@@ -254,7 +251,7 @@ export const categories = [
       en: 'Non-surgical contouring for the areas diet and exercise can’t reach. Not weight loss — shape.',
       zh: '针对饮食与运动难以改善的部位，非手术塑形。不是减重，而是塑造线条。',
     },
-    cover: img('Emsculpt_POST_July-Calendar_13072020_EN100_LI.png'),
+    cover: '/images/services/body.jpg',
     treatments: [
       {
         name: { en: 'EMSculpt', zh: '磁波塑肌燃脂' },
@@ -292,7 +289,7 @@ export const categories = [
       en: 'Anti-aging from the inside out — therapies that support energy, recovery and long-term vitality.',
       zh: '由内而外的抗衰老——提升能量、促进修复、长久保持活力。',
     },
-    cover: img('Oxyair.jpg'),
+    cover: '/images/services/wellness.jpg',
     treatments: [
       {
         name: { en: 'Hyperbaric Oxygen Therapy (HBOT)', zh: '高压氧舱全身抗衰' },
@@ -323,7 +320,7 @@ export const categories = [
       en: 'IV infusions deliver vitamins and NAD+ directly into the bloodstream for full absorption — supporting cellular energy and overall wellbeing.',
       zh: '静脉输注将维生素与 NAD+ 直接送入血液，充分吸收，支持细胞能量与整体健康。',
     },
-    cover: img('Image_20230810232053.jpg'),
+    cover: '/images/services/iv-therapy.jpg',
     treatments: [
       {
         name: { en: 'NAD+ IV', zh: 'NAD+ 静脉注射' },
@@ -354,7 +351,7 @@ export const categories = [
       en: 'Hormones regulate nearly every system in the body and decline with age. Restoring balance — and harnessing regenerative medicine — addresses aging at its root.',
       zh: '荷尔蒙调控人体几乎所有系统，并随年龄下降。恢复平衡、结合再生医学，从根源应对衰老。',
     },
-    cover: img('Hormone%20Level.png'),
+    cover: '/images/services/hormone-stem-cell.jpg',
     treatments: [
       {
         name: { en: 'Hormone Balance Therapy', zh: '荷尔蒙平衡补充治疗' },
@@ -392,7 +389,7 @@ export const categories = [
       en: 'Restorative facials and body treatments for skin that looks — and feels — its healthiest.',
       zh: '修护型面部与身体护理，让肌肤由内而外焕发健康光彩。',
     },
-    cover: img('skin%20treat.jpg'),
+    cover: '/images/services/spa.jpg',
     treatments: [
       {
         name: { en: 'Facial Skin Care', zh: '面部皮肤护理' },
@@ -422,7 +419,7 @@ export const categories = [
       en: 'Semi-permanent makeup takes both precise technique and a strong aesthetic eye. Wake up with brows designed for your face.',
       zh: '半永久纹绣需要精准技术与出色审美。每天醒来，都拥有专属于您的眉形。',
     },
-    cover: img('Coco%20Zhu.jpg'),
+    cover: '/images/services/microblading.jpg',
     artist: {
       name: 'Coco Zhu',
       image: img('Coco%20Zhu.jpg', 700),
@@ -452,83 +449,134 @@ export const categories = [
       en: 'Hands-on facial care from our skincare specialists — cleansing, hydration, repair and contouring tailored to your skin.',
       zh: '护肤专家亲手呵护——清洁、补水、修复与轮廓管理，依肤质量身定制。',
     },
-    cover: img('skin%20treat.jpg'),
+    cover: '/images/services/skincare-experts.jpg',
     treatments: [
       {
-        id: "japanese-face-correction",
-        name: {
-          en: "Japanese Hand-Sculpted Face Slimming",
-          zh: "日式小颜徒手矫正"
-        },
-        short: {
-          en: "Hands-on lymphatic drainage and contour sculpting.",
-          zh: "徒手淋巴引流与轮廓塑形。"
-        },
-        body: {
-          en: "A hands-on technique inspired by Japanese facial massage. Firm yet relaxing movements release muscle tension, encourage circulation and lymphatic drainage, and help the face look more defined and less puffy — no needles, no devices.",
-          zh: "源自日式面部按摩的徒手技法。以扎实而放松的手法释放肌肉紧张、促进循环与淋巴引流，让脸部线条更分明、浮肿感减少——无针、无仪器。"
-        },
-        bullets: {
-          en: [
-            "Less puffiness and facial tension",
-            "Better-defined jawline and cheeks",
-            "Brighter, smoother-looking skin",
-            "Deep relaxation"
-          ],
-          zh: [
-            "减轻浮肿与面部紧绷",
-            "下颌线与面颊轮廓更分明",
-            "肤色更透亮、质地更细腻",
-            "深度放松"
-          ]
-        },
-        steps: {
-          en: [
-            "Consultation to assess face shape, muscle tension and skin type",
-            "Deep massage and lymphatic drainage",
-            "Contour sculpting along the jaw, cheeks and eye area",
-            "Finishing skin care matched to your skin — cleansing, hydration or brightening"
-          ],
-          zh: [
-            "咨询并评估脸型、肌肉紧张度与肤质",
-            "深层按摩与淋巴引流",
-            "针对下颌、面颊与眼周的轮廓塑形",
-            "依肤质搭配收尾护理——清洁、补水或提亮"
-          ]
-        },
-        facts: [
-          {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
-            },
-            value: {
-              en: "About an hour — ask when booking",
-              zh: "约一小时，预约时可咨询"
-            }
-          },
-          {
-            label: {
-              en: "Best for",
-              zh: "适合"
-            },
-            value: {
-              en: "Puffy, tense or tired-looking faces; a pre-event refresh",
-              zh: "浮肿、紧绷或疲惫的脸部；重要场合前的焕颜"
-            }
-          },
-          {
-            label: {
-              en: "Good to know",
-              zh: "温馨提示"
-            },
-            value: {
-              en: "Effects are temporary; regular sessions help maintain them.",
-              zh: "效果为暂时性，定期护理有助维持。"
-            }
-          }
+      id: "japanese-face-correction",
+      name: {
+        en: "Japanese Hand-Sculpted Face Slimming",
+        zh: "日式小颜徒手矫正"
+      },
+      short: {
+        en: "Hands-on lymphatic drainage and contour sculpting.",
+        zh: "徒手淋巴引流与轮廓塑形。"
+      },
+      body: {
+        en: "Authentic Japanese hand-sculpted face slimming by a specialist with over 10 years of experience in Japan — no need to fly to Tokyo. Using only hands, the treatment drains the lymphatic system, relaxes the fascia and rebalances the facial muscles, helping the face look lifted, more symmetrical and less puffy.",
+        zh: "纯正日式小颜矫正，由在日本拥有 10 年以上经验的专业徒手师操作——不用飞东京，在西雅图就能体验。仅以双手，促进淋巴排毒、放松筋膜、平衡左右脸筋骨，让脸部更显提拉、对称、不浮肿。"
+      },
+      poster: "/images/skincare/japanese-face-correction.jpg",
+      bullets: {
+        en: [
+          "Promotes lymphatic drainage and circulation",
+          "Improves uneven face size and left–right asymmetry",
+          "Reduces facial laxity and water retention",
+          "Refines contours and brightens skin tone"
+        ],
+        zh: [
+          "促进淋巴排毒、改善气血",
+          "改善大小脸、左右不对称",
+          "改善面部松弛、祛除水肿",
+          "改善脸部轮廓、焕亮肤色"
         ]
       },
+      packages: [
+        {
+          name: {
+            en: "Japanese Face Slimming · 60 min",
+            zh: "日式小颜 60 分钟"
+          },
+          price: "$158",
+          was: "$188",
+          tag: {
+            en: "First-visit offer",
+            zh: "初次体验"
+          },
+          perks: {
+            en: [
+              "Brightens skin tone",
+              "Reduces puffiness",
+              "Whitening and hydration"
+            ],
+            zh: [
+              "提亮肤色",
+              "去除浮肿",
+              "美白补水"
+            ]
+          },
+          steps: {
+            en: [
+              "Shoulder, neck and collarbone lymphatic drainage",
+              "Fascia release + left–right facial muscle and bone balancing",
+              "Hydrating mask + deep nutrient infusion"
+            ],
+            zh: [
+              "肩颈锁骨淋巴排毒",
+              "筋膜放松 + 左右脸筋骨平衡",
+              "保湿补水面膜 + 深层营养导入"
+            ]
+          }
+        },
+        {
+          name: {
+            en: "Japanese Face Slimming · 90 min",
+            zh: "日式小颜 90 分钟"
+          },
+          price: "$198",
+          was: "$248",
+          tag: {
+            en: "First-visit offer",
+            zh: "初次体验"
+          },
+          perks: {
+            en: [
+              "Lymphatic drainage",
+              "Firming and lifting",
+              "Softens nasolabial lines"
+            ],
+            zh: [
+              "淋巴排毒",
+              "紧致提升",
+              "改善法令纹"
+            ]
+          },
+          steps: {
+            en: [
+              "Shoulder, neck, collarbone, underarm and both-arm lymphatic drainage",
+              "Fascia release + left–right facial muscle and bone balancing",
+              "Plaster mask shaping + deep nutrient infusion"
+            ],
+            zh: [
+              "肩颈锁骨腋下双臂淋巴排毒",
+              "筋膜放松 + 左右脸筋骨平衡",
+              "石膏面膜定型 + 深层营养导入"
+            ]
+          }
+        }
+      ],
+      facts: [
+        {
+          label: {
+            en: "Best for",
+            zh: "适合"
+          },
+          value: {
+            en: "Uneven or asymmetrical face, puffiness, laxity, a dull complexion",
+            zh: "大小脸、左右不对称、浮肿、松弛、肤色暗沉"
+          }
+        },
+        {
+          label: {
+            en: "Good to know",
+            zh: "温馨提示"
+          },
+          value: {
+            en: "Prices shown are first-visit offers and may change. Call us to book.",
+            zh: "所示价格为初次体验优惠，可能调整，请来电预约确认。"
+          }
+        }
+      ]
+    },
       {
         id: "skinceuticals-cleanse-hydrate",
         name: {
@@ -1003,7 +1051,7 @@ export const categories = [
       en: 'Wake up with fuller, more defined eyes. Choose a natural classic set or a dramatic volume set — all designed around your eye shape.',
       zh: '拥有更浓密、更有神的双眼。无论是自然经典款还是华丽浓密款，都依您的眼型量身设计。',
     },
-    cover: '/images/gallery/room-2.jpg',
+    cover: '/images/services/lash.jpg',
     treatments: [
       {
         id: "classic-lashes",
@@ -1307,7 +1355,7 @@ export const categories = [
       en: 'Unwind and renew. Our spa treatments pair skin-smoothing care with deep relaxation — from head to toe.',
       zh: '放松与焕新。我们的 Spa 结合肌肤保养与深度放松，从头到脚全面呵护。',
     },
-    cover: '/images/gallery/room-3.jpg',
+    cover: '/images/services/spa-care.jpg',
     treatments: [
       {
         id: "body-spa",
@@ -1465,7 +1513,100 @@ export const categories = [
   },
 ]
 
+// Display order for the home grid, treatments page and menus (anything not listed follows).
+const ORDER = [
+  'injectables', // 除皱
+  'skin', // 皮肤抗衰
+  'skincare-experts', // 护肤
+  'body', // 身体塑形
+  'iv-therapy', // 营养针
+  'hormone-stem-cell', // 荷尔蒙
+  'lash', // 睫毛
+  'microblading', // 纹眉
+  'spa-care', // Spa
+  'hair', // 生发
+]
+const rank = (c) => (ORDER.includes(c.slug) ? ORDER.indexOf(c.slug) : ORDER.length)
+categories.sort((a, b) => rank(a) - rank(b)) // stable: unlisted keep their original order
+
+// Every treatment gets a stable key (its id, or "<category>-<n>") used by the
+// "Consult" buttons to pre-select the service on the Contact form.
+// Photos per treatment, keyed by treatment key. Cards with steps/packages (detail layout)
+// get a `photo` shown under the title; cards that already had an `image` get it replaced.
+// The hand-picked Japanese face-slimming poster is intentionally not listed here.
+const TREATMENT_PHOTOS = {
+  'injectables-1': '/images/treatments/injectables-1.jpg',
+  'injectables-2': '/images/treatments/injectables-2.jpg',
+  'injectables-3': '/images/treatments/injectables-3.jpg',
+  'injectables-4': '/images/treatments/injectables-4.jpg',
+  'injectables-5': '/images/treatments/injectables-5.jpg',
+  'injectables-6': '/images/treatments/injectables-6.jpg',
+  'skin-1': '/images/treatments/skin-1.jpg',
+  'skin-2': '/images/treatments/skin-2.jpg',
+  'skin-3': '/images/treatments/skin-3.jpg',
+  'skin-4': '/images/treatments/skin-4.jpg',
+  'skin-5': '/images/treatments/skin-5.jpg',
+  'skin-6': '/images/treatments/skin-6.jpg',
+  'skin-7': '/images/treatments/skin-7.jpg',
+  'skin-8': '/images/treatments/skin-8.jpg',
+  'skin-9': '/images/treatments/skin-9.jpg',
+  'skin-10': '/images/treatments/skin-10.jpg',
+  'hair-1': '/images/treatments/hair-1.jpg',
+  'hair-2': '/images/treatments/hair-2.jpg',
+  'hair-3': '/images/treatments/hair-3.jpg',
+  'body-1': '/images/treatments/body-1.jpg',
+  'body-2': '/images/treatments/body-2.jpg',
+  'body-3': '/images/treatments/body-3.jpg',
+  'wellness-2': '/images/treatments/wellness-2.jpg',
+  'iv-therapy-1': '/images/treatments/iv-therapy-1.jpg',
+  'iv-therapy-2': '/images/treatments/iv-therapy-2.jpg',
+  'hormone-stem-cell-1': '/images/treatments/hormone-stem-cell-1.jpg',
+  'hormone-stem-cell-2': '/images/treatments/hormone-stem-cell-2.jpg',
+  'spa-1': '/images/treatments/spa-1.jpg',
+  'spa-2': '/images/treatments/spa-2.jpg',
+  'skinceuticals-cleanse-hydrate': '/images/treatments/skinceuticals-cleanse-hydrate.jpg',
+  'skinceuticals-nourish-repair': '/images/treatments/skinceuticals-nourish-repair.jpg',
+  'rejuran-brightening': '/images/treatments/rejuran-brightening.jpg',
+  'rejuran-v-face': '/images/treatments/rejuran-v-face.jpg',
+  'gua-sha': '/images/treatments/gua-sha.jpg',
+  'acne-clearing': '/images/treatments/acne-clearing.jpg',
+  'classic-lashes': '/images/treatments/classic-lashes.jpg',
+  'hybrid-lashes': '/images/treatments/hybrid-lashes.jpg',
+  'volume-lashes': '/images/treatments/volume-lashes.jpg',
+  'lash-fills': '/images/treatments/lash-fills.jpg',
+  'body-spa': '/images/treatments/body-spa.jpg',
+  'head-spa': '/images/treatments/head-spa.jpg',
+  'wellness-1': '/images/gallery/room-hbot.jpg', // the clinic's own HBOT room
+}
+
+categories.forEach((c) => c.treatments.forEach((x, i) => {
+  x.key = x.id || `${c.slug}-${i + 1}`
+  const photo = TREATMENT_PHOTOS[x.key]
+  if (!photo) return
+  if (x.image) x.image = photo
+  else if (x.steps || x.packages) x.photo = photo
+}))
+
 export const getCategory = (slug) => categories.find((c) => c.slug === slug)
+
+// Contact-form choices, two levels: top-level menu group, then its services.
+// Medical has several categories, so its services are sub-headed by category.
+const GROUPS = [
+  { id: 'medical', name: { en: 'Medical Treatments', zh: '医美疗程' } },
+  { id: 'skincare', name: { en: 'Skincare Experts', zh: '护肤专家' } },
+  { id: 'spa', name: { en: 'Spa', zh: 'Spa' } },
+  { id: 'lash', name: { en: 'Lashes', zh: '美睫' } },
+]
+export const serviceGroups = GROUPS.map((g) => ({
+  ...g,
+  sections: categories
+    .filter((c) => c.group === g.id)
+    .map((c) => ({
+      slug: c.slug,
+      name: c.name,
+      items: c.treatments.map((x) => ({ key: x.key, name: x.name, value: `${c.name.zh} · ${x.name.zh}` })),
+    })),
+}))
 
 // Gallery: clinic photos stored in /public/images/gallery (copied from the old site).
 export const galleryPhotos = [
@@ -1488,3 +1629,9 @@ export const galleryPhotos = [
   { src: '/images/gallery/shine-class-1.jpg', caption: { en: 'Shine class', zh: 'Shine 课程' } },
   { src: '/images/gallery/shine-class-3.jpg', caption: { en: 'Shine class', zh: 'Shine 课程' } },
 ]
+
+// Before & after photos copied from the old site (stored in /public/images/before-after).
+export const beforeAfterPhotos = Array.from({ length: 13 }, (_, i) => ({
+  src: `/images/before-after/ba-${String(i + 1).padStart(2, '0')}.jpg`,
+  caption: { en: 'Before & After', zh: '前后对比' },
+}))
