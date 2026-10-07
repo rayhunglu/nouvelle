@@ -113,12 +113,12 @@ export default function Header() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white text-ink shadow-[0_1px_0_rgba(43,36,32,0.08)]">
       <div className="flex h-20 w-full items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-baseline gap-2" aria-label="Nouvelle Anti-Aging home">
-          <span className="font-display text-2xl tracking-tight">Nouvelle</span>
-          <span className="hidden text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-gold sm:inline">Anti-Aging</span>
+        <Link to="/" className="flex shrink-0 items-center" aria-label="Nouvelle Anti-Aging home">
+          <img src="/images/logo.jpg" alt="Nouvelle Anti-Aging" className="h-9 w-auto sm:h-11" />
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
+          <NavLink to="/about" className={linkCls}>{t(ui.nav.about)}</NavLink>
           <ServiceDropdown label={t(ui.nav.medical)} items={medicalItems} linkCls={linkCls} />
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />
           <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
@@ -151,6 +151,7 @@ export default function Header() {
       {open && (
         <div className="h-[calc(100dvh-5rem)] overflow-y-auto border-t border-ink/10 bg-white lg:hidden">
           <nav className="container-x flex flex-col pb-24 pt-2">
+            <NavLink to="/about" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.about)}</NavLink>
             <MobileGroup label={t(ui.nav.medical)} items={medicalItems} />
             <MobileGroup label={t(ui.nav.skincare)} items={skincareItems} />
             <MobileGroup label={t(ui.nav.spa)} items={spaItems} />

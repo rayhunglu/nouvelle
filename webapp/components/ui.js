@@ -2,6 +2,7 @@
 export const ui = {
   nav: {
     home: { en: 'Home', zh: '首页' },
+    about: { en: 'About Us', zh: '关于我们' },
     services: { en: 'Treatments', zh: '服务项目' },
     medical: { en: 'Medical Treatments', zh: '医美项目' },
     skincare: { en: 'Skincare Experts', zh: '护肤项目' },

@@ -99,7 +99,7 @@ export default function Home() {
         <Reveal className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="eyebrow mb-4">{t(ui.nav.services)}</p>
-            <h2 className="max-w-xl font-display text-4xl font-light leading-tight sm:text-5xl">
+            <h2 className={`font-display text-4xl font-light leading-tight sm:text-5xl ${lang === 'zh' ? 'md:whitespace-nowrap' : 'max-w-xl'}`}>
               {t({ en: 'Everything you need to look and feel your best.', zh: '由内而外，焕发最佳状态。' })}
             </h2>
           </div>

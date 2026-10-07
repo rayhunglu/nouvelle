@@ -24,6 +24,7 @@ export default function Footer() {
             <Phone size={16} /> {business.phone}
           </a>
           <div className="mt-6 flex gap-4 text-sm">
+            <Link to="/about" className="hover:text-ivory">{t(ui.nav.about)}</Link>
             <Link to="/gallery" className="hover:text-ivory">{t(ui.nav.gallery)}</Link>
             <Link to="/faq" className="hover:text-ivory">{t(ui.nav.faq)}</Link>
             <Link to="/contact" className="hover:text-ivory">{t(ui.nav.contact)}</Link>

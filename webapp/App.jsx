@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
+import About from './pages/About'
 import Treatments from './pages/Treatments'
 import Category from './pages/Category'
 import Gallery from './pages/Gallery'
@@ -54,6 +55,7 @@ export default function App() {
         {/* Public website */}
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
           <Route path="/treatments" element={<Treatments />} />
           {/* Retired category URLs → where those treatments live now */}
           <Route path="/treatments/skin" element={<Navigate to="/treatments/devices" replace />} />
