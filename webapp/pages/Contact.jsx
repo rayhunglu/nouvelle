@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { CheckCircle2, Clock, MapPin, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
-import { business, serviceGroups } from '../data/site'
+import { business, categories, serviceGroups } from '../data/site'
 import { clearConsultService, getConsultService, setConsultService } from '../consult'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
@@ -9,13 +10,14 @@ import Reveal from '../components/Reveal'
 
 const field = 'w-full rounded-2xl border border-ink/10 bg-ivory px-4 py-3.5 outline-none transition focus:border-gold'
 
-function useApiSubmit(endpoint, onSuccess) {
+function useApiSubmit(endpoint, onSuccess, transform) {
   const [sent, setSent] = useState(false)
   const onSubmit = async (e) => {
     e.preventDefault()
-    const data = Object.fromEntries(
+    const raw = Object.fromEntries(
       [...new FormData(e.target).entries()].filter(([, v]) => typeof v === 'string')
     )
+    const data = transform ? transform(raw) : raw
     try {
       const res = await fetch(`/api/${endpoint}`, {
         method: 'POST',
@@ -42,9 +44,147 @@ function Sent({ text }) {
   )
 }
 
+// Online booking: choose a package (60 / 90 min services) or a style (lashes), a visit type, a date and a time.
+// First visit and returning member pay the same price; a returning non-member pays the regular price.
+const BOOKABLE = {
+  'japanese-face-correction': 'packages',
+  'skinceuticals-cleanse-hydrate': 'packages',
+  'rejuran-brightening': 'packages',
+  'gua-sha': 'packages',
+  'acne-clearing': 'packages',
+  'classic-lashes': 'styles',
+  'hybrid-lashes': 'styles',
+  'lash-fills': 'styles',
+}
+const treatmentByKey = (key) => categories.flatMap((c) => c.treatments).find((x) => x.key === key)
+const PACKAGE_MINUTES = [60, 90]
+const LASH_MINUTES = 120 // lash sets have no listed duration; start times leave two hours before closing
+const optionsFor = (key) => {
+  const item = treatmentByKey(key)
+  if (BOOKABLE[key] === 'packages') {
+    return item.packages.map((pk, i) => ({
+      name: pk.name,
+      sub: { en: pk.perks.en.join(' · '), zh: pk.perks.zh.join(' · ') },
+      first: pk.price,
+      member: pk.price,
+      return: pk.was,
+      minutes: PACKAGE_MINUTES[i],
+    }))
+  }
+  return item.prices.map((r, i) => ({
+    name: r.name,
+    sub: item.styles?.[i]?.body,
+    first: `$${r.member}`,
+    member: `$${r.member}`,
+    return: `$${r.single}`,
+    minutes: LASH_MINUTES,
+  }))
+}
+const VISITS = [
+  { key: 'first', label: { en: 'First visit', zh: '初次体验' } },
+  { key: 'member', label: { en: 'Returning member', zh: '会员再来' } },
+  { key: 'return', label: { en: 'Returning non-member', zh: '非会员再来' } },
+]
+const visitOf = (key) => VISITS.find((v) => v.key === key)
+const OPEN_MIN = 10 * 60
+const CLOSE_MIN = 19 * 60
+const pad = (n) => String(n).padStart(2, '0')
+const clock = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`
+const todayStr = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+const slotsFor = (minutes) => {
+  const out = []
+  for (let m = OPEN_MIN; m + minutes <= CLOSE_MIN; m += 30) out.push(clock(m))
+  return out
+}
+
+// What the visitor has picked: the option (package / style), its visit-type label and price.
+function bookingInfo(key, b) {
+  const opts = optionsFor(key)
+  const index = opts[b.pkg] ? b.pkg : 0
+  const opt = opts[index]
+  return { opt, index, visit: visitOf(b.visit), price: opt[b.visit] }
+}
+
+function bookingSummary(key, b, t) {
+  const { opt, visit, price } = bookingInfo(key, b)
+  return [
+    `【${t({ en: 'Booking', zh: '预约' })}】${t(opt.name)}`,
+    `${t({ en: 'Visit', zh: '到访类型' })}: ${t(visit.label)}`,
+    `${t({ en: 'Price', zh: '价格' })}: ${price}`,
+    `${t({ en: 'Date', zh: '日期' })}: ${b.date} ${b.time}`,
+  ].join(' | ')
+}
+
+function ServiceBooking({ serviceKey, value, onChange }) {
+  const { t } = useLang()
+  const opts = optionsFor(serviceKey)
+  const { opt, index, price } = bookingInfo(serviceKey, value)
+  const slots = slotsFor(opt.minutes)
+  const isStyles = BOOKABLE[serviceKey] === 'styles'
+  const set = (patch) => onChange({ ...value, ...patch })
+  const choose = 'cursor-pointer rounded-2xl border px-4 py-3 text-left transition'
+  const on = 'border-gold bg-gold/10'
+  const off = 'border-ink/10 bg-ivory hover:border-gold'
+  return (
+    <div className="space-y-5 rounded-[1.5rem] bg-sand p-5 sm:col-span-2 sm:p-6">
+      <div>
+        <p className="eyebrow mb-3">{isStyles ? t({ en: 'Style', zh: '选择款式' }) : t({ en: 'Package', zh: '选择套餐' })}</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {opts.map((o, i) => (
+            <button
+              type="button"
+              key={i}
+              aria-pressed={index === i}
+              onClick={() => set({ pkg: i, time: slotsFor(o.minutes).includes(value.time) ? value.time : '' })}
+              className={`${choose} ${index === i ? on : off}`}
+            >
+              <span className="block font-medium">{t(o.name)}</span>
+              {o.sub && <span className="mt-1 line-clamp-2 block text-sm text-muted">{t(o.sub)}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-3">{t({ en: 'Visit type', zh: '初次或再来' })}</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {VISITS.map((v) => (
+            <button type="button" key={v.key} aria-pressed={value.visit === v.key} onClick={() => set({ visit: v.key })} className={`${choose} flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-1 ${value.visit === v.key ? on : off}`}>
+              <span className="font-medium">{t(v.label)}</span>
+              <span className="font-display text-2xl">{opt[v.key]}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="eyebrow mb-2 block">{t({ en: 'Date', zh: '预约日期' })}</span>
+          <input required type="date" min={todayStr()} value={value.date} onChange={(e) => set({ date: e.target.value })} className={field} />
+        </label>
+        <label className="block">
+          <span className="eyebrow mb-2 block">{t({ en: 'Time', zh: '预约时间' })}</span>
+          <select required value={value.time} onChange={(e) => set({ time: e.target.value })} className={field}>
+            <option value="">{t({ en: 'Select a time…', zh: '选择时间…' })}</option>
+            {slots.map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </label>
+      </div>
+
+      <p className="flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-4">
+        <span className="text-sm text-muted">{t(opt.name)} · {t(visitOf(value.visit).label)}</span>
+        <span className="font-display text-3xl">{price}</span>
+      </p>
+      <p className="text-xs text-muted">{t({ en: 'Open 10:00 am – 7:00 pm. Our team will confirm your appointment by phone or email.', zh: '营业时间 10:00 – 19:00，我们会通过电话或邮件与您确认预约。' })}</p>
+    </div>
+  )
+}
+
 export default function Contact() {
   const { t } = useLang()
-  const [sent, onSubmit] = useApiSubmit('contact', clearConsultService)
   const [applied, onApply] = useApiSubmit('careers')
   const loc = business.locations[0]
 
@@ -67,6 +207,25 @@ export default function Contact() {
     if (item) setConsultService(item.key); else clearConsultService()
   }
   const activeGroup = serviceGroups.find((g) => g.id === group)
+
+  const [params] = useSearchParams()
+  const serviceItems = serviceGroups.flatMap((g) => g.sections.flatMap((sec) => sec.items))
+  const bookKey = Object.keys(BOOKABLE).find((k) => serviceItems.find((x) => x.key === k)?.value === interest) || ''
+  const pkgParam = Number(params.get('package'))
+  const [booking, setBooking] = useState({ pkg: Number.isInteger(pkgParam) && pkgParam > 0 ? pkgParam : 0, visit: 'first', date: '', time: '' })
+  const [sent, onSubmit] = useApiSubmit('contact', clearConsultService, (raw) => {
+    if (!bookKey) return raw
+    const { opt, visit, price } = bookingInfo(bookKey, booking)
+    return {
+      ...raw,
+      package: t(opt.name),
+      visitType: visit.key,
+      price,
+      date: booking.date,
+      time: booking.time,
+      message: [bookingSummary(bookKey, booking, t), raw.message].filter(Boolean).join('\n'),
+    }
+  })
   const formRef = useRef(null)
   useEffect(() => {
     if (preset) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -120,6 +279,7 @@ export default function Contact() {
                   : activeGroup.sections.flatMap((sec) => sec.items).map((x) => <option key={x.key} value={x.value}>{t(x.name)}</option>))}
               </select>
               <input type="hidden" name="interest" value={interest} />
+              {bookKey && <ServiceBooking key={bookKey} serviceKey={bookKey} value={booking} onChange={setBooking} />}
               <textarea name="message" rows={5} placeholder={t({ en: 'How can we help?', zh: '请留言…' })} className={`${field} sm:col-span-2`} />
               <button className="btn-primary sm:col-span-2 sm:justify-self-start">{t({ en: 'Send message', zh: '发送' })}</button>
             </form>

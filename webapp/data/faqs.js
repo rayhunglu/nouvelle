@@ -232,7 +232,7 @@ const bookingAnswer = L(
 
 function autoItems(item, hasHand) {
   const out = []
-  if (!hasHand) {
+  if (!hasHand && item.body) {
     out.push({ q: L(`What is ${item.name.en}?`, `什么是${item.name.zh}？`), a: item.body })
   }
   if (item.bullets) {
@@ -254,8 +254,8 @@ function autoItems(item, hasHand) {
     out.push({
       q: L('What options and prices are available?', '有哪些方案和价格？'),
       a: {
-        en: item.packages.map((p) => `${p.name.en}: ${p.price} (regular ${p.was}), ${p.tag.en}`).join('; ') + '.',
-        zh: item.packages.map((p) => `${p.name.zh}：${p.price}（原价 ${p.was}），${p.tag.zh}`).join('；') + '。',
+        en: item.packages.map((p) => `${p.name.en}: ${p.price}${p.was ? ` (regular ${p.was})` : ''}${p.tag ? `, ${p.tag.en}` : ''}`).join('; ') + '.',
+        zh: item.packages.map((p) => `${p.name.zh}：${p.price}${p.was ? `（原价 ${p.was}）` : ''}${p.tag ? `，${p.tag.zh}` : ''}`).join('；') + '。',
       },
     })
   }

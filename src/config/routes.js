@@ -8,6 +8,11 @@ const REST_PREFIX = '/api';
 const CRM_PREFIX = `${REST_PREFIX}/crm`;
 
 module.exports = (app) => {
+  // Health check: answers JSON only when this Express app is the one serving the request.
+  app.get(`${REST_PREFIX}/hello`, (req, res) => {
+    res.json({ message: 'hello from express', time: new Date().toISOString() });
+  });
+
   // Public website endpoints
   app.post(`${REST_PREFIX}/contact`, contact.postMessage);
   app.post(`${REST_PREFIX}/careers`, contact.postApplication);

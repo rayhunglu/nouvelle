@@ -41,50 +41,162 @@ const baseCategories = [
     treatments: [
       {
         name: { en: 'Botox', zh: '肉毒杆菌素注射' },
+        subtitle: { en: '', zh: 'BOTULINUM TOXIN INJECTION' },
         image: img('Botox%20Ad.jpg'),
-        body: {
-          en: 'A quick neuromodulator treatment that relaxes the muscles behind expression lines — smoothing forehead lines, frown lines and crow’s feet, and gently slimming the jaw.',
-          zh: '通过放松导致表情纹的肌肉，抚平抬头纹、川字纹与鱼尾纹，并可温和瘦脸。',
+        more: [
+          {
+            en: 'The focus is on natural, precise and personalised results — improving lines and contours while keeping your expressions natural and lively.',
+            zh: '强调自然、精准与个性化，在改善纹路与轮廓的同时，尽可能保留自然生动的面部表情。',
+          },
+        ],
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Soften dynamic lines | Improves forehead lines, crow’s feet and other expression lines", "Relax the masseter | Softens the jaw contour", "Refined chin | Smooths dimpling and tension", "Improve the neck line | Refines the neck and jawline", "Natural rejuvenation | A more relaxed, youthful overall look"], zh: ["淡化动态纹｜改善抬头纹鱼尾纹等表情纹", "放松咬肌｜使下颌轮廓更柔和", "精致下巴｜改善凹凸感与紧张感", "改善颈部线条｜优化颈部及下颌缘视觉线条", "自然年轻化｜让整体状态更舒展、年轻"] },
+          },
+          {
+            title: { en: 'Treatment areas', zh: '适用部位' },
+            text: { en: 'Forehead lines | Frown lines | Crow’s feet | Masseter | Chin | Neck', zh: '抬头纹｜眉间纹｜鱼尾纹｜咬肌｜下巴｜颈部' },
+          },
+          {
+            title: { en: 'Brands', zh: '品牌选择' },
+            items: ['BOTOX® 保妥适', 'XEOMIN® 德国西马'],
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Precise placement · Personalised dosing · Natural expression · Contour refinement', zh: '精准定点 · 个性化剂量 · 自然表情 · 轮廓优化' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, dose and treatment areas are determined after an in-person assessment by a qualified medical professional.',
+          zh: '治疗方案、注射剂量及适用部位需根据个人情况，经专业医疗人员面诊评估后确定。',
         },
         faq: 'botox',
       },
       {
         name: { en: 'Dermal Filler', zh: '玻尿酸微调注射' },
+        subtitle: { en: '', zh: 'HYALURONIC ACID INJECTION' },
         image: img('Revance%20RHA%202%203%204.jpg'),
         body: {
-          en: 'Hyaluronic-acid fillers restore lost volume and sculpt facial structure. The body absorbs them gradually and naturally over time.',
-          zh: '玻尿酸填充剂恢复流失的容量、塑造面部轮廓，会被人体自然缓慢吸收。',
+          en: 'Natural, refined and harmonious: personalised fine-tuning replenishes facial volume and balances contour proportions, for softer, more dimensional lines overall.',
+          zh: '强调自然、精细与协调，通过个性化微调补充面部容量、修饰轮廓比例，让整体线条更加柔和立体。',
         },
-        bullets: {
-          en: ['Fuller lips', 'Defined cheekbones', 'Under-eye hollows', 'Sharper jawline', 'Chin projection', 'Softer nasal lines'],
-          zh: ['丰唇', '提升颧骨线条', '改善泪沟眼袋', '凸显下颌线', '丰下巴', '淡化鼻部纹路'],
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Fill hollows | Improves volume loss and local hollowing", "Soften lines | Improves static lines such as nasolabial folds", "Contour sculpting | Refines the nose, chin and facial lines", "Fullness and dimension | Enhances fullness of the lips, cheeks and more", "Natural rejuvenation | Improves overall proportions and refinement"], zh: ["填充凹陷｜改善面部容量流失与局部凹陷", "柔化纹路｜改善法令纹等静态纹路", "轮廓塑形｜优化鼻部、下巴及面部线条", "丰盈立体｜提升唇部、苹果肌等部位饱满度", "自然年轻化｜改善整体比例与面部精致度"] },
+          },
+          {
+            title: { en: 'Treatment areas', zh: '适用部位' },
+            text: { en: 'Tear troughs | Nasolabial folds | Nose | Lips | Chin | Cheeks | Facial contour', zh: '泪沟｜法令纹｜鼻部｜唇部｜下巴｜苹果肌｜面部轮廓' },
+          },
+          {
+            title: { en: 'Brands', zh: '品牌选择' },
+            items: ['JUVÉDERM® 乔雅登', 'Restylane® 瑞蓝', 'RHA® by Revance', 'Neuramis®'],
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Precise fine-tuning · Personalised sculpting · Natural dimension · Contour refinement', zh: '精准微调 · 个性化塑形 · 自然立体 · 轮廓优化' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, dose and treatment areas are determined after an in-person assessment by a qualified medical professional.',
+          zh: '治疗方案、注射剂量及适用部位需根据个人情况，经专业医疗人员面诊评估后确定。',
         },
         faq: 'dermal-filler',
       },
       {
         name: { en: 'Belkyra (Kybella)', zh: '双下巴溶脂' },
+        subtitle: { en: '', zh: 'KYBELLA® INJECTION' },
         image: img('Belkyra-Injectable-_-Kybella-Injectable_1.jpg'),
         body: {
-          en: 'An injectable form of deoxycholic acid that permanently breaks down fat cells under the chin, refining the profile without surgery.',
-          zh: '以脱氧胆酸注射分解下巴下方脂肪细胞，被分解的脂肪细胞不再回来，无需手术即可改善侧颜线条。',
+          en: 'Precisely targets fat in the submental area to reduce a double chin, refine the jawline and give the side profile a cleaner, sharper contour.',
+          zh: '针对下颏区域脂肪进行精准改善，帮助减少双下巴脂肪堆积，优化下颌线条，让侧脸轮廓更加清晰利落。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Reduce submental fat | Improves a double chin and local fat build-up", "Define the jawline | Sharpens the jaw contour", "Balance the side profile | Refines the line where the chin meets the neck", "Refined contour | Gives the whole face more defined lines"], zh: ["减少下颏脂肪｜改善双下巴及局部脂肪堆积", "清晰下颌线｜提升下颌轮廓清晰度", "优化侧脸比例｜改善下巴与颈部衔接线条", "轮廓精致化｜让整体面部线条更利落"] },
+          },
+          {
+            title: { en: 'Treatment area', zh: '适用部位' },
+            text: { en: 'Submental area (double chin)', zh: '下颏区域（双下巴）' },
+          },
+          {
+            title: { en: 'Brand', zh: '品牌选择' },
+            items: ['KYBELLA®'],
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Precise improvement · Non-surgical · Contour refinement · Personalised plan', zh: '精准改善 · 非手术方式 · 轮廓优化 · 个性化方案' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, number of sessions and dose are determined after an in-person assessment of the submental fat by a qualified medical professional.',
+          zh: '治疗方案、注射次数及剂量需根据下颏脂肪情况，经专业医疗人员面诊评估后确定。',
         },
         faq: 'belkyra',
       },
       {
         name: { en: 'Botox + Filler Contouring', zh: '面部轮廓塑形' },
+        subtitle: { en: '', zh: 'FACIAL CONTOURING' },
         image: img('Botox%20plus%20filler.jpg'),
         body: {
-          en: 'A combined plan that pairs muscle relaxation with targeted volume — a full-face approach for balanced, harmonious results.',
-          zh: '肉毒素与填充剂联合方案，整体规划面部，打造协调自然的轮廓。',
+          en: 'Combining neuromodulator and hyaluronic-acid filler, the plan is designed around your facial proportions, muscle movement and volume distribution — improving local areas while keeping the whole face in harmony for a natural, refined contour.',
+          zh: '结合肉毒素与玻尿酸填充剂，根据面部比例、肌肉动态与容量分布进行整体规划，改善局部的同时兼顾全脸协调，打造自然、精致的轮廓。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Optimise facial proportions | Balances the contour with the features overall", "Improve hollows | Restores volume for more dimension", "Soften dynamic lines | Eases expression lines and muscle tension", "Refined contour | Refines the chin, jawline and side profile", "Natural rejuvenation | Improves the overall look while keeping expressions natural"], zh: ["优化面部比例｜整体调整轮廓与五官协调度", "改善凹陷｜补充面部容量，提升立体感", "柔化动态纹｜改善表情纹与肌肉紧张感", "精致轮廓｜优化下巴、下颌线及侧脸线条", "自然年轻化｜改善整体状态，保留自然表情"] },
+          },
+          {
+            title: { en: 'Treatment areas', zh: '适用部位' },
+            text: { en: 'Forehead | Frown area | Eye area | Cheeks | Nose | Lips | Chin | Jawline | Neck', zh: '额头｜眉间｜眼周｜苹果肌｜鼻部｜唇部｜下巴｜下颌线｜颈部' },
+          },
+          {
+            title: { en: 'Combined plan', zh: '联合方案' },
+            items: {
+              en: ['BOTOX® / XEOMIN® neuromodulator', 'JUVÉDERM® / Restylane® / RHA® / Neuramis® fillers'],
+              zh: ['BOTOX® / XEOMIN® 肉毒素', 'JUVÉDERM® / Restylane® / RHA® / Neuramis® 填充剂'],
+            },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Full-face assessment · Combined design · Precise fine-tuning · Natural harmony', zh: '全脸评估 · 联合设计 · 精准微调 · 自然协调' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, product choice and dose are determined after an in-person assessment of your facial foundation by a qualified medical professional.',
+          zh: '治疗方案、产品选择及注射剂量需根据个人面部基础，经专业医疗人员面诊评估后确定。',
         },
         faq: 'botox-filler',
       },
       {
         name: { en: 'Silhouette InstaLift', zh: '铃铛童颜线面部提升' },
+        subtitle: { en: '', zh: 'THREAD LIFT' },
         image: img('Silhoutte%20Instalift.jpg'),
         body: {
-          en: 'A non-surgical, in-office lift using dissolvable sutures to reposition sagging skin along the cheeks and jawline, while stimulating collagen.',
-          zh: '非手术门诊疗程，以可吸收缝线提拉松弛的面颊与下颌线，同时刺激胶原蛋白再生。',
+          en: 'Absorbable threads lift and support the face, placed in a personalised pattern according to your degree of laxity and facial contour — improving sagging and a blurred contour for tighter, smoother, natural-looking lines.',
+          zh: '通过可吸收线材进行面部提升与支撑，根据松弛程度及面部轮廓进行个性化布线，改善下垂与轮廓模糊，让面部线条更加紧致、流畅自然。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Firming lift | Improves facial laxity and sagging", "Reshape the contour | Sharpens and refines the jawline", "Improve the mid and lower face | Refines the cheeks, mouth corners and cheek lines", "Stimulate collagen | Helps improve skin firmness and elasticity", "Natural rejuvenation | Improves the overall contour for a naturally lifted look"], zh: ["提升紧致｜改善面部松弛与下垂感", "重塑轮廓｜提升下颌线清晰度与精致感", "改善中下面部｜优化苹果肌、口角及面颊线条", "刺激胶原｜帮助提升肌肤紧实度与弹性", "自然年轻化｜改善整体轮廓，呈现自然提升感"] },
+          },
+          {
+            title: { en: 'Treatment areas', zh: '适用部位' },
+            text: { en: 'Cheeks | Mid-face | Mouth corners | Jawline | Chin | Neck', zh: '苹果肌｜面颊｜口角｜下颌线｜下巴｜颈部' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Personalised thread placement · Multi-layer lifting · Contour reshaping · Natural firming', zh: '个性化布线 · 多层次提升 · 轮廓重塑 · 自然紧致' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, number of threads and implant depth are determined after an in-person assessment of your facial foundation and degree of laxity by a qualified medical professional.',
+          zh: '治疗方案、线材数量及植入层次需根据个人面部基础与松弛程度，经专业医疗人员面诊评估后确定。',
         },
         faq: 'instalift',
       },
@@ -119,10 +231,33 @@ const baseCategories = [
       },
       {
         name: { en: 'Mesotherapy', zh: '水光针' },
+        subtitle: { en: '', zh: 'SKIN BOOSTER' },
         image: img('mesotherapy.jpg'),
         body: {
-          en: 'Micro-injections of vitamins, antioxidants and botanicals that hydrate, brighten and tighten the skin.',
-          zh: '微量注射维生素、抗氧化剂与植物精华，补水、提亮、紧致肌肤。',
+          en: 'A skin-booster plan tailored to your skin condition: suitable actives are delivered into the skin to improve dryness, dullness, roughness and loss of elasticity together, for healthy, dewy, radiant skin.',
+          zh: '根据不同肌肤状态定制水光方案，将适合的活性成分导入肌肤，针对干燥、暗沉、粗糙及弹性下降等问题进行综合改善，打造水润透亮的健康肤质。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Deep hydration | Improves dryness and boosts moisture", "Brighten the complexion | Improves dullness and restores a natural glow", "Repair the barrier | Helps stabilise the skin and strengthen its condition", "Refined texture | Improves roughness and softness", "Firm and revitalise | Improves elasticity and fine lines for a younger look"], zh: ["深层补水｜改善干燥缺水，提升水润度", "提亮肤色｜改善暗沉，恢复自然光泽", "修护屏障｜帮助稳定肤况，增强肌肤状态", "细腻肤质｜改善粗糙感，提升柔嫩度", "紧致焕活｜改善弹性与细纹，提升年轻感"] },
+          },
+          {
+            title: { en: 'Plan options', zh: '方案选择' },
+            items: { en: ["REJURAN® 丽珠兰 | Repair and renew · Improve skin quality", "FILORGA® 菲洛嘉 | Multi-nutrient · Hydrating and brightening", "Exosome plan | Repair and revitalise · Improve skin condition", "Regenerative repair plan | Tailored to different skin conditions", "Collagen plan | Collagen revitalisation · Firm and fine", "Brightening plan | Improve dullness · Even out skin tone"], zh: ["REJURAN® 丽珠兰｜修护焕肤 · 改善肤质", "FILORGA® 菲洛嘉｜多重营养 · 水润提亮", "外泌体方案｜修护焕活 · 改善肌肤状态", "再生修护方案｜针对不同肤况定制", "童颜方案｜胶原焕活 · 紧致细腻", "美白亮肤方案｜改善暗沉 · 均匀肤色"] },
+          },
+          {
+            title: { en: 'Suited skin conditions', zh: '适合肤况' },
+            text: { en: 'Dry and dehydrated | Dull | Rough texture | Fine lines and laxity | Visible pores | Weak barrier', zh: '干燥缺水｜暗沉无光｜肤质粗糙｜细纹松弛｜毛孔明显｜屏障状态不佳' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Personalised · Dewy radiance · Better skin quality · All-round rejuvenation', zh: '个性定制 · 水润焕亮 · 肤质改善 · 综合年轻化' },
+          },
+        ],
+        note: {
+          en: 'Products, ingredients, treatment method and course are determined after an in-person assessment of your skin by a qualified medical professional.',
+          zh: '具体产品、成分、治疗方式及疗程需根据个人肤质，经专业医疗人员面诊评估后确定。',
         },
       },
       {
@@ -221,10 +356,29 @@ const baseCategories = [
       },
       {
         name: { en: 'PRP Hair Restoration', zh: 'PRP 生发疗程' },
+        subtitle: { en: '', zh: 'PRP HAIR RESTORATION' },
         image: img('PRP%20Hair%20Restoration-cf4ad73.jpg'),
         body: {
-          en: 'Your own platelet-rich plasma — rich in growth factors — is applied to the scalp to stimulate follicles and support hair-transplant results.',
-          zh: '以您自身富含生长因子的富血小板血浆作用于头皮，激活毛囊、辅助植发效果。',
+          en: 'High-concentration platelet-rich plasma (PRP) is extracted from your own blood, and its rich growth factors act on the scalp and follicles — helping improve the scalp environment, strengthen follicle vitality and support healthier hair growth.',
+          zh: '采用自体血液提取高浓度富血小板血浆（PRP），利用其中丰富的生长因子作用于头皮及毛囊，帮助改善头皮环境、增强毛囊活力，促进更健康的头发生长。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Activate follicles | Improves follicle vitality and supports hair growth", "Improve hair loss | Helps reduce shedding and thinning", "Strengthen strands | Improves fine, soft hair and overall hair health", "Improve the scalp environment | Helps maintain a healthy environment for hair growth", "Fuller-looking hair | Gradually improves thinning"], zh: ["激活毛囊｜改善毛囊活力，促进头发生长", "改善脱发｜帮助减少掉发与头发稀疏", "强韧发丝｜改善细软发质，提升头发健康度", "改善头皮环境｜帮助维持健康的毛发生长环境", "提升发量视觉感｜逐步改善头发稀疏状态"] },
+          },
+          {
+            title: { en: 'Who it’s for', zh: '适合人群' },
+            text: { en: 'Thinning hair | Receding hairline | Fine, soft hair | Increased shedding | Some types of hair loss | Anyone who wants fuller hair overall', zh: '头发稀疏｜发际线后移｜头发细软｜掉发增多｜部分类型脱发｜希望改善整体发量者' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Autologous · Growth-factor revitalisation · Follicle care · Gradual improvement', zh: '自体提取 · 生长因子焕活 · 毛囊养护 · 渐进改善' },
+          },
+        ],
+        note: {
+          en: 'Treatment plan, number of sessions and intervals are determined after an in-person assessment of the cause of hair loss and the condition of your follicles and scalp by a qualified medical professional.',
+          zh: '治疗方案、疗程次数及治疗间隔需根据个人脱发原因、毛囊及头皮状态，经专业医疗人员面诊评估后确定。',
         },
         faq: 'prp',
       },
@@ -266,11 +420,30 @@ const baseCategories = [
         },
       },
       {
-        name: { en: 'Lipodissolve', zh: '皮下减脂消脂针' },
+        name: { en: 'Lipodissolve', zh: '皮下减脂塑形' },
+        subtitle: { en: '', zh: 'FAT REDUCTION INJECTION' },
         image: img('Lipodissolve.jpg'),
         body: {
-          en: 'Injections that dissolve small, stubborn fat pockets with virtually no downtime.',
-          zh: '注射溶解顽固局部脂肪，几乎无恢复期。',
+          en: 'Stubborn local fat is assessed individually, and an injection-based plan helps improve fat build-up and local contours for tighter, smoother body lines.',
+          zh: '针对局部顽固脂肪进行个性化评估，通过注射类方案辅助改善脂肪堆积与局部轮廓，使身体线条更加紧致、流畅。',
+        },
+        sections: [
+          {
+            title: { en: 'Key benefits', zh: '主要功效' },
+            items: { en: ["Improve local fat | Targets stubborn fat build-up", "Local contour sculpting | Refines body proportions and local lines", "Non-surgical | No traditional liposuction surgery needed", "Precise improvement | A personalised plan based on fat thickness", "Natural and gradual | The contour improves step by step over the course"], zh: ["改善局部脂肪｜针对顽固脂肪堆积进行改善", "局部轮廓塑形｜优化身体比例与局部线条", "非手术方式｜无需传统吸脂手术", "精细化改善｜根据脂肪厚度制定个性化方案", "自然渐进｜轮廓随疗程逐步改善"] },
+          },
+          {
+            title: { en: 'Common assessment areas', zh: '常见评估部位' },
+            text: { en: 'Submental area | Abdomen | Flanks | Upper arms | Thighs and other local fat areas', zh: '下颏｜腹部｜腰侧｜上臂｜大腿等局部脂肪区域' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Local fat reduction · Precise sculpting · Non-surgical plan · Personalised', zh: '局部减脂 · 精准塑形 · 非手术方案 · 个性化定制' },
+          },
+        ],
+        note: {
+          en: 'KYBELLA® (deoxycholic acid) is FDA-approved in the US for moderate to severe fat in the submental area (double chin) in adults. Other body areas such as the abdomen, flanks, arms and thighs are not FDA-approved indications of KYBELLA®. The exact treatment is determined after an in-person assessment by a qualified medical professional.',
+          zh: '美国 FDA 批准的 KYBELLA®（deoxycholic acid）适应症为改善成人下颏区域中度至重度脂肪（双下巴）；腹部、腰侧、手臂、大腿等身体部位并非 KYBELLA® 的 FDA 批准适应症。具体治疗方式需由专业医疗人员面诊评估后确定。',
         },
       },
     ],
@@ -297,10 +470,29 @@ const baseCategories = [
       },
       {
         name: { en: 'B-Complex Shots', zh: '维生素 B 群注射' },
+        subtitle: { en: '', zh: 'VITAMIN B COMPLEX INJECTION' },
         image: img('B%20Complex%20Inject.jpg'),
         body: {
-          en: 'A fast boost of the eight essential B vitamins (B1–B12) to support energy, mood and metabolism.',
-          zh: '快速补充八种必需 B 族维生素（B1–B12），提升精力、改善情绪、支持代谢。',
+          en: 'B vitamins are supplemented by injection, a more direct way to top up for people with specific nutritional needs, helping maintain normal energy metabolism, nervous-system and bodily function.',
+          zh: '通过注射方式补充维生素 B 群，为存在特定营养需求的人群提供更直接的补充方式，帮助维持正常的能量代谢、神经系统及身体机能。',
+        },
+        sections: [
+          {
+            title: { en: 'Key effects', zh: '主要作用' },
+            items: { en: ["Support energy metabolism | Involved in normal energy metabolism", "Support the nervous system | Helps maintain normal nervous-system function", "Nutritional supplementation | Provides the B vitamins you need, based on your situation", "Support red blood cell production | Some B vitamins take part in normal blood formation", "Maintain overall function | Supports normal physiological function and nutritional status"], zh: ["支持能量代谢｜参与人体正常能量代谢过程", "支持神经系统｜帮助维持正常神经系统功能", "营养补充｜针对个人情况补充所需 B 族维生素", "支持红细胞生成｜部分 B 族维生素参与正常造血功能", "维持整体机能｜支持身体正常生理功能与营养状态"] },
+          },
+          {
+            title: { en: 'Who it’s for', zh: '适合人群' },
+            text: { en: 'People with a B-vitamin need confirmed by professional assessment | Those with insufficient dietary intake | Those with a specific B-vitamin deficiency or poor absorption', zh: '经专业评估存在维生素 B 群补充需求者｜饮食摄入不足者｜特定维生素 B 缺乏或吸收不佳者' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Professional assessment · Personalised supplementation · Injectable delivery · Nutritional support', zh: '专业评估 · 个性化补充 · 注射给药 · 营养支持' },
+          },
+        ],
+        note: {
+          en: 'The exact ingredients, dose, injection method and whether treatment is suitable are determined by a qualified medical professional based on your health, medications and any necessary test results.',
+          zh: '具体成分、剂量、注射方式及是否适合治疗，需根据个人健康状况、用药情况及必要的检查结果，由专业医疗人员评估后确定。',
         },
       },
     ],
@@ -348,14 +540,33 @@ const baseCategories = [
     treatments: [
       {
         name: { en: 'Hormone Balance Therapy', zh: '荷尔蒙平衡补充治疗' },
+        subtitle: { en: '', zh: 'HORMONE REPLACEMENT THERAPY' },
         image: img('Hormone%20Level.png'),
         body: {
-          en: 'Natural hormone replacement guided by lab work. Balanced levels are linked to lower risk of osteoporosis, heart disease and diabetes.',
-          zh: '以化验为依据的天然荷尔蒙补充。平衡的荷尔蒙水平有助于降低骨质疏松、心脏病与糖尿病风险。',
+          en: 'Through professional assessment, symptom analysis and any necessary laboratory tests, a personalised hormone supplementation plan is designed to help ease discomfort caused by changing hormone levels and support bodily function and quality of life.',
+          zh: '通过专业评估、症状分析及必要的实验室检查，制定个性化荷尔蒙补充方案，帮助改善因荷尔蒙水平变化所带来的不适，支持身体机能与生活质量。',
         },
-        bullets: {
-          en: ['More lean muscle', 'Less body fat', 'Smaller waistline', 'Fewer wrinkles', 'Better libido', 'Relief from menopause symptoms'],
-          zh: ['肌肉增加', '脂肪减少', '腰围变小', '皱纹减少', '性生活改善', '缓解更年期症状'],
+        sections: [
+          {
+            title: { en: 'Key effects', zh: '主要作用' },
+            items: { en: ["Relieve menopausal symptoms | Helps ease hot flushes, night sweats and related discomfort", "Support sleep and mood | Improves some sleep and mood problems linked to hormone changes", "Maintain bone health | In specific cases helps reduce post-menopausal bone loss", "Male hormone management | Medical assessment and treatment for low testosterone confirmed by testing", "Personalised management | The plan is adjusted to your symptoms, age and test results"], zh: ["改善更年期症状｜帮助缓解潮热、盗汗等相关不适", "支持睡眠与情绪｜改善部分与荷尔蒙变化相关的睡眠及情绪问题", "维持骨骼健康｜特定情况下帮助降低绝经后骨质流失", "男性荷尔蒙管理｜针对经检查确认的睾酮水平不足进行医学评估与治疗", "个性化管理｜结合症状、年龄及检查结果调整治疗方案"] },
+          },
+          {
+            title: { en: 'Who it’s for', zh: '适合人群' },
+            text: { en: 'Women with menopause-related symptoms | Hormone changes in perimenopause | Women or men with a medically confirmed need for hormone therapy', zh: '女性更年期相关症状｜围绝经期荷尔蒙变化｜经医学检查确认存在荷尔蒙治疗需求的女性或男性' },
+          },
+          {
+            title: { en: 'Treatment methods', zh: '治疗方式' },
+            text: { en: 'Prescription oral medication | Transdermal patches / gels | Injectable therapy | Other FDA-approved options judged suitable by your doctor', zh: '处方口服药物｜经皮贴剂/凝胶｜注射治疗｜其他经医生评估适合的 FDA 批准治疗方案' },
+          },
+          {
+            title: { en: 'Highlights', zh: '项目特点' },
+            text: { en: 'Medical assessment · Laboratory tests · Personalised plan · Regular monitoring', zh: '医学评估 · 实验室检查 · 个性化方案 · 定期监测' },
+          },
+        ],
+        note: {
+          en: 'Hormone therapy is not suitable for everyone. The exact medication, dose, method of administration and course are determined by a qualified medical professional after a comprehensive assessment of your medical history, symptoms, test results and relevant risks.',
+          zh: '荷尔蒙治疗并非适合所有人。具体药物、剂量、给药方式及疗程需由专业医疗人员结合个人病史、症状、检查结果及相关风险进行综合评估后确定。',
         },
       },
       {
@@ -549,9 +760,34 @@ const baseCategories = [
       en: 'Hands-on facial care from our skincare specialists — cleansing, hydration, repair and contouring tailored to your skin.',
       zh: '护肤专家亲手呵护——清洁、补水、修复与轮廓管理，依肤质量身定制。',
     },
+    promo: {
+      zh: '初次体验即可享受会员价',
+      en: 'First-time guests enjoy member pricing',
+    },
     treatments: [
       {
       id: "japanese-face-correction",
+      artist: {
+        name: 'Rina',
+        role: { en: 'Senior Aesthetician', zh: '资深美容师' },
+        image: '/images/treatments/shared/rina-portrait.jpg',
+        bio: {
+          en: [
+            'Rina comes from Japan and has more than 10 years of professional face-contouring experience in Japan. She brings the quality of an authentic Japanese service straight to our treatment room.',
+            'Guided by a craftsman’s spirit, she works only with her hands — carefully reading each client’s facial structure, muscle tension and lymphatic flow, and adjusting her pressure and rhythm to match, so every session feels gentle, precise and deeply relaxing.',
+            'From the first consultation to the last stroke, she pays attention to every detail with patience and care, aiming for results that look natural and lasting rather than dramatic.',
+          ],
+          zh: [
+            'Rina 来自日本，在日本拥有 10 年以上的专业小颜矫正经验，将地道的日式服务品质带到我们的护理室。',
+            '秉持日本匠人精神，她仅以双手施术，细致观察每位顾客的面部结构、肌肉紧绷程度与淋巴流向，并据此调整力度与节奏，让每一次护理都温和、精准、深度放松。',
+            '从初次沟通到最后一个手法，她都以耐心与专注对待每个细节，追求自然、持久的改善，而不是夸张的变化。',
+          ],
+        },
+        tags: {
+          en: ['From Japan', '10+ years of face-contouring experience', 'Japanese-style service', 'Craftsman’s spirit'],
+          zh: ['来自日本', '10 年以上小颜矫正经验', '日式服务', '专业匠人精神'],
+        },
+      },
       name: {
         en: "Japanese Hand-Sculpted Face Slimming",
         zh: "日式小颜徒手矫正"
@@ -560,11 +796,12 @@ const baseCategories = [
         en: "Hands-on lymphatic drainage and contour sculpting.",
         zh: "徒手淋巴引流与轮廓塑形。"
       },
+      poster: "/images/treatments/shared/japanese-face-poster.jpg",
+      smallBody: true,
       body: {
-        en: "Authentic Japanese hand-sculpted face slimming by a specialist with over 10 years of experience in Japan — no need to fly to Tokyo. Using only hands, the treatment drains the lymphatic system, relaxes the fascia and rebalances the facial muscles, helping the face look lifted, more symmetrical and less puffy.",
-        zh: "纯正日式小颜矫正，由在日本拥有 10 年以上经验的专业徒手师操作——不用飞东京，在西雅图就能体验。仅以双手，促进淋巴排毒、放松筋膜、平衡左右脸筋骨，让脸部更显提拉、对称、不浮肿。"
+        en: "Japanese hand-sculpted face slimming using only the hands — it promotes lymphatic drainage, releases the fascia and balances the left and right sides of the face, for a more lifted, symmetrical, de-puffed look.",
+        zh: "日式徒手小颜矫正，仅以双手促进淋巴排毒、放松筋膜、平衡左右脸筋骨，让脸部更显提拉、对称、不浮肿。"
       },
-      poster: "/images/skincare/japanese-face-correction.jpg",
       bullets: {
         en: [
           "Promotes lymphatic drainage and circulation",
@@ -582,8 +819,8 @@ const baseCategories = [
       packages: [
         {
           name: {
-            en: "Japanese Face Slimming · 60 min",
-            zh: "日式小颜 60 分钟"
+            en: "Japanese Face Slimming · Foundation Sculpting · 60 min",
+            zh: "日式小颜·基础矫正 60 分钟"
           },
           price: "$158",
           was: "$188",
@@ -605,21 +842,31 @@ const baseCategories = [
           },
           steps: {
             en: [
+              "Gentle cleanse",
               "Shoulder, neck and collarbone lymphatic drainage",
-              "Fascia release + left–right facial muscle and bone balancing",
-              "Hydrating mask + deep nutrient infusion"
+              "Facial acupoint opening to activate circulation",
+              "Japanese hand-sculpted face slimming",
+              "Hydrating mask",
+              "Skincare finish"
             ],
             zh: [
+              "温和清洁",
               "肩颈锁骨淋巴排毒",
-              "筋膜放松 + 左右脸筋骨平衡",
-              "保湿补水面膜 + 深层营养导入"
+              "面部开穴激活循环",
+              "日式小颜徒手矫正",
+              "保湿补水面膜",
+              "护肤收尾"
             ]
+          },
+          suited: {
+            en: "Suited to puffiness, an undefined contour, mild facial laxity, and anyone who wants regular maintenance.",
+            zh: "适合浮肿、轮廓不清晰、面部轻度松弛、想做日常维护的人群。"
           }
         },
         {
           name: {
-            en: "Japanese Face Slimming · 90 min",
-            zh: "日式小颜 90 分钟"
+            en: "Japanese Face Slimming · Deep Renewal Sculpting · 90 min",
+            zh: "日式小颜·深层焕颜90 分钟"
           },
           price: "$198",
           was: "$248",
@@ -641,343 +888,223 @@ const baseCategories = [
           },
           steps: {
             en: [
-              "Shoulder, neck, collarbone, underarm and both-arm lymphatic drainage",
-              "Fascia release + left–right facial muscle and bone balancing",
-              "Plaster mask shaping + deep nutrient infusion"
+              "Gentle cleanse",
+              "Deep lymphatic drainage of the shoulders, neck, collarbone, underarms and arms",
+              "Facial acupoint opening to boost circulation",
+              "Hand-sculpted face slimming | contour sculpting, lifting and firming",
+              "Plaster mask | sets and firms, soothes and repairs",
+              "Nourishing neck mask | prevents dryness and lines",
+              "Scalp relaxation | eases tension",
+              "Skincare finish"
             ],
             zh: [
-              "肩颈锁骨腋下双臂淋巴排毒",
-              "筋膜放松 + 左右脸筋骨平衡",
-              "石膏面膜定型 + 深层营养导入"
+              "温和清洁",
+              "肩颈锁骨腋下双臂淋巴深度疏通",
+              "面部开穴促进循环",
+              "小颜徒手矫正｜轮廓塑形・提升紧致",
+              "石膏面膜｜定型紧致・镇静修护",
+              "颈膜滋护｜防干生纹",
+              "头部放松｜舒缓紧张",
+              "护肤收尾"
             ]
+          },
+          suited: {
+            en: "Suited to facial laxity, a sagging contour, asymmetry, a tense jaw (masseter), tight shoulders and neck, and anyone who needs deeper care.",
+            zh: "适合面部松弛、轮廓下垂、左右不对称、咬肌紧张、肩颈紧绷及需要深度护理的人群。"
           }
         }
       ],
-      facts: [
-        {
-          label: {
-            en: "Best for",
-            zh: "适合"
-          },
-          value: {
-            en: "Uneven or asymmetrical face, puffiness, laxity, a dull complexion",
-            zh: "大小脸、左右不对称、浮肿、松弛、肤色暗沉"
-          }
-        },
-        {
-          label: {
-            en: "Good to know",
-            zh: "温馨提示"
-          },
-          value: {
-            en: "Prices shown are first-visit offers and may change. Call us to book.",
-            zh: "所示价格为初次体验优惠，可能调整，请来电预约确认。"
-          }
-        }
-      ]
     },
       {
         id: "skinceuticals-cleanse-hydrate",
+        smallBody: true,
+        poster: '/images/treatments/shared/skinceuticals-hydrate-repair-poster.jpg',
         name: {
-          en: "SkinCeuticals Cleansing & Hydrating Facial",
-          zh: "修丽可清洁补水"
+          en: "SkinCeuticals Hydrating & Repair Facial",
+          zh: "修丽可水润修复护理"
         },
         short: {
-          en: "Deep cleanse and hydration with medical-grade skincare.",
-          zh: "医学级护肤品深层清洁与补水。"
+          en: "Deep cleansing, hydration and barrier repair with medical-grade skincare.",
+          zh: "医学级护肤品深层清洁、补水与屏障修复。"
         },
         body: {
-          en: "A professional facial using SkinCeuticals products. Cleansing and gentle exfoliation remove dead skin cells and clear pores, so the hydrating actives that follow can absorb better — leaving skin smoother, brighter and well hydrated.",
-          zh: "使用修丽可（SkinCeuticals）产品的专业面部护理。清洁与温和去角质清除老废角质、疏通毛孔，让后续补水活性成分更易吸收，肌肤更平滑、透亮、水润。"
+          en: "Professional salon-grade SkinCeuticals care, tailored to your skin. Cleansing and gentle exfoliation clear dead skin cells and pores, hydrating actives follow, and nourishing, repairing products help strengthen the barrier — leaving skin smoother, brighter, hydrated and comfortable.",
+          zh: "使用修丽可院线专业产品护理，依肤质量身定制。清洁与温和去角质清除老废角质、疏通毛孔，再导入补水活性成分，并以滋养修复产品强化屏障，让肌肤更平滑、透亮、水润舒适。"
         },
         bullets: {
           en: [
             "Removes dead skin cells and cleans pores",
             "Relieves dryness and dehydration",
+            "Helps strengthen the skin barrier",
+            "Soothes tightness and redness",
             "Smoother texture and brighter complexion",
-            "Softens the look of fine lines"
+            "Seasonal-change and post-procedure hydration"
           ],
           zh: [
             "去除老废角质、清洁毛孔",
             "改善干燥与缺水",
-            "肤质更平滑、肤色更透亮",
-            "淡化细纹观感"
-          ]
-        },
-        steps: {
-          en: [
-            "Gel cleanse to remove oil, makeup and impurities",
-            "Gentle peel or mechanical exfoliation chosen for your skin",
-            "Targeted hydrating serums and professional actives",
-            "Mask, moisturizer and sun protection"
-          ],
-          zh: [
-            "凝胶洁面，去除油脂、彩妆与杂质",
-            "依肤质选择温和焕肤或物理去角质",
-            "针对性补水精华与专业活性成分",
-            "面膜、保湿与防晒收尾"
-          ]
-        },
-        facts: [
-          {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
-            },
-            value: {
-              en: "About 45–60 minutes",
-              zh: "约 45–60 分钟"
-            }
-          },
-          {
-            label: {
-              en: "Best for",
-              zh: "适合"
-            },
-            value: {
-              en: "Dull, dehydrated or congested skin",
-              zh: "暗沉、缺水或毛孔堵塞的肌肤"
-            }
-          },
-          {
-            label: {
-              en: "Aftercare",
-              zh: "术后护理"
-            },
-            value: {
-              en: "Use daily sunscreen and avoid harsh actives for a day or two.",
-              zh: "每日防晒，一两天内避免刺激性活性成分。"
-            }
-          }
-        ]
-      },
-      {
-        id: "skinceuticals-nourish-repair",
-        name: {
-          en: "SkinCeuticals Nourishing & Repair Facial",
-          zh: "修丽可滋润修复"
-        },
-        short: {
-          en: "Barrier-supporting care for dry, sensitive or stressed skin.",
-          zh: "为干燥、敏感或受压肌肤强化屏障。"
-        },
-        body: {
-          en: "A calming, barrier-focused facial for skin that feels tight, dry or sensitive. Gentle cleansing is followed by nourishing, repairing products — such as ceramide- and panthenol-rich formulas — to help restore comfort and moisture.",
-          zh: "针对紧绷、干燥或敏感肌的舒缓型屏障护理。温和清洁后，搭配含神经酰胺、泛醇等成分的滋养修复产品，帮助恢复舒适与水润。"
-        },
-        bullets: {
-          en: [
-            "Helps strengthen the skin barrier",
-            "Soothes tightness and redness",
-            "Locks in moisture",
-            "Gentle enough for sensitive skin"
-          ],
-          zh: [
             "帮助强化肌肤屏障",
             "舒缓紧绷与泛红",
-            "锁住水分",
-            "敏感肌也适用"
+            "肤质更平滑、肤色更透亮",
+            "换季术后补水"
           ]
         },
-        steps: {
-          en: [
-            "Skin assessment and gentle, soothing cleanse",
-            "Light exfoliation only if your skin tolerates it",
-            "Nourishing and repairing serums",
-            "Calming mask, barrier cream and sunscreen"
-          ],
-          zh: [
-            "肤质评估与温和舒缓洁面",
-            "仅在肌肤可承受时轻度去角质",
-            "滋养修复精华",
-            "舒缓面膜、屏障霜与防晒"
-          ]
-        },
-        facts: [
+        packages: [
           {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
+            name: { en: "SkinCeuticals Cleansing & Hydration · 60 min", zh: "修丽可清洁补水 60 分钟" },
+            price: "$158",
+            was: "$188",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Deep cleansing", "Pore extraction", "Tone-correcting mask", "Hydration infusion"],
+              zh: ["深层清洁", "针清", "色修提亮", "补水导入"]
             },
-            value: {
-              en: "About 45–60 minutes",
-              zh: "约 45–60 分钟"
+            steps: {
+              en: [
+                "Makeup removal and cleanse",
+                "SkinCeuticals glycolic clay mask + pore extraction",
+                "SkinCeuticals tone-correcting mask + LED light therapy",
+                "Water-infusion (waterfall) hydration + SkinCeuticals serum infusion",
+                "Moisturizer and sunscreen"
+              ],
+              zh: [
+                "卸妆、洗脸",
+                "修丽可果酸泥膜 + 针清",
+                "修丽可色修面膜 + 大排灯照光",
+                "大瀑布灌注 + 修丽可精华导入",
+                "面霜、防晒涂抹"
+              ]
             }
           },
           {
-            label: {
-              en: "Best for",
-              zh: "适合"
+            name: { en: "SkinCeuticals Nourishing & Repair · 90 min", zh: "修丽可滋润修复 90 分钟" },
+            price: "$198",
+            was: "$248",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Deep cleansing", "RF firming & lifting", "Microcurrent collagen stimulation", "Nourishing repair"],
+              zh: ["深层清洁", "RF 紧致提拉", "微电流胶原刺激", "修复滋养"]
             },
-            value: {
-              en: "Dry, sensitive or over-exfoliated skin; seasonal changes",
-              zh: "干燥、敏感或过度去角质的肌肤；换季护理"
-            }
-          },
-          {
-            label: {
-              en: "Good to know",
-              zh: "温馨提示"
-            },
-            value: {
-              en: "Tell us about any recent procedures or skin reactions beforehand.",
-              zh: "如近期做过医美项目或有过敏反应，请提前告知。"
+            steps: {
+              en: [
+                "Makeup removal and cleanse",
+                "SkinCeuticals glycolic clay mask + pore extraction",
+                "SkinCeuticals tone-correcting mask + LED light therapy",
+                "Water-infusion (waterfall) hydration + RF firming and lifting + full-face microcurrent collagen stimulation",
+                "SkinCeuticals serum infusion",
+                "Repairing soft mask + nourishing neck mask",
+                "Moisturizer and sunscreen"
+              ],
+              zh: [
+                "卸妆、洗脸",
+                "修丽可果酸泥膜 + 针清",
+                "修丽可色修面膜+大排灯照光",
+                "大瀑布灌注 + RF 紧致提拉 + 微电流全脸胶原刺激",
+                "修丽可精华导入",
+                "修复滋养软膜 + 滋润颈膜",
+                "面霜、防晒涂抹"
+              ]
             }
           }
-        ]
+        ],
       },
       {
         id: "rejuran-brightening",
+        smallBody: true,
+        poster: '/images/treatments/shared/rejuran-care-poster.jpg',
         name: {
-          en: "Brightening & Hydration Facial",
-          zh: "瑞妍亮白水润"
+          en: "Swiss Rejuran Firming & Revitalizing Care",
+          zh: "瑞士瑞妍生机弹绷护理"
         },
         short: {
-          en: "Hydrating, brightening care for a dewy, even glow.",
-          zh: "补水提亮护理，肌肤水润均匀。"
+          en: "Brightening, hydrating and firming care for a dewy, lifted look.",
+          zh: "提亮补水与紧致提拉，肌肤水润、轮廓清晰。"
         },
         body: {
-          en: "A professional brightening and hydration program designed to even out dull tone and replenish moisture. Skin is deeply cleansed, treated with brightening and hydrating actives, then sealed with a soothing mask for a fresh, dewy finish.",
-          zh: "专业亮白补水护理，改善暗沉肤色并补充水分。深层清洁后导入提亮与补水活性成分，再以舒缓面膜收尾，呈现清透水润的好气色。"
+          en: "Professional-grade treatment from a Swiss luxury brand: after deep cleansing, brightening, hydrating and firming actives are infused and combined with lifting, contouring massage — evening out dull tone, replenishing moisture, and leaving the lower face more defined and the skin springier and firmer.",
+          zh: "来自瑞士贵奢品牌院线护理：深层清洁后导入提亮、补水与紧致活性成分，并结合提拉塑形按摩，改善暗沉肤色、补充水分，让下半脸线条更清晰，肌肤更有弹性、更紧实饱满。"
         },
         bullets: {
           en: [
             "More even, radiant-looking tone",
             "Deep hydration and a dewy finish",
-            "Softer, smoother texture",
-            "No downtime"
+            "Firmer, more elastic-feeling skin",
+            "More defined V-shaped contour",
+            "Reduced puffiness",
+            "Cell revitalization and renewal"
           ],
           zh: [
             "肤色更均匀透亮",
             "深层补水、水润光泽",
-            "肤质更柔软细腻",
-            "无恢复期"
-          ]
-        },
-        steps: {
-          en: [
-            "Deep cleanse and gentle exfoliation",
-            "Brightening and hydrating active infusion",
-            "Hydrating mask",
-            "Moisturizer and sun protection"
-          ],
-          zh: [
-            "深层清洁与温和去角质",
-            "导入提亮与补水活性成分",
-            "补水面膜",
-            "保湿与防晒"
-          ]
-        },
-        facts: [
-          {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
-            },
-            value: {
-              en: "About an hour — ask when booking",
-              zh: "约一小时，预约时可咨询"
-            }
-          },
-          {
-            label: {
-              en: "Best for",
-              zh: "适合"
-            },
-            value: {
-              en: "Dull, uneven or dry skin; before special occasions",
-              zh: "暗沉、不均或干燥的肌肤；重要场合前"
-            }
-          },
-          {
-            label: {
-              en: "Good to know",
-              zh: "温馨提示"
-            },
-            value: {
-              en: "Brightening works best as a series with daily sun protection.",
-              zh: "亮白护理以疗程搭配每日防晒效果最佳。"
-            }
-          }
-        ]
-      },
-      {
-        id: "rejuran-v-face",
-        name: {
-          en: "V-Face Firming Facial",
-          zh: "瑞妍V脸生机弹绷"
-        },
-        short: {
-          en: "Firming and contouring care for a lifted, V-shaped look.",
-          zh: "紧致提拉护理，雕塑 V 脸线条。"
-        },
-        body: {
-          en: "A firming and contouring program that combines lifting massage with skin-tightening care. It aims to leave the lower face looking more defined, and skin feeling springier, firmer and more elastic.",
-          zh: "结合提拉按摩与紧致护理的轮廓管理疗程，帮助下半脸线条更清晰，肌肤更有弹性、更紧实饱满。"
-        },
-        bullets: {
-          en: [
-            "Firmer, more elastic-feeling skin",
-            "More defined V-shaped contour",
-            "Reduced puffiness",
-            "Visible freshness right after the session"
-          ],
-          zh: [
             "肌肤更紧实有弹性",
             "V 脸轮廓更清晰",
             "减轻浮肿",
-            "护理后即刻更显精神"
+            "细胞活化再生"
           ]
         },
-        steps: {
-          en: [
-            "Cleanse and prepare the skin",
-            "Lifting and contouring massage",
-            "Firming actives and mask",
-            "Moisturizer and sun protection"
-          ],
-          zh: [
-            "清洁与肌肤准备",
-            "提拉塑形按摩",
-            "导入紧致活性成分与面膜",
-            "保湿与防晒"
-          ]
-        },
-        facts: [
+        packages: [
           {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
+            name: { en: "Rejuran Brightening & Hydration · 60 min", zh: "瑞妍亮白水润 60 分钟" },
+            price: "$158",
+            was: "$188",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Brighter, even tone", "Deep hydration", "Softer texture", "No downtime"],
+              zh: ["提亮肤色", "深层补水", "肤质细腻", "无恢复期"]
             },
-            value: {
-              en: "About an hour — ask when booking",
-              zh: "约一小时，预约时可咨询"
+            steps: {
+              en: [
+                "Deep cleanse and gentle exfoliation",
+                "Infusion of revitalizing essence water",
+                "Rejuran-technique neck, shoulder and facial massage",
+                "Brightening and hydrating mask",
+                "Moisturizer and sun protection"
+              ],
+              zh: [
+                "深层清洁与温和去角质",
+                "导入提亮生机精华水",
+                "瑞妍手法肩颈面部按摩",
+                "亮白水润面膜",
+                "保湿与防晒"
+              ]
             }
           },
           {
-            label: {
-              en: "Best for",
-              zh: "适合"
+            name: { en: "Rejuran V-Face Firming · 90 min", zh: "瑞妍V脸生机弹绷 90 分钟" },
+            price: "$198",
+            was: "$248",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Firmer, springier skin", "Defined V-shaped contour", "Reduced puffiness", "Fresher look right away"],
+              zh: ["紧实弹性", "V 脸轮廓", "减轻浮肿", "护理后更显精神"]
             },
-            value: {
-              en: "Early laxity, soft jawline, a tired or puffy lower face",
-              zh: "初期松弛、下颌线模糊、下脸疲惫浮肿"
-            }
-          },
-          {
-            label: {
-              en: "Good to know",
-              zh: "温馨提示"
-            },
-            value: {
-              en: "For deeper lifting, ask about Thermage or InstaLift in our medical menu.",
-              zh: "如需更明显的提拉，可咨询医美项目中的热玛吉或童颜线。"
+            steps: {
+              en: [
+                "Deep cleanse and gentle exfoliation",
+                "Infusion of revitalizing essence water",
+                "Rejuran-technique lifting and contouring massage",
+                "Brightening and hydrating mask",
+                "Red-carpet skin-renewal mask",
+                "Anti-aging nourishing neck mask",
+                "Moisturizer and sun protection"
+              ],
+              zh: [
+                "深层清洁与温和去角质",
+                "导入提亮生机精华水",
+                "瑞妍手法提拉塑形按摩",
+                "亮白水润面膜",
+                "红毯换肤面膜",
+                "抗衰滋润颈膜",
+                "保湿与防晒"
+              ]
             }
           }
-        ]
+        ],
       },
       {
         id: "gua-sha",
+        smallBody: true,
+        poster: '/images/treatments/shared/gua-sha-poster.jpg',
         name: {
           en: "Traditional Chinese Gua Sha Facial",
           zh: "中式古法面部刮痧"
@@ -1004,58 +1131,82 @@ const baseCategories = [
             "帮助护肤品吸收"
           ]
         },
-        steps: {
-          en: [
-            "Cleanse and apply facial oil or serum",
-            "Gentle gliding strokes along the neck, jaw, cheeks, eyes and forehead",
-            "Lymphatic drainage toward the ears and neck",
-            "Soothing mask and moisturizer"
-          ],
-          zh: [
-            "洁面并涂抹面油或精华",
-            "沿颈部、下颌、面颊、眼周与额头轻柔刮拭",
-            "朝耳后与颈部方向淋巴引流",
-            "舒缓面膜与保湿"
-          ]
-        },
-        facts: [
+        packages: [
           {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
+            name: { en: "Traditional Jade Glow · Meridian Revival · 60 min", zh: "古法玉颜·经络焕活 60 分钟" },
+            price: "$158",
+            was: "$188",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Unblock", "Reduce puffiness", "Brighten", "Contour care"],
+              zh: ["疏通", "消肿", "提亮", "轮廓管理"]
             },
-            value: {
-              en: "About 45–60 minutes",
-              zh: "约 45–60 分钟"
+            steps: {
+              en: [
+                "Makeup removal and cleanse",
+                "Warm steam to awaken the skin",
+                "Facial meridian massage",
+                "Traditional gua sha (forehead, eye area, cheeks, jawline)",
+                "Soothing repair mask",
+                "Scalp relaxation",
+                "Skincare finish"
+              ],
+              zh: [
+                "卸妆洁面",
+                "热喷醒肤",
+                "面部经络手法疏通",
+                "古法刮痧（额头/眼周/面颊/下颌线）",
+                "舒缓修护面膜",
+                "头部放松",
+                "护肤收尾"
+              ]
             }
           },
           {
-            label: {
-              en: "Best for",
-              zh: "适合"
+            name: { en: "Traditional Jade Glow · Face & Neck Deep Revival · 90 min", zh: "古法玉颜·面颈焕活 90 分钟" },
+            price: "$198",
+            was: "$248",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Deep unblocking", "Face-and-neck synergy", "Lifting and sculpting", "Deep relaxation"],
+              zh: ["深层疏通", "面颈联动", "提拉塑颜", "深度放松"]
             },
-            value: {
-              en: "Puffy, tense or dull-looking skin; stress relief",
-              zh: "浮肿、紧绷或暗沉的肌肤；舒压放松"
-            }
-          },
-          {
-            label: {
-              en: "Good to know",
-              zh: "温馨提示"
-            },
-            value: {
-              en: "Mild pinkness can appear and fades quickly. Results are temporary; avoid broken skin or active breakouts.",
-              zh: "可能出现轻微泛红，很快消退。效果为暂时性；皮肤破损或严重爆痘期不适合。"
+            steps: {
+              en: [
+                "Makeup removal and cleanse",
+                "Warm steam to awaken the skin",
+                "Shoulder and neck meridian massage",
+                "Deep facial meridian massage",
+                "Traditional jade-stone gua sha",
+                "Lymphatic drainage around the ears and neck",
+                "Neck gua sha",
+                "Repair mask",
+                "Shoulder and scalp relaxation during the mask",
+                "Serum and cream finish"
+              ],
+              zh: [
+                "卸妆洁面",
+                "热喷醒肤",
+                "肩颈经络疏通",
+                "面部深层经络按摩",
+                "古法玉石刮痧",
+                "耳周/颈部淋巴引流",
+                "颈部刮痧",
+                "修护面膜",
+                "面膜期间肩颈/头部放松",
+                "精华面霜收尾"
+              ]
             }
           }
-        ]
+        ],
       },
       {
         id: "acne-clearing",
+        smallBody: true,
+        poster: '/images/treatments/shared/acne-clearing-poster.jpg',
         name: {
           en: "Professional Acne-Clearing Facial",
-          zh: "NOUVLLE专业祛痘针清"
+          zh: "Nouvelle专业祛痘针清"
         },
         short: {
           en: "Deep cleansing and safe manual extraction for congested skin.",
@@ -1079,64 +1230,82 @@ const baseCategories = [
             "让护肤品更易吸收"
           ]
         },
-        steps: {
-          en: [
-            "Cleansing and gentle exfoliation",
-            "Steaming to soften skin and open pores",
-            "Careful manual extraction with sterile tools",
-            "Soothing, antibacterial care and a calming mask",
-            "Sun protection and personalized home-care advice"
-          ],
-          zh: [
-            "洁面与温和去角质",
-            "蒸面软化肌肤、打开毛孔",
-            "使用无菌工具细致针清",
-            "舒缓抗菌护理与镇静面膜",
-            "防晒与居家护理建议"
-          ]
-        },
-        facts: [
+        packages: [
           {
-            label: {
-              en: "Typical session",
-              zh: "单次时长"
+            name: { en: "Nouvelle Clear-Skin Acne Care · 60 min", zh: "Nouvelle 净痘清肌 60 分钟" },
+            price: "$158",
+            was: "$188",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Professional extraction", "Purified pores", "Calms inflammation", "Skin repair"],
+              zh: ["专业针清", "净化毛孔", "消炎镇静", "修护肌肤"]
             },
-            value: {
-              en: "About an hour — ask when booking",
-              zh: "约一小时，预约时可咨询"
+            steps: {
+              en: [
+                "Gentle cleanse",
+                "Soften dead skin / open the pores",
+                "Professional extraction",
+                "Calm inflammation",
+                "Repair mask",
+                "LED light repair",
+                "Skincare finish"
+              ],
+              zh: [
+                "温和清洁",
+                "软化角质 / 打开毛孔",
+                "专业针清",
+                "消炎镇静",
+                "修护面膜",
+                "LED 照光修复",
+                "护肤收尾"
+              ]
+            },
+            suited: {
+              en: "Suited to blackheads, whiteheads, closed comedones, clogged pores, occasional breakouts and oily skin.",
+              zh: "适合黑头、白头、闭口、毛孔堵塞、偶发痘痘及油脂分泌旺盛肌肤。"
             }
           },
           {
-            label: {
-              en: "Best for",
-              zh: "适合"
+            name: { en: "Nouvelle Deep Acne-Clearing & Renewal · 90 min", zh: "Nouvelle深层净痘焕肤 90 分钟" },
+            price: "$198",
+            was: "$248",
+            tag: { en: "First-visit offer", zh: "初次体验" },
+            perks: {
+              en: ["Deep cleansing", "Professional extraction", "Acne-prone skin care", "Soothing repair"],
+              zh: ["深层清洁", "专业针清", "痘肌管理", "舒缓修护"]
             },
-            value: {
-              en: "Blackheads, whiteheads, oily or congested skin",
-              zh: "黑头、白头、油性或毛孔堵塞肌肤"
-            }
-          },
-          {
-            label: {
-              en: "Aftercare",
-              zh: "术后护理"
+            steps: {
+              en: [
+                "Gentle cleanse",
+                "Deep cleanse / soften dead skin",
+                "Facial steam to open the pores",
+                "Detailed professional extraction",
+                "Targeted blemish care",
+                "Calm inflammation",
+                "Repair mask",
+                "LED light repair",
+                "Repair serum infusion",
+                "Skincare finish"
+              ],
+              zh: [
+                "温和清洁",
+                "深层清洁 / 软化角质",
+                "蒸脸打开毛孔",
+                "专业精细针清",
+                "痘痘重点护理",
+                "消炎镇静",
+                "修护面膜",
+                "LED 照光修复",
+                "修护精华导入",
+                "护肤收尾"
+              ]
             },
-            value: {
-              en: "Avoid direct sun and heavy makeup for about 48 hours, and never pick at the skin.",
-              zh: "约 48 小时内避免暴晒与浓妆，切勿自行挤压。"
-            }
-          },
-          {
-            label: {
-              en: "Severe acne?",
-              zh: "严重痘痘？"
-            },
-            value: {
-              en: "For inflamed or cystic acne, ask about AviClear laser in our medical menu.",
-              zh: "发炎或囊肿型痘痘，可咨询医美项目中的 AviClear 祛痘激光。"
+            suited: {
+              en: "Suited to recurring breakouts, plenty of closed comedones, noticeable blackheads, badly clogged pores, very oily skin, and anyone who needs extraction over a larger area.",
+              zh: "适合反复长痘、闭口粉刺较多、黑头明显、毛孔堵塞严重、出油旺盛，以及需要进行较大面积针清的人群。"
             }
           }
-        ]
+        ],
       }
     ],
   },
@@ -1357,6 +1526,8 @@ const baseCategories = [
       },
       {
         id: "lash-aftercare",
+        bodyBesideImage: true,
+        poster: '/images/treatments/shared/lash-aftercare-poster.jpg',
         hideIndex: true,
         factsBelow: true,
         name: {
@@ -1368,44 +1539,47 @@ const baseCategories = [
           zh: "护理流程、补睫频率与温馨提示。"
         },
         body: {
-          en: "Proper aftercare helps your set last longer and protects your natural lashes.",
-          zh: "正确的护理能延长维持时间并保护自然睫毛。"
+          en: "Beautiful lashes deserve good aftercare — that is what keeps the polished look lasting longer.",
+          zh: "睫毛嫁接得漂亮，也要护理得好，才能让精致感维持更久。"
         },
+        stepsTitle: { en: "Aftercare notes", zh: "护理注意事项" },
         steps: {
           en: [
-            "Avoid water, steam and oil for the first 48 hours",
-            "Brush gently every day to keep lashes tidy",
-            "Avoid oil-based products around the eyes",
-            "Never pull or pick at the extensions",
+            "For 4–6 hours after your appointment, avoid rubbing, saunas and prolonged high heat",
+            "Remove makeup gently every day and never pull on the lashes",
+            "Use less oil-based makeup remover",
+            "Brush the lashes gently with a spoolie every day",
             "Book fills every 2–3 weeks"
           ],
           zh: [
-            "前 48 小时避免接触水、蒸汽与油脂",
-            "每天轻柔梳理保持整齐",
-            "眼周避免使用含油产品",
-            "切勿拉扯嫁接睫毛",
+            "护理后建议 4–6 小时内避免揉搓、蒸桑拿及长时间高温环境",
+            "日常卸妆时动作轻柔，避免拉扯睫毛",
+            "建议减少使用油性卸妆产品",
+            "每天使用睫毛梳轻柔整理",
             "每 2–3 周预约补睫"
           ]
         },
+        outro: {
+          en: [
+            "Beautiful lashes are not only about a good set — they need to be cared for and kept well.",
+            "Nouvelle Anti-aging",
+            "Professional lashes | Detailed care | Designed around your eye shape"
+          ],
+          zh: [
+            "精致的睫毛，不只是“接得好”，更要养得好、护得好。",
+            "Nouvelle Anti-aging",
+            "专业美睫｜精细护理｜定制你的眼型美学"
+          ]
+        },
         facts: [
-          {
-            label: {
-              en: "Fill schedule",
-              zh: "补睫频率"
-            },
-            value: {
-              en: "Every 2–3 weeks",
-              zh: "每 2–3 周"
-            }
-          },
           {
             label: {
               en: "Good to know",
               zh: "温馨提示"
             },
             value: {
-              en: "Tell us about eye sensitivities or allergies before your appointment.",
-              zh: "如有眼部敏感或过敏，请预约前告知。"
+              en: "If the eye area is red, swollen, inflamed, infected, allergic or otherwise unwell, please postpone treatment. If you have recently had eye surgery or treatment, please tell our team in advance.",
+              zh: "如眼周正处于红肿、发炎、感染、过敏或其他异常状态，建议暂缓护理；近期进行眼部手术或治疗者，请提前告知专业人员。"
             }
           }
         ]
@@ -1592,56 +1766,69 @@ const collagenStimulator = {
   key: 'collagen-stimulator',
   name: { en: 'Collagen-Stimulating Injection (PLLA)', zh: '童颜针' },
   image: '/images/treatments/zh/collagen-stimulator.jpg', // replaced by the zh/en pair in TREATMENT_PHOTOS
+  subtitle: { en: '', zh: 'SCULPTRA®' },
   body: {
-    en: 'A regenerative injectable built on poly-L-lactic acid (PLLA) microparticles. Rather than filling instantly, it gradually stimulates your own collagen, so the face looks fuller, firmer and more elastic over the following months — ideal for broad volume loss and laxity. Any fullness on the day is mostly water and swelling that settles within days; the real result develops over time.',
-    zh: '以聚左旋乳酸（PLLA）微球为主要成分的再生类注射。它不是立刻“填满”，而是逐步刺激自身胶原蛋白新生，让面部在之后的数月里更饱满、紧致、更有弹性，适合整体容量流失与松弛的改善。当天的饱满感多半是水分与肿胀，几天内会消退，真正的效果会随时间逐渐显现。',
+    en: 'By stimulating your own collagen production, it gradually improves volume loss, hollowing and laxity, restoring a fuller, firmer contour and a natural, progressive youthfulness.',
+    zh: '通过刺激自身胶原蛋白生成，逐步改善面部容量流失、凹陷与松弛，让轮廓恢复饱满与紧致，呈现自然渐进式的年轻状态。',
   },
-  bullets: {
-    en: ['Restores broad volume loss (temples, cheeks)', 'Firmer, more lifted contours', 'Softens lines caused by laxity, such as nasolabial folds', 'Gradual, natural-looking change'],
-    zh: ['改善整体容量流失（太阳穴、面颊）', '轮廓更紧致、更有提拉感', '淡化因松弛产生的纹路，如法令纹', '效果渐进、自然'],
-  },
-  steps: {
-    en: [
-      'Consultation to assess volume loss and laxity and plan where and how much to treat',
-      'Cleansing, then layered injections — usually quick',
-      'Aftercare guidance from your provider',
-      'A course is typically several sessions about 1–3 months apart; results build over a few months and can last around two years, varying from person to person',
-    ],
-    zh: [
-      '面诊评估容量流失与松弛程度，规划注射部位与剂量',
-      '清洁消毒后分层注射，过程通常较快',
-      '医师提供术后护理指导',
-      '一个疗程通常分数次进行，间隔约 1–3 个月；效果在数月内逐渐显现，可维持约两年左右，因人而异',
-    ],
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: { en: ["Stimulate collagen regeneration | Improves skin support and firmness", "Improve facial hollows | Restores natural fullness and dimension", "Firming lift | Improves laxity and refines the facial contour", "Improve skin quality | Enhances elasticity and fine texture", "Natural rejuvenation | Gradual results for a more natural overall look"], zh: ["刺激胶原再生｜提升肌肤支撑力与紧实度", "改善面部凹陷｜恢复自然饱满与立体感", "提升紧致｜改善松弛，优化面部轮廓", "改善肤质｜提升肌肤弹性与细腻度", "自然年轻化｜效果渐进，整体状态更自然"] },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Temples | Cheeks | Mid-face | Nasolabial area | Jaw contour', zh: '太阳穴｜面颊｜苹果肌｜中面部｜法令纹区域｜下颌轮廓' },
+    },
+    {
+      title: { en: 'Brand', zh: '品牌选择' },
+      items: ['SCULPTRA® 塑然雅童颜针'],
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Collagen regeneration · Gradual improvement · Natural fullness · Full-face rejuvenation', zh: '胶原再生 · 渐进改善 · 自然饱满 · 全脸年轻化' },
+    },
+  ],
+  note: {
+    en: 'Treatment plan, dose and number of sessions are determined after an in-person assessment of your facial foundation by a qualified medical professional.',
+    zh: '治疗方案、使用剂量及疗程次数需根据个人面部基础，经专业医疗人员面诊评估后确定。',
   },
 }
 
 const tirzepatide = {
   id: 'tirzepatide',
   key: 'tirzepatide',
-  name: { en: 'Tirzepatide Weight-Loss Injection', zh: '替西帕肽减肥针' },
+  name: { en: 'Tirzepatide Weight-Loss Injection', zh: '替西帕肽体重管理' },
   image: '/images/treatments/shared/tirzepatide.jpg', // replaced by the zh/en pair in TREATMENT_PHOTOS
+  subtitle: { en: '', zh: 'TIRZEPATIDE WEIGHT MANAGEMENT' },
   body: {
-    en: 'Tirzepatide is a prescription medicine that acts on both GIP and GLP-1 receptors. Given as a once-weekly injection under the skin, it helps reduce appetite and slows stomach emptying so you feel full sooner and longer, supporting weight management in adults who need it. It requires a physician’s evaluation and prescription, and works best alongside nutrition and exercise. Common side effects include nausea, diarrhea or constipation, stomach pain and injection-site reactions; whether it is right for you is decided at consultation.',
-    zh: '替西帕肽（tirzepatide）是同时作用于 GIP 与 GLP-1 受体的处方药物，每周皮下注射一次，可降低食欲、减缓胃排空，让您更快、更久地有饱足感，帮助有需要的成年人控制体重。需由医师评估并开立处方，并配合饮食与运动效果更好。常见不适包括恶心、腹泻或便秘、腹痛及注射部位反应；是否适合您，需经面诊后由医师判断。',
+    en: 'After a professional medical assessment, tirzepatide is combined with personalised diet, exercise and lifestyle management to help control appetite, increase fullness and support long-term, science-based weight management.',
+    zh: '通过专业医学评估，结合替西帕肽（Tirzepatide）与个性化饮食、运动及生活方式管理，帮助控制食欲、增加饱腹感，并支持长期、科学的体重管理。',
   },
-  bullets: {
-    en: ['Once-weekly injection under the skin', 'Helps lower appetite and increase fullness', 'Physician-evaluated and monitored', 'Best combined with diet and exercise'],
-    zh: ['每周一次皮下注射', '帮助降低食欲、增加饱足感', '由医师评估并定期追踪', '搭配饮食与运动效果更好'],
-  },
-  steps: {
-    en: [
-      'Physician consultation reviewing your health, history and current medications — it isn’t suitable for everyone',
-      'Dosing is tailored to you, usually starting low and adjusting step by step',
-      'Weekly injection, with a demonstration of how to inject safely',
-      'Follow-up visits to track weight, response and any side effects',
-    ],
-    zh: [
-      '医师面诊，了解身体状况、病史与目前用药——并非人人适合',
-      '依个人情况制定剂量，通常从低剂量开始逐步调整',
-      '每周注射一次，并教导安全的注射方式',
-      '定期回诊，追踪体重、反应与任何不适',
-    ],
+  sections: [
+    {
+      title: { en: 'Key effects', zh: '主要作用' },
+      items: { en: ["Reduce appetite | Increases fullness and helps control food intake", "Support weight loss | With diet and exercise, improves weight and body composition", "Slow gastric emptying | Helps prolong fullness after meals", "Metabolic support | Acts on GIP and GLP-1 receptors to support metabolic management", "Long-term management | A personalised weight-management plan with regular follow-up"], zh: ["减少食欲｜增加饱腹感，帮助控制饮食摄入", "辅助减重｜配合饮食与运动改善体重及身体成分", "延缓胃排空｜帮助延长餐后饱腹感", "代谢支持｜作用于 GIP 与 GLP-1 受体，辅助代谢管理", "长期管理｜结合定期随访，制定个性化体重管理计划"] },
+    },
+    {
+      title: { en: 'Who it’s for', zh: '适合人群' },
+      text: { en: 'People with obesity | Overweight with related health risks | Those who struggle with diet control | Those who need medical weight management', zh: '肥胖人群｜超重并伴有相关健康风险者｜饮食控制困难者｜需要医学体重管理者' },
+    },
+    {
+      title: { en: 'Brand', zh: '品牌选择' },
+      items: {
+        en: ['ZEPBOUND® (Tirzepatide) | FDA-approved in the US for long-term weight management in eligible adults'],
+        zh: ['ZEPBOUND®（Tirzepatide）｜美国 FDA 批准用于符合条件成人的长期体重管理'],
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Once weekly · Medical assessment · Personalised dose · Regular follow-up', zh: '每周一次 · 医学评估 · 个性化剂量 · 定期随访' },
+    },
+  ],
+  note: {
+    en: 'Whether it is suitable for you, dose adjustments and the treatment schedule are determined by a qualified medical professional after assessing your BMI, medical history, current medications and relevant tests.',
+    zh: '具体是否适合使用、剂量调整及疗程安排需由专业医疗人员结合 BMI、既往病史、当前用药及相关检查进行评估后确定。',
   },
 }
 
@@ -1660,7 +1847,7 @@ export const categories = [
     treatments: [
       ...pick('injectables-1', 'injectables-2', 'injectables-3', 'injectables-4', 'injectables-5'),
       collagenStimulator,
-      ...pick('injectables-6', 'skin-2', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
+      ...pick('skin-2', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
       tirzepatide,
     ],
   },
@@ -1712,7 +1899,6 @@ const TREATMENT_PHOTOS = {
   'injectables-4': { zh: '/images/treatments/zh/injectables-4.jpg', en: '/images/treatments/en/injectables-4.jpg' },
   'injectables-5': { zh: '/images/treatments/zh/injectables-5.jpg', en: '/images/treatments/en/injectables-5.jpg' },
   'collagen-stimulator': { zh: '/images/treatments/zh/collagen-stimulator.jpg', en: '/images/treatments/en/collagen-stimulator.jpg' },
-  'injectables-6': { zh: '/images/treatments/zh/injectables-6.jpg', en: '/images/treatments/en/injectables-6.jpg' },
   'skin-2': { zh: '/images/treatments/zh/skin-2.jpg', en: '/images/treatments/en/skin-2.jpg' },
   'hair-2': { zh: '/images/treatments/shared/hair-2.jpg', en: '/images/treatments/shared/hair-2.jpg' },
   'body-3': { zh: '/images/treatments/zh/body-3.jpg', en: '/images/treatments/en/body-3.jpg' },
@@ -1736,9 +1922,7 @@ const TREATMENT_PHOTOS = {
   'body-1': { zh: '/images/treatments/zh/body-1.jpg', en: '/images/treatments/en/body-1.jpg' },
   'body-2': { zh: '/images/treatments/zh/body-2.jpg', en: '/images/treatments/en/body-2.jpg' },
   'skinceuticals-cleanse-hydrate': { zh: '/images/treatments/zh/skinceuticals-cleanse-hydrate.jpg', en: '/images/treatments/en/skinceuticals-cleanse-hydrate.jpg' },
-  'skinceuticals-nourish-repair': { zh: '/images/treatments/zh/skinceuticals-nourish-repair.jpg', en: '/images/treatments/en/skinceuticals-nourish-repair.jpg' },
   'rejuran-brightening': { zh: '/images/treatments/zh/rejuran-brightening.jpg', en: '/images/treatments/en/rejuran-brightening.jpg' },
-  'rejuran-v-face': { zh: '/images/treatments/zh/rejuran-v-face.jpg', en: '/images/treatments/en/rejuran-v-face.jpg' },
   'gua-sha': { zh: '/images/treatments/zh/gua-sha.jpg', en: '/images/treatments/en/gua-sha.jpg' },
   'acne-clearing': { zh: '/images/treatments/zh/acne-clearing.jpg', en: '/images/treatments/en/acne-clearing.jpg' },
   'classic-lashes': { zh: '/images/treatments/zh/classic-lashes.jpg', en: '/images/treatments/en/classic-lashes.jpg' },
@@ -1760,6 +1944,20 @@ categories.forEach((c) => c.treatments.forEach((x) => {
 }))
 
 // Lash cards show the matching rows of the price list right under their description.
+// Injectables: full poster for the Botox card (shown whole, not cropped to the card's photo ratio).
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-1').poster = '/images/treatments/shared/botox-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-2').poster = '/images/treatments/shared/filler-guide-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-3').poster = '/images/treatments/shared/belkyra-guide-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-4').poster = '/images/treatments/shared/contour-plan-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-5').poster = '/images/treatments/shared/instalift-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-stimulator').poster = '/images/treatments/shared/collagen-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'skin-2').poster = '/images/treatments/shared/skin-booster-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hair-2').poster = '/images/treatments/shared/prp-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'body-3').poster = '/images/treatments/shared/fat-dissolving-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'wellness-2').poster = '/images/treatments/shared/vitamin-b-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hormone-stem-cell-1').poster = '/images/treatments/shared/hormone-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'tirzepatide').poster = '/images/treatments/shared/tirzepatide-poster.jpg'
+
 const lashCat = categories.find((c) => c.slug === 'lash')
 const lashRows = lashCat.priceList.groups.flatMap((g) => g.rows)
 const lashPrices = (...names) => names.map((n) => lashRows.find((r) => r.name.zh === n)).map(({ name, single, member }) => ({ name, single, member }))
@@ -1838,6 +2036,9 @@ const LASH_STYLES = {
     suited: { zh: "适合已做过睫毛嫁接、想保持效果的人群，建议 2–3 周内回店补睫。", en: "Suited to anyone with an existing set who wants to keep the look — we recommend returning within 2–3 weeks." },
   },
 }
+lashCat.treatments.forEach((x) => { x.bookNow = true })
+lashItem('lash-aftercare').bookNow = false
+lashItem('lash-aftercare').noAction = true // aftercare info only: no booking or consult button
 // styles[n] and prices[n] belong to posters[n]: the gallery shows the copy and price of the style on screen.
 const lashStyles = (...names) => names.map((n) => LASH_STYLES[n])
 const setStyles = (id, ...names) => {
@@ -1889,6 +2090,7 @@ ivDrips.treatments.forEach((x, i) => {
 
 // Skincare: the clinic's own facial-mask photo for the Chinese site. The Japanese face-slimming card keeps its poster.
 const skincare = categories.find((c) => c.slug === 'skincare-experts')
+skincare.treatments.forEach((x) => { x.noAction = true }) // booking happens on the package cards: no separate consult button
 skincare.cover.zh = '/images/treatments/zh/sk-full.jpg'
 const SKINCARE_CROPS = ['sk-full', 'sk-face', 'sk-brush', 'sk-products', 'sk-neck', 'sk-hands'].map((n) => `/images/treatments/zh/${n}.jpg`)
 skincare.treatments.filter((x) => !x.poster).forEach((x, i) => {
