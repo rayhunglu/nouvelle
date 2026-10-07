@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Check, MessageCircle, MessageCircleQuestion } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, MessageCircle, Sparkles, MessageCircleQuestion } from 'lucide-react'
 import { useLang } from '../i18n'
 import { setConsultService } from '../consult'
 import { categories, getCategory } from '../data/site'
@@ -20,24 +20,108 @@ function ConsultLink({ item }) {
   )
 }
 
-function Detail({ item, index }) {
+function Price({ row }) {
   const { t } = useLang()
   return (
-    <Reveal as="article" id={item.id} className="scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 lg:gap-16">
+    <div className="mt-5 flex items-center justify-between gap-4 rounded-[1.5rem] border border-ink/10 px-5 py-3">
+      <span className="font-medium">{t(row.name)}</span>
+      <span className="flex gap-6 text-right">
+        <span>
+          <span className="block text-xs uppercase tracking-wider text-muted">{t({ en: 'Single', zh: '单次价' })}</span>
+          ${row.single}
+        </span>
+        <span>
+          <span className="block text-xs uppercase tracking-wider text-muted">{t({ en: 'Member', zh: '会员价' })}</span>
+          <span className="font-medium text-gold">${row.member}</span>
+        </span>
+      </span>
+    </div>
+  )
+}
+
+function PosterGallery({ images, alt, i, setI }) {
+  const step = (d) => setI((n) => (n + d + images.length) % images.length)
+  const arrow = 'absolute top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-ivory/85 text-ink shadow transition hover:bg-ivory'
+  return (
+    <div>
+      <div className="relative aspect-[12/11] overflow-hidden rounded-[1.5rem] bg-sand">
+        <img key={images[i]} src={images[i]} alt={alt} className="h-full w-full object-cover" />
+        <button type="button" onClick={() => step(-1)} aria-label="Previous" className={`${arrow} left-3`}><ChevronLeft size={20} /></button>
+        <button type="button" onClick={() => step(1)} aria-label="Next" className={`${arrow} right-3`}><ChevronRight size={20} /></button>
+      </div>
+      <ul className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {images.map((src, n) => (
+          <li key={src} className="shrink-0">
+            <button
+              type="button"
+              onClick={() => setI(n)}
+              aria-label={`${n + 1} / ${images.length}`}
+              aria-current={n === i}
+              className={`block h-16 w-16 overflow-hidden rounded-xl border-2 transition sm:h-20 sm:w-20 ${n === i ? 'border-gold' : 'border-transparent opacity-60 hover:opacity-100'}`}
+            >
+              <img src={src} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function GalleryDetail({ item }) {
+  const { t } = useLang()
+  const [i, setI] = useState(0)
+  const copy = item.styles?.[i] ?? item
+  return (
+    <Reveal as="article" id={item.key} className="scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 lg:gap-16">
       <div className="lg:col-span-5">
-        <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>
+        <h3 className="font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
+        <div className="mt-4"><ConsultLink item={item} /></div>
+        <p className="mt-5 text-lg leading-relaxed text-muted">{t(copy.body)}</p>
+        {item.prices?.[i] && <Price row={item.prices[i]} />}
+        {copy.bullets && (
+          <div className="mt-8">
+            <h4 className="eyebrow mb-4">{item.styles ? t({ en: 'Style highlights', zh: '款式特点' }) : copy.suited ? t({ en: 'Highlights', zh: '项目特点' }) : t({ en: 'Benefits', zh: '功效' })}</h4>
+            <ul className="space-y-3">
+              {t(copy.bullets).map((b) => (
+                <li key={b} className="flex items-start gap-2"><Check size={18} className="mt-0.5 shrink-0 text-gold" />{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {copy.suited && (
+          <div className="mt-8">
+            <h4 className="eyebrow mb-3">{t({ en: 'Who it’s for', zh: '适合人群' })}</h4>
+            <p className="leading-relaxed">{t(copy.suited)}</p>
+          </div>
+        )}
+      </div>
+      <div className="lg:col-span-7">
+        <PosterGallery images={item.posters} alt={t(item.name)} i={i} setI={setI} />
+      </div>
+    </Reveal>
+  )
+}
+
+function Detail({ item, index }) {
+  const { t } = useLang()
+  if (item.posters?.length > 1) return <GalleryDetail item={item} />
+  return (
+    <Reveal as="article" id={item.key} className="scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 lg:gap-16">
+      <div className="lg:col-span-5">
+        {!item.hideIndex && <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>}
         <h3 className="mt-2 font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
         <div className="mt-4"><ConsultLink item={item} /></div>
-        {item.photo && !item.poster && (
-          <img src={item.photo} alt={t(item.name)} loading="lazy" className="mt-6 aspect-[4/3] w-full rounded-[1.5rem] bg-sand object-cover" />
+        {item.photo && !item.poster && !item.posters && (
+          <img src={t(item.photo)} alt={t(item.name)} loading="lazy" className="mt-6 aspect-[4/3] w-full rounded-[1.5rem] bg-sand object-cover" />
         )}
-        {item.poster && (
-          <a href={item.poster} target="_blank" rel="noreferrer" className="mt-6 block overflow-hidden rounded-[1.5rem] bg-sand">
-            <img src={item.poster} alt={t(item.name)} loading="lazy" className="w-full" />
+        {(item.posters ?? (item.poster ? [item.poster] : [])).map((src) => (
+          <a key={src} href={src} target="_blank" rel="noreferrer" className="mt-6 block overflow-hidden rounded-[1.5rem] bg-sand">
+            <img src={src} alt={t(item.name)} loading="lazy" className="w-full" />
           </a>
-        )}
+        ))}
         <p className="mt-5 text-lg leading-relaxed text-muted">{t(item.body)}</p>
-        {item.facts && (
+        {item.facts && !item.factsBelow && (
           <dl className="mt-8 divide-y divide-ink/10 rounded-[1.5rem] bg-sand px-6">
             {item.facts.map((f, i) => (
               <div key={i} className="py-4">
@@ -51,12 +135,18 @@ function Detail({ item, index }) {
       <div className="space-y-10 lg:col-span-7">
         {item.bullets && (
           <div>
-            <h4 className="eyebrow mb-4">{t({ en: 'Benefits', zh: '功效' })}</h4>
+            <h4 className="eyebrow mb-4">{item.suited ? t({ en: 'Highlights', zh: '项目特点' }) : t({ en: 'Benefits', zh: '功效' })}</h4>
             <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {t(item.bullets).map((b) => (
                 <li key={b} className="flex items-start gap-2"><Check size={18} className="mt-0.5 shrink-0 text-gold" />{b}</li>
               ))}
             </ul>
+          </div>
+        )}
+        {item.suited && (
+          <div>
+            <h4 className="eyebrow mb-3">{t({ en: 'Who it’s for', zh: '适合人群' })}</h4>
+            <p className="leading-relaxed">{t(item.suited)}</p>
           </div>
         )}
         {item.packages && (
@@ -95,6 +185,16 @@ function Detail({ item, index }) {
             </ol>
           </div>
         )}
+        {item.facts && item.factsBelow && (
+          <dl className="grid gap-4 sm:grid-cols-2">
+            {item.facts.map((f, n) => (
+              <div key={n} className="rounded-[1.5rem] bg-sand px-6 py-5">
+                <dt className="text-xs font-semibold uppercase tracking-[0.15em] text-gold">{t(f.label)}</dt>
+                <dd className="mt-2 text-sm leading-relaxed">{t(f.value)}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
     </Reveal>
   )
@@ -106,18 +206,44 @@ function Treatment({ item, index }) {
 
   if (!item.image) {
     return (
-      <Reveal id={item.id} className="scroll-mt-28 rounded-[2rem] bg-sand p-8">
-        <h3 className="font-display text-2xl">{t(item.name)}</h3>
-        <p className="mt-3 leading-relaxed text-muted">{t(item.body)}</p>
-        <div className="mt-5"><ConsultLink item={item} /></div>
+      <Reveal id={item.key} className={`scroll-mt-28 rounded-[2rem] bg-sand p-8 ${item.poster ? 'md:col-span-3' : ''}`}>
+        <div className={item.poster ? 'grid items-center gap-8 md:grid-cols-2' : ''}>
+          <div>
+            <h3 className="font-display text-2xl">{t(item.name)}</h3>
+            <p className="mt-3 leading-relaxed text-muted">{t(item.body)}</p>
+            {item.more?.map((m, i) => <p key={i} className="mt-3 leading-relaxed text-muted">{t(m)}</p>)}
+            {item.bullets && (
+              <>
+                <h4 className="eyebrow mb-3 mt-6">{t({ en: 'Highlights', zh: '项目特点' })}</h4>
+                <ul className="space-y-2">
+                  {t(item.bullets).map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-sm"><Check size={16} className="mt-0.5 shrink-0 text-gold" />{b}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {item.suited && (
+              <>
+                <h4 className="eyebrow mb-2 mt-6">{t({ en: 'Who it’s for', zh: '适合人群' })}</h4>
+                <p className="text-sm leading-relaxed">{t(item.suited)}</p>
+              </>
+            )}
+            <div className="mt-6"><ConsultLink item={item} /></div>
+          </div>
+          {item.poster && (
+            <a href={item.poster} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[1.5rem] bg-ivory">
+              <img src={item.poster} alt={t(item.name)} loading="lazy" className="w-full" />
+            </a>
+          )}
+        </div>
       </Reveal>
     )
   }
 
   return (
-    <Reveal as="article" id={item.id} className="scroll-mt-28 grid items-center gap-10 py-12 lg:grid-cols-2 lg:gap-16">
+    <Reveal as="article" id={item.key} className="scroll-mt-28 grid items-center gap-10 py-12 lg:grid-cols-2 lg:gap-16">
       <div className={`overflow-hidden rounded-[2rem] bg-sand ${flip ? 'lg:order-2' : ''}`}>
-        <img src={item.image} alt={t(item.name)} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+        <img src={t(item.image)} alt={t(item.name)} loading="lazy" className="aspect-[4/3] w-full object-cover" />
       </div>
       <div>
         <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>
@@ -165,9 +291,9 @@ export default function Category() {
 
   const idx = categories.indexOf(cat)
   const next = categories[(idx + 1) % categories.length]
-  const detailed = cat.treatments.filter((x) => !x.image && (x.steps || x.packages))
+  const detailed = cat.treatments.filter((x) => !x.image && (x.steps || x.packages || x.layout === 'detail'))
   const withImages = cat.treatments.filter((x) => x.image)
-  const textOnly = cat.treatments.filter((x) => !x.image && !x.steps && !x.packages)
+  const textOnly = cat.treatments.filter((x) => !x.image && !x.steps && !x.packages && x.layout !== 'detail')
 
   return (
     <>
@@ -179,6 +305,14 @@ export default function Category() {
         </div>
       </PageHeader>
 
+      {cat.promo && (
+        <div className="container-x pt-8">
+          <p className="flex items-center justify-center gap-3 rounded-full bg-gold/15 px-6 py-4 text-center font-display text-xl text-ink sm:text-2xl">
+            <Sparkles size={22} className="shrink-0 text-gold" /> {t(cat.promo)}
+          </p>
+        </div>
+      )}
+
       <div className="container-x py-8">
         <Link to="/treatments" className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
           <ArrowLeft size={16} /> {t({ en: 'All treatments', zh: '全部服务' })}
@@ -188,12 +322,21 @@ export default function Category() {
       {cat.artist && (
         <section className="container-x grid items-center gap-10 pb-12 md:grid-cols-12">
           <Reveal className="overflow-hidden rounded-[2rem] bg-sand md:col-span-5">
-            <img src={cat.artist.image} alt={cat.artist.name} className="aspect-[4/5] w-full object-cover" />
+            <img src={cat.artist.image} alt={cat.artist.name} className="aspect-[4/5] w-full object-cover object-top" />
           </Reveal>
           <Reveal delay={100} className="md:col-span-7">
-            <p className="eyebrow mb-3">{t({ en: 'Meet the artist', zh: '纹绣师' })}</p>
+            <p className="eyebrow mb-3">{t(cat.artist.role ?? { en: 'Meet the artist', zh: '纹绣师' })}</p>
             <h2 className="font-display text-4xl font-light">{cat.artist.name}</h2>
-            <p className="mt-5 text-lg leading-relaxed text-muted">{t(cat.artist.bio)}</p>
+            {cat.artist.bio && [].concat(t(cat.artist.bio)).map((para, i) => (
+              <p key={i} className="mt-5 text-lg leading-relaxed text-muted">{para}</p>
+            ))}
+            {cat.artist.tags && (
+              <ul className="mt-6 flex flex-wrap gap-2">
+                {t(cat.artist.tags).map((tag) => (
+                  <li key={tag} className="rounded-full bg-sand px-4 py-1.5 text-sm text-ink">{tag}</li>
+                ))}
+              </ul>
+            )}
           </Reveal>
         </section>
       )}

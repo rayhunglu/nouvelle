@@ -259,6 +259,7 @@ function autoItems(item, hasHand) {
       },
     })
   }
+  if (item.suited) out.push({ q: L('Who is it suited for?', '适合哪些人？'), a: item.suited })
   for (const f of item.facts || []) {
     const q = FACT_QUESTIONS[f.label.en]
     if (q) out.push({ q, a: f.value })
@@ -271,8 +272,8 @@ export const faqCategories = categories.map((c) => ({
   slug: c.slug,
   name: c.name,
   services: c.treatments.map((x) => {
-    // HydraFacial's written answers are about the scalp version (Keravive), so they belong to the hair service only.
-    const handKey = x.faq && !(x.faq === 'hydrafacial' && c.slug === 'skin') ? x.faq : null
+    // HydraFacial's written answers are about the scalp version (Keravive), so they belong to the scalp service (hair-1) only.
+    const handKey = x.faq && !(x.faq === 'hydrafacial' && x.key === 'skin-10') ? x.faq : null
     const hand = handKey ? handById[handKey] || [] : []
     return { key: x.key, name: x.name, items: [...hand, ...autoItems(x, hand.length > 0)] }
   }),

@@ -26,13 +26,19 @@ const pillars = [
 ]
 
 export default function Home() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   return (
     <>
       {/* Hero */}
       <section className="relative isolate mt-20 flex min-h-[calc(100svh-5rem)] items-end overflow-hidden lg:items-center">
-        <img src={heroImage} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover object-[30%_center]" />
+        <img
+          src={t(heroImage)}
+          alt=""
+          className={`absolute inset-0 -z-20 h-full w-full object-cover ${
+            lang === 'zh' ? 'object-[30%_center]' : 'origin-center scale-[1.15] object-center lg:-translate-x-[8%]'
+          }`}
+        />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ivory/90 via-ivory/30 to-transparent lg:bg-gradient-to-l lg:from-ivory/55 lg:via-transparent lg:to-transparent" />
         <div className="container-x pb-14 pt-24 lg:pb-0 lg:pt-0">
           <Reveal className="lg:ml-auto lg:max-w-xl lg:translate-x-16 xl:translate-x-32 2xl:translate-x-44">
@@ -73,13 +79,13 @@ export default function Home() {
         </Reveal>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((c, i) => (
+          {categories.filter((c) => c.slug !== 'spa').map((c, i) => (
             <Reveal key={c.slug} delay={(i % 3) * 100}>
               <Link
                 to={`/treatments/${c.slug}`}
                 className="group relative flex h-full min-h-[22rem] flex-col justify-end overflow-hidden rounded-[2rem] bg-sand p-7"
               >
-                <img src={c.cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+                <img src={t(c.cover)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-ink/0" />
                 <span className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full bg-ivory/90 text-ink transition group-hover:bg-gold group-hover:text-ivory">
                   <ArrowUpRight size={18} />

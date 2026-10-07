@@ -9,7 +9,7 @@ const YEAR = new Date().getFullYear()
 export default function Footer() {
   const { t } = useLang()
   const medical = categories.filter((c) => c.group === 'medical')
-  const skincare = categories.filter((c) => c.group === 'skincare' || c.group === 'lash' || c.group === 'spa')
+  const skincare = categories.filter((c) => c.group !== 'medical')
 
   return (
     <footer className="bg-ink text-ivory/80">

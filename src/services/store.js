@@ -13,11 +13,11 @@ let db = null;
 
 // Starter service catalogue; editable from the CRM (Finance → service chips).
 const DEFAULT_SERVICES = [
-  '咨询', 'Botox 肉毒素', '玻尿酸填充', 'Belkyra 双下巴溶脂', 'Silhouette InstaLift 童颜线',
+  '咨询', 'Botox 肉毒素', '玻尿酸填充', 'Belkyra 双下巴溶脂', '童颜针', '替西帕肽减肥针', 'Silhouette InstaLift 童颜线',
   'Thermage 热玛吉', 'Stellar M22 光子嫩肤', '点阵激光', 'Pico 激光', 'RF 射频微针', 'AviClear 祛痘激光',
   'HydraFacial', 'PRP 生发', 'NAD+ 静脉注射', '高压氧舱 HBOT', 'EMSculpt 磁波塑肌', 'BTL 溶脂刀',
   '日式小颜 60 分钟', '日式小颜 90 分钟', '修丽可清洁补水', '修丽可滋润修复', '中式古法面部刮痧', '专业祛痘针清',
-  '身体 Spa', '头皮 Spa', '睫毛嫁接 · 经典', '睫毛嫁接 · 混合', '睫毛嫁接 · 浓密', '半永久纹绣', '产品销售',
+  '身体 Spa', '头皮 Spa', '睫毛嫁接 · 经典', '睫毛嫁接 · 混合', '睫毛嫁接 · 浓密', '半永久纹绣', '定制修眉', '个人形象定制妆容', '高级感水雾眉', '自然款美瞳线', '无创洗眉', '无创洗眼线', '产品销售',
 ];
 const newService = (name) => ({ id: crypto.randomUUID(), name, createdAt: new Date().toISOString() });
 
@@ -29,7 +29,6 @@ function seed() {
     d.setHours(hour, min, 0, 0);
     return d.toISOString();
   };
-  const dateOnly = (offset) => day(offset, 12).slice(0, 10);
   const id = () => crypto.randomUUID();
 
   const c1 = { id: id(), name: '示例客户 A', phone: '(425) 555-0101', email: 'a@example.com', notes: '偏好下午预约', tags: ['VIP'], createdAt: day(-60, 10) };

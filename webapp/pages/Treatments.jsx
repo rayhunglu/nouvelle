@@ -23,7 +23,7 @@ function CategoryList({ items }) {
             <p className="text-muted md:col-span-4">{t(c.short)}</p>
             <div className="hidden justify-end gap-2 md:col-span-3 md:flex">
               <div className="h-20 w-28 overflow-hidden rounded-2xl bg-sand">
-                <img src={c.cover} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                <img src={t(c.cover)} alt="" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
               </div>
               <span className="grid h-20 w-12 place-items-center rounded-2xl border border-ink/10 transition group-hover:border-ink group-hover:bg-ink group-hover:text-ivory">
                 <ArrowRight size={18} />
@@ -39,7 +39,7 @@ function CategoryList({ items }) {
 export default function Treatments() {
   const { t } = useLang()
   const medical = categories.filter((c) => c.group === 'medical')
-  const skincare = categories.filter((c) => c.group === 'skincare' || c.group === 'lash' || c.group === 'spa')
+  const skincare = categories.filter((c) => c.group !== 'medical')
 
   return (
     <>

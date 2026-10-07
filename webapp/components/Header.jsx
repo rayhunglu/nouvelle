@@ -12,11 +12,11 @@ const medicalItems = categories
   .map((c) => ({ key: c.slug, to: `/treatments/${c.slug}`, name: c.name, short: c.short }))
 const spaItems = categories
   .filter((c) => c.group === 'spa')
-  .flatMap((c) => c.treatments.map((x) => ({ key: x.id, to: `/treatments/${c.slug}#${x.id}`, name: x.name, short: x.short })))
+  .flatMap((c) => c.treatments.map((x) => ({ key: x.key, to: `/treatments/${c.slug}#${x.key}`, name: x.name, short: x.short })))
 const shopItems = brands.map((b) => ({ key: b.slug, to: `/shop/${b.slug}`, name: b.name, short: b.short }))
 const skincareItems = categories
   .filter((c) => c.group === 'skincare')
-  .flatMap((c) => c.treatments.map((x) => ({ key: x.id, to: `/treatments/${c.slug}#${x.id}`, name: x.name, short: x.short })))
+  .flatMap((c) => c.treatments.map((x) => ({ key: x.key, to: `/treatments/${c.slug}#${x.key}`, name: x.name, short: x.short })))
 
 function LangToggle({ className = '' }) {
   const { lang, setLang } = useLang()
@@ -123,6 +123,7 @@ export default function Header() {
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />
           <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
           <NavLink to="/treatments/lash" className={linkCls}>{t(ui.nav.lash)}</NavLink>
+          <NavLink to="/treatments/microblading" className={linkCls}>{t(ui.nav.brow)}</NavLink>
           <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} />
           <NavLink to="/gallery" className={linkCls}>{t(ui.nav.gallery)}</NavLink>
           <NavLink to="/faq" className={linkCls}>{t(ui.nav.faq)}</NavLink>
@@ -154,6 +155,7 @@ export default function Header() {
             <MobileGroup label={t(ui.nav.skincare)} items={skincareItems} />
             <MobileGroup label={t(ui.nav.spa)} items={spaItems} />
             <NavLink to="/treatments/lash" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.lash)}</NavLink>
+            <NavLink to="/treatments/microblading" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.brow)}</NavLink>
             <MobileGroup label={t(ui.nav.shop)} items={shopItems} />
             {[['/gallery', ui.nav.gallery], ['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>

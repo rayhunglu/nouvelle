@@ -55,6 +55,13 @@ export default function App() {
         <Route element={<SiteLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/treatments" element={<Treatments />} />
+          {/* Retired category URLs → where those treatments live now */}
+          <Route path="/treatments/skin" element={<Navigate to="/treatments/devices" replace />} />
+          <Route path="/treatments/body" element={<Navigate to="/treatments/devices" replace />} />
+          <Route path="/treatments/wellness" element={<Navigate to="/treatments/devices" replace />} />
+          <Route path="/treatments/spa" element={<Navigate to="/treatments/spa-care" replace />} />
+          <Route path="/treatments/hair" element={<Navigate to="/treatments/injectables" replace />} />
+          <Route path="/treatments/hormone-stem-cell" element={<Navigate to="/treatments/injectables" replace />} />
           <Route path="/treatments/:slug" element={<Category />} />
           <Route path="/shop" element={<Navigate to="/shop/cellcosmet" replace />} />
           <Route path="/shop/:brand" element={<Shop />} />

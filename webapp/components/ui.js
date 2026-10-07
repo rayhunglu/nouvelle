@@ -3,10 +3,11 @@ export const ui = {
   nav: {
     home: { en: 'Home', zh: '首页' },
     services: { en: 'Treatments', zh: '服务项目' },
-    medical: { en: 'Medical Treatments', zh: '医美疗程' },
-    skincare: { en: 'Skincare Experts', zh: '护肤专家' },
+    medical: { en: 'Medical Treatments', zh: '医美项目' },
+    skincare: { en: 'Skincare Experts', zh: '护肤项目' },
     spa: { en: 'Spa', zh: 'Spa' },
     lash: { en: 'Lashes', zh: '美睫' },
+    brow: { en: 'Permanent Makeup', zh: '纹绣' },
     shop: { en: 'Shop', zh: '产品' },
     gallery: { en: 'Gallery', zh: '画廊' },
     faq: { en: 'FAQ', zh: '常见问题' },
