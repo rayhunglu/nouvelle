@@ -288,6 +288,8 @@ function Detail({ item, index }) {
 function Treatment({ item, index }) {
   const { t } = useLang()
   const flip = index % 2 === 1
+  // Cards with structured sections (injectables) get larger type on desktop to balance the tall poster beside them.
+  const rich = Boolean(item.sections)
 
   if (!item.image) {
     return (
@@ -337,18 +339,18 @@ function Treatment({ item, index }) {
         )}
       </div>
       <div>
-        <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>
-        <h3 className="mt-2 font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
-        {t(item.subtitle) && <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted">{t(item.subtitle)}</p>}
+        <span className={`font-display text-sm text-gold ${rich ? 'lg:text-base' : ''}`}>{String(index + 1).padStart(2, '0')}</span>
+        <h3 className={`mt-2 font-display text-3xl font-light sm:text-4xl ${rich ? 'lg:text-5xl' : ''}`}>{t(item.name)}</h3>
+        {t(item.subtitle) && <p className={`mt-1 text-xs uppercase tracking-[0.2em] text-muted ${rich ? 'lg:text-sm' : ''}`}>{t(item.subtitle)}</p>}
         {item.body && <p className="mt-5 text-lg leading-relaxed text-muted">{t(item.body)}</p>}
-        {item.more?.map((m, n) => <p key={n} className="mt-3 leading-relaxed text-muted">{t(m)}</p>)}
+        {item.more?.map((m, n) => <p key={n} className={`mt-3 leading-relaxed text-muted ${rich ? 'lg:mt-5 lg:text-xl' : ''}`}>{t(m)}</p>)}
         {item.sections?.map((sec, n) => (
-          <div key={n} className="mt-6">
-            <h4 className="eyebrow mb-2">{t(sec.title)}</h4>
-            {sec.text && <p className="leading-relaxed">{t(sec.text)}</p>}
+          <div key={n} className={`mt-6 ${rich ? 'lg:mt-9' : ''}`}>
+            <h4 className={`eyebrow mb-2 ${rich ? 'lg:!text-sm lg:mb-3' : ''}`}>{t(sec.title)}</h4>
+            {sec.text && <p className={`leading-relaxed ${rich ? 'lg:text-lg' : ''}`}>{t(sec.text)}</p>}
             {sec.items && (
-              <ul className="space-y-1">
-                {[].concat(t(sec.items)).map((x) => <li key={x} className="flex items-start gap-2"><Check size={16} className="mt-1 shrink-0 text-gold" />{x}</li>)}
+              <ul className={`space-y-1 ${rich ? 'lg:space-y-2' : ''}`}>
+                {[].concat(t(sec.items)).map((x) => <li key={x} className={`flex items-start gap-2 ${rich ? 'lg:text-lg' : ''}`}><Check size={16} className="mt-1 shrink-0 text-gold lg:mt-1.5" />{x}</li>)}
               </ul>
             )}
           </div>
@@ -370,7 +372,7 @@ function Treatment({ item, index }) {
             ))}
           </ol>
         )}
-        {item.note && <p className="mt-6 text-xs leading-relaxed text-muted">{t(item.note)}</p>}
+        {item.note && <p className={`mt-6 text-xs leading-relaxed text-muted ${rich ? 'lg:mt-9 lg:text-sm' : ''}`}>{t(item.note)}</p>}
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <ConsultLink item={item} />
           <Link to={`/faq#${encodeURIComponent(item.key)}`} className="inline-flex items-center gap-2 text-sm font-medium text-ink underline decoration-gold decoration-2 underline-offset-4 hover:text-gold">

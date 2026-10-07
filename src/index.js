@@ -1,78 +1,25 @@
 #!/usr/bin/env node
 
-/**
- * Module dependencies.
- */
-
+// Local / long-running entry point (`npm start`). On Vercel this file is not used:
+// api/index.js hands the same Express app to the platform instead of listening.
 const app = require('./app').default;
-var http = require('http');
-var port = normalizePort(process.env.PORT || '3000');
-let server;
 
-/**
- * Create HTTP server.
- */
 app().then((app) => {
-  server = http.createServer(app);
+  const port = app.get('port');
 
-  /**
-   * Listen on provided port, on all network interfaces.
-   */
+  const server = app.listen(port, () => {
+    console.log('Listening on port ' + port);
+  });
 
-  server.listen(port);
-  server.on('error', onError);
-  server.on('listening', onListening);
-});
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    return val;
-  }
-
-  if (port >= 0) {
-    return port;
-  }
-
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
-  if (error.syscall !== 'listen') {
+  server.on('error', (error) => {
+    if (error.code === 'EACCES') {
+      console.error('Port ' + port + ' requires elevated privileges');
+      process.exit(1);
+    }
+    if (error.code === 'EADDRINUSE') {
+      console.error('Port ' + port + ' is already in use');
+      process.exit(1);
+    }
     throw error;
-  }
-
-  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
-
-  switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-}
-
-/**
- * Event listener for HTTP server "listening" event.
- */
-
-function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
-  console.log('Listening on ' + bind);
-}
+  });
+});

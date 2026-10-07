@@ -59,10 +59,6 @@ const baseCategories = [
             text: { en: 'Forehead lines | Frown lines | Crow’s feet | Masseter | Chin | Neck', zh: '抬头纹｜眉间纹｜鱼尾纹｜咬肌｜下巴｜颈部' },
           },
           {
-            title: { en: 'Brands', zh: '品牌选择' },
-            items: ['BOTOX® 保妥适', 'XEOMIN® 德国西马'],
-          },
-          {
             title: { en: 'Highlights', zh: '项目特点' },
             text: { en: 'Precise placement · Personalised dosing · Natural expression · Contour refinement', zh: '精准定点 · 个性化剂量 · 自然表情 · 轮廓优化' },
           },
@@ -89,10 +85,6 @@ const baseCategories = [
           {
             title: { en: 'Treatment areas', zh: '适用部位' },
             text: { en: 'Tear troughs | Nasolabial folds | Nose | Lips | Chin | Cheeks | Facial contour', zh: '泪沟｜法令纹｜鼻部｜唇部｜下巴｜苹果肌｜面部轮廓' },
-          },
-          {
-            title: { en: 'Brands', zh: '品牌选择' },
-            items: ['JUVÉDERM® 乔雅登', 'Restylane® 瑞蓝', 'RHA® by Revance', 'Neuramis®'],
           },
           {
             title: { en: 'Highlights', zh: '项目特点' },
@@ -123,10 +115,6 @@ const baseCategories = [
             text: { en: 'Submental area (double chin)', zh: '下颏区域（双下巴）' },
           },
           {
-            title: { en: 'Brand', zh: '品牌选择' },
-            items: ['KYBELLA®'],
-          },
-          {
             title: { en: 'Highlights', zh: '项目特点' },
             text: { en: 'Precise improvement · Non-surgical · Contour refinement · Personalised plan', zh: '精准改善 · 非手术方式 · 轮廓优化 · 个性化方案' },
           },
@@ -153,13 +141,6 @@ const baseCategories = [
           {
             title: { en: 'Treatment areas', zh: '适用部位' },
             text: { en: 'Forehead | Frown area | Eye area | Cheeks | Nose | Lips | Chin | Jawline | Neck', zh: '额头｜眉间｜眼周｜苹果肌｜鼻部｜唇部｜下巴｜下颌线｜颈部' },
-          },
-          {
-            title: { en: 'Combined plan', zh: '联合方案' },
-            items: {
-              en: ['BOTOX® / XEOMIN® neuromodulator', 'JUVÉDERM® / Restylane® / RHA® / Neuramis® fillers'],
-              zh: ['BOTOX® / XEOMIN® 肉毒素', 'JUVÉDERM® / Restylane® / RHA® / Neuramis® 填充剂'],
-            },
           },
           {
             title: { en: 'Highlights', zh: '项目特点' },
@@ -241,10 +222,6 @@ const baseCategories = [
           {
             title: { en: 'Key benefits', zh: '主要功效' },
             items: { en: ["Deep hydration | Improves dryness and boosts moisture", "Brighten the complexion | Improves dullness and restores a natural glow", "Repair the barrier | Helps stabilise the skin and strengthen its condition", "Refined texture | Improves roughness and softness", "Firm and revitalise | Improves elasticity and fine lines for a younger look"], zh: ["深层补水｜改善干燥缺水，提升水润度", "提亮肤色｜改善暗沉，恢复自然光泽", "修护屏障｜帮助稳定肤况，增强肌肤状态", "细腻肤质｜改善粗糙感，提升柔嫩度", "紧致焕活｜改善弹性与细纹，提升年轻感"] },
-          },
-          {
-            title: { en: 'Plan options', zh: '方案选择' },
-            items: { en: ["REJURAN® 丽珠兰 | Repair and renew · Improve skin quality", "FILORGA® 菲洛嘉 | Multi-nutrient · Hydrating and brightening", "Exosome plan | Repair and revitalise · Improve skin condition", "Regenerative repair plan | Tailored to different skin conditions", "Collagen plan | Collagen revitalisation · Firm and fine", "Brightening plan | Improve dullness · Even out skin tone"], zh: ["REJURAN® 丽珠兰｜修护焕肤 · 改善肤质", "FILORGA® 菲洛嘉｜多重营养 · 水润提亮", "外泌体方案｜修护焕活 · 改善肌肤状态", "再生修护方案｜针对不同肤况定制", "童颜方案｜胶原焕活 · 紧致细腻", "美白亮肤方案｜改善暗沉 · 均匀肤色"] },
           },
           {
             title: { en: 'Suited skin conditions', zh: '适合肤况' },
@@ -543,30 +520,30 @@ const baseCategories = [
         subtitle: { en: '', zh: 'HORMONE REPLACEMENT THERAPY' },
         image: img('Hormone%20Level.png'),
         body: {
-          en: 'Through professional assessment, symptom analysis and any necessary laboratory tests, a personalised hormone supplementation plan is designed to help ease discomfort caused by changing hormone levels and support bodily function and quality of life.',
-          zh: '通过专业评估、症状分析及必要的实验室检查，制定个性化荷尔蒙补充方案，帮助改善因荷尔蒙水平变化所带来的不适，支持身体机能与生活质量。',
+          en: 'After professional assessment and any necessary tests, a personalised hormone supplementation plan is designed to help ease the discomfort caused by hormone changes and improve overall quality of life.',
+          zh: '通过专业评估与必要检查，制定个性化荷尔蒙补充方案，帮助改善荷尔蒙变化带来的不适，提升整体生活质量。',
         },
         sections: [
           {
             title: { en: 'Key effects', zh: '主要作用' },
-            items: { en: ["Relieve menopausal symptoms | Helps ease hot flushes, night sweats and related discomfort", "Support sleep and mood | Improves some sleep and mood problems linked to hormone changes", "Maintain bone health | In specific cases helps reduce post-menopausal bone loss", "Male hormone management | Medical assessment and treatment for low testosterone confirmed by testing", "Personalised management | The plan is adjusted to your symptoms, age and test results"], zh: ["改善更年期症状｜帮助缓解潮热、盗汗等相关不适", "支持睡眠与情绪｜改善部分与荷尔蒙变化相关的睡眠及情绪问题", "维持骨骼健康｜特定情况下帮助降低绝经后骨质流失", "男性荷尔蒙管理｜针对经检查确认的睾酮水平不足进行医学评估与治疗", "个性化管理｜结合症状、年龄及检查结果调整治疗方案"] },
+            items: { en: ["Ease menopausal discomfort | Relieves hot flushes, night sweats and related symptoms", "Support sleep and mood | Improves sleep and mood swings", "Maintain bone health | Supports bone health after menopause", "Hormone management | Manages hormone-level abnormalities confirmed by testing"], zh: ["改善更年期不适｜缓解潮热、盗汗等症状", "支持睡眠情绪｜改善睡眠及情绪波动", "维持骨骼健康｜支持绝经后骨骼健康", "荷尔蒙管理｜针对检查确认的荷尔蒙水平异常进行管理"] },
           },
           {
             title: { en: 'Who it’s for', zh: '适合人群' },
-            text: { en: 'Women with menopause-related symptoms | Hormone changes in perimenopause | Women or men with a medically confirmed need for hormone therapy', zh: '女性更年期相关症状｜围绝经期荷尔蒙变化｜经医学检查确认存在荷尔蒙治疗需求的女性或男性' },
+            text: { en: 'Women in perimenopause and menopause | Women or men with a need for hormone therapy confirmed by medical assessment', zh: '围绝经期及更年期女性｜经医学评估存在荷尔蒙治疗需求的女性或男性' },
           },
           {
             title: { en: 'Treatment methods', zh: '治疗方式' },
-            text: { en: 'Prescription oral medication | Transdermal patches / gels | Injectable therapy | Other FDA-approved options judged suitable by your doctor', zh: '处方口服药物｜经皮贴剂/凝胶｜注射治疗｜其他经医生评估适合的 FDA 批准治疗方案' },
+            text: { en: 'Oral medication | Patches / gels | Injectable therapy', zh: '口服药物｜贴剂/凝胶｜注射治疗' },
           },
           {
             title: { en: 'Highlights', zh: '项目特点' },
-            text: { en: 'Medical assessment · Laboratory tests · Personalised plan · Regular monitoring', zh: '医学评估 · 实验室检查 · 个性化方案 · 定期监测' },
+            text: { en: 'Medical assessment · Personalised plan · Regular monitoring', zh: '医学评估 · 个性化方案 · 定期监测' },
           },
         ],
         note: {
-          en: 'Hormone therapy is not suitable for everyone. The exact medication, dose, method of administration and course are determined by a qualified medical professional after a comprehensive assessment of your medical history, symptoms, test results and relevant risks.',
-          zh: '荷尔蒙治疗并非适合所有人。具体药物、剂量、给药方式及疗程需由专业医疗人员结合个人病史、症状、检查结果及相关风险进行综合评估后确定。',
+          en: 'The exact treatment method, medication and dose are determined by a qualified medical professional based on your symptoms, medical history and test results.',
+          zh: '具体治疗方式、药物及剂量需结合个人症状、病史及检查结果，由专业医疗人员评估后确定。',
         },
       },
       {
@@ -1781,10 +1758,6 @@ const collagenStimulator = {
       text: { en: 'Temples | Cheeks | Mid-face | Nasolabial area | Jaw contour', zh: '太阳穴｜面颊｜苹果肌｜中面部｜法令纹区域｜下颌轮廓' },
     },
     {
-      title: { en: 'Brand', zh: '品牌选择' },
-      items: ['SCULPTRA® 塑然雅童颜针'],
-    },
-    {
       title: { en: 'Highlights', zh: '项目特点' },
       text: { en: 'Collagen regeneration · Gradual improvement · Natural fullness · Full-face rejuvenation', zh: '胶原再生 · 渐进改善 · 自然饱满 · 全脸年轻化' },
     },
@@ -1813,13 +1786,6 @@ const tirzepatide = {
     {
       title: { en: 'Who it’s for', zh: '适合人群' },
       text: { en: 'People with obesity | Overweight with related health risks | Those who struggle with diet control | Those who need medical weight management', zh: '肥胖人群｜超重并伴有相关健康风险者｜饮食控制困难者｜需要医学体重管理者' },
-    },
-    {
-      title: { en: 'Brand', zh: '品牌选择' },
-      items: {
-        en: ['ZEPBOUND® (Tirzepatide) | FDA-approved in the US for long-term weight management in eligible adults'],
-        zh: ['ZEPBOUND®（Tirzepatide）｜美国 FDA 批准用于符合条件成人的长期体重管理'],
-      },
     },
     {
       title: { en: 'Highlights', zh: '项目特点' },
@@ -1945,18 +1911,18 @@ categories.forEach((c) => c.treatments.forEach((x) => {
 
 // Lash cards show the matching rows of the price list right under their description.
 // Injectables: full poster for the Botox card (shown whole, not cropped to the card's photo ratio).
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-1').poster = '/images/treatments/shared/botox-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-2').poster = '/images/treatments/shared/filler-guide-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-3').poster = '/images/treatments/shared/belkyra-guide-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-4').poster = '/images/treatments/shared/contour-plan-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-5').poster = '/images/treatments/shared/instalift-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-stimulator').poster = '/images/treatments/shared/collagen-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'skin-2').poster = '/images/treatments/shared/skin-booster-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hair-2').poster = '/images/treatments/shared/prp-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'body-3').poster = '/images/treatments/shared/fat-dissolving-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'wellness-2').poster = '/images/treatments/shared/vitamin-b-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hormone-stem-cell-1').poster = '/images/treatments/shared/hormone-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'tirzepatide').poster = '/images/treatments/shared/tirzepatide-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-1').poster = '/images/treatments/shared/botox-glow-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-2').poster = '/images/treatments/shared/filler-aesthetic-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-3').poster = '/images/treatments/shared/belkyra-course-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-4').poster = '/images/treatments/shared/contour-guide-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-5').poster = '/images/treatments/shared/instalift-ad-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-stimulator').poster = '/images/treatments/shared/collagen-premium-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'skin-2').poster = '/images/treatments/shared/skin-booster-luxury-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hair-2').poster = '/images/treatments/shared/prp-aesthetic-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'body-3').poster = '/images/treatments/shared/fat-reduction-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'wellness-2').poster = '/images/treatments/shared/vitamin-b-revive-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hormone-stem-cell-1').poster = '/images/treatments/shared/hormone-course-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'tirzepatide').poster = '/images/treatments/shared/tirzepatide-science-poster.jpg'
 
 const lashCat = categories.find((c) => c.slug === 'lash')
 const lashRows = lashCat.priceList.groups.flatMap((g) => g.rows)

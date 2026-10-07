@@ -1,13 +1,14 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const mongo = require('./mongo');
 
 // Tiny JSON-file datastore for the CRM prototype. Swap for a real database
 // (Postgres/SQLite) before storing real client data at scale.
 const DATA_DIR = process.env.CRM_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'crm.json');
 
-const COLLECTIONS = ['customers', 'appointments', 'payments', 'services'];
+const COLLECTIONS = ['customers', 'appointments', 'payments', 'services', 'messages', 'applications'];
 
 let db = null;
 
@@ -104,37 +105,90 @@ function persist() {
   fs.renameSync(tmp, FILE); // atomic replace so a crash can't leave half a file
 }
 
-function list(name) {
-  return load()[name];
+// ---- file backend (local development, no MONGODB_URI) ----
+
+const fileStore = {
+  async list(name) {
+    return load()[name];
+  },
+  async get(name, id) {
+    return load()[name].find((r) => r.id === id) || null;
+  },
+  async create(name, data) {
+    const record = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    load()[name].push(record);
+    persist();
+    return record;
+  },
+  async update(name, id, data) {
+    const rows = load()[name];
+    const i = rows.findIndex((r) => r.id === id);
+    if (i === -1) return null;
+    rows[i] = { ...rows[i], ...data, id, updatedAt: new Date().toISOString() };
+    persist();
+    return rows[i];
+  },
+  async remove(name, id) {
+    const rows = load()[name];
+    const i = rows.findIndex((r) => r.id === id);
+    if (i === -1) return false;
+    rows.splice(i, 1);
+    persist();
+    return true;
+  },
+};
+
+// ---- MongoDB backend (production / Vercel) ----
+// One collection per name; documents keep our own string `id` (the Mongo `_id` is hidden).
+
+const NO_ID = { projection: { _id: 0 } };
+let ready = null;
+
+// Index on `id` and the starter service catalogue (only when the catalogue is empty).
+function init() {
+  if (!ready) {
+    ready = (async () => {
+      const db = await mongo.getDb();
+      await Promise.all(COLLECTIONS.map((c) => db.collection(c).createIndex({ id: 1 }, { unique: true })));
+      if ((await db.collection('services').estimatedDocumentCount()) === 0) {
+        await db.collection('services').insertMany(DEFAULT_SERVICES.map(newService));
+      }
+    })().catch((err) => {
+      ready = null; // retry on the next request
+      throw err;
+    });
+  }
+  return ready;
 }
 
-function get(name, id) {
-  return load()[name].find((r) => r.id === id) || null;
+async function col(name) {
+  await init();
+  return (await mongo.getDb()).collection(name);
 }
 
-function create(name, data) {
-  const record = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  load()[name].push(record);
-  persist();
-  return record;
-}
+const mongoStore = {
+  async list(name) {
+    return (await col(name)).find({}, NO_ID).sort({ createdAt: 1 }).toArray();
+  },
+  async get(name, id) {
+    return (await col(name)).findOne({ id }, NO_ID);
+  },
+  async create(name, data) {
+    const record = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    await (await col(name)).insertOne({ ...record }); // insertOne adds _id to what it is given, so pass a copy
+    return record;
+  },
+  async update(name, id, data) {
+    return (await col(name)).findOneAndUpdate(
+      { id },
+      { $set: { ...data, id, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after', projection: { _id: 0 } },
+    );
+  },
+  async remove(name, id) {
+    return (await (await col(name)).deleteOne({ id })).deletedCount > 0;
+  },
+};
 
-function update(name, id, data) {
-  const rows = load()[name];
-  const i = rows.findIndex((r) => r.id === id);
-  if (i === -1) return null;
-  rows[i] = { ...rows[i], ...data, id, updatedAt: new Date().toISOString() };
-  persist();
-  return rows[i];
-}
-
-function remove(name, id) {
-  const rows = load()[name];
-  const i = rows.findIndex((r) => r.id === id);
-  if (i === -1) return false;
-  rows.splice(i, 1);
-  persist();
-  return true;
-}
-
-module.exports = { list, get, create, update, remove };
+// Every method is async; the backend is picked once from MONGODB_URI.
+module.exports = mongo.enabled() ? mongoStore : fileStore;

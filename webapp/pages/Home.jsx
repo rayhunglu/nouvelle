@@ -27,6 +27,8 @@ const pillars = [
 
 export default function Home() {
   const { t, lang } = useLang()
+  // Chinese hero on phones: the small caption and the headline are right-aligned.
+  const zhRight = lang === 'zh' ? 'text-right lg:text-left' : ''
 
   return (
     <>
@@ -35,26 +37,54 @@ export default function Home() {
         <img
           src={t(heroImage)}
           alt=""
-          className={`absolute inset-0 -z-20 h-full w-full object-cover ${
-            lang === 'zh' ? 'object-[30%_center]' : 'origin-center scale-[1.15] object-center lg:-translate-x-[8%]'
+          className={`absolute left-0 -z-20 object-cover ${
+            lang === 'zh'
+              ? // Phones: a smaller photo across the top, fading into the text below; desktop: full-bleed.
+                'top-0 h-[48%] w-full object-[42%_20%] [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:inset-y-0 lg:h-full lg:object-[30%_center] lg:[mask-image:none]'
+              : // Portrait photo: smaller on phones, on the left (fading right) on desktop.
+                'top-0 h-[48%] w-full object-[50%_18%] [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:inset-y-0 lg:h-full lg:w-[62%] lg:[mask-image:linear-gradient(to_right,black_72%,transparent)]'
           }`}
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ivory/90 via-ivory/30 to-transparent lg:bg-gradient-to-l lg:from-ivory/55 lg:via-transparent lg:to-transparent" />
-        <div className="container-x pb-14 pt-24 lg:pb-0 lg:pt-0">
-          <Reveal className="lg:ml-auto lg:max-w-xl lg:translate-x-16 xl:translate-x-32 2xl:translate-x-44">
-            <p className="eyebrow mb-6">{t({ en: 'Nouvelle Anti-Aging Center', zh: 'Nouvelle 抗衰老中心' })}</p>
-            <h1 className="font-display text-5xl font-light leading-[1.02] tracking-tight sm:text-7xl">
+        <div className={`container-x pt-24 lg:pb-0 lg:pt-0 ${lang === 'zh' ? 'pb-32' : 'pb-6'}`}>
+          <Reveal
+            className={`lg:ml-auto lg:max-w-xl ${
+              lang === 'zh'
+                ? 'lg:translate-x-20 xl:translate-x-40 2xl:translate-x-56'
+                : 'lg:translate-x-16 xl:translate-x-32 2xl:translate-x-44'
+            }`}
+          >
+            <p className={`eyebrow mb-4 max-lg:text-[0.62rem] max-lg:tracking-[0.2em] lg:mb-6 ${zhRight}`}>{lang === 'en' ? (
+                <>
+                  Nouvelle Anti-Aging<span className="max-lg:hidden"> Center</span>
+                </>
+              ) : (
+                'Nouvelle 抗衰老中心'
+              )}
+            </p>
+            <h1 className={`font-display font-light leading-[1.02] tracking-tight sm:text-7xl ${lang === 'zh' ? 'text-4xl' : 'text-5xl'} ${zhRight}`}>
               {t({ en: 'Prettier,', zh: '塑造' })}
               <br />
               <em className="text-gold">{t({ en: 'younger', zh: '更美丽年轻' })}</em>
               <br />
-              {t({ en: 'you.', zh: '的你。' })}
+              {t({ en: 'you.', zh: '的你' })}
             </h1>
-            <p className="mt-8 max-w-md text-lg leading-relaxed text-ink/75">
-              {t({
-                en: 'Injectables, advanced laser skin care, body sculpting and whole-body anti-aging — thoughtfully tailored, beautifully natural.',
-                zh: '注射微整、先进激光护肤、身体塑形与全身抗衰老——用心定制，自然美丽。',
-              })}
+            <p className={`mt-8 max-w-md leading-relaxed text-ink/75 ${lang === 'zh' ? 'text-base' : 'text-lg'}`}>
+              {lang === 'zh' ? (
+                // Each service name is kept whole: lines only break between items.
+                <>
+                  {['注射微整', '先进光电', '日式护肤', '美睫', '纹绣', '身体塑形', '全身抗衰老'].map((x, i) => (
+                    <span key={x}>
+                      {i > 0 && '、'}
+                      <span className="whitespace-nowrap">{x}</span>
+                    </span>
+                  ))}
+                  ——<span className="whitespace-nowrap">用心定制，</span>
+                  <span className="whitespace-nowrap">自然美丽。</span>
+                </>
+              ) : (
+                'Injectables, advanced light- and energy-based treatments, Japanese-style skincare, lash extensions, permanent makeup, body sculpting and whole-body anti-aging — thoughtfully tailored, beautifully natural.'
+              )}
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
               <Link to="/contact" className="btn-primary">{t(ui.book)} <ArrowRight size={16} /></Link>
