@@ -117,7 +117,7 @@ export default function Header() {
           <img src="/images/logo.jpg" alt="Nouvelle Anti-Aging" className="h-9 w-auto sm:h-11" />
         </Link>
 
-        <nav className="hidden items-center gap-8 lg:flex">
+        <nav className="hidden items-center gap-6 2xl:gap-8 lg:flex">
           <NavLink to="/about" className={linkCls}>{t(ui.nav.about)}</NavLink>
           <ServiceDropdown label={t(ui.nav.medical)} items={medicalItems} linkCls={linkCls} />
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />

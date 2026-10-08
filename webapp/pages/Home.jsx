@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, MapPin, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react'
+import { ArrowRight, MapPin, MessageCircle, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react'
 import { useLang } from '../i18n'
-import { business, categories, heroImage } from '../data/site'
+import { business, heroImage } from '../data/site'
 import { ui } from '../components/ui'
-import Icon from '../components/Icon'
 import Reveal from '../components/Reveal'
 import CtaBand from '../components/CtaBand'
+import ConcernSearch from '../components/ConcernSearch'
+import Featured from '../components/Featured'
+import WeChatModal from '../components/WeChatModal'
 
 const pillars = [
   {
@@ -27,6 +30,7 @@ const pillars = [
 
 export default function Home() {
   const { t, lang } = useLang()
+  const [wechatOpen, setWechatOpen] = useState(false)
   // Chinese hero on phones: the small caption and the headline are right-aligned.
   const zhRight = lang === 'zh' ? 'text-right lg:text-left' : ''
 
@@ -87,49 +91,17 @@ export default function Home() {
               )}
             </p>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              <Link to="/treatments" className="btn-ghost">{t({ en: 'All treatments', zh: '全部服务' })}</Link>
               <Link to="/contact" className="btn-primary">{t(ui.book)} <ArrowRight size={16} /></Link>
-              <Link to="/treatments" className="btn-ghost">{t({ en: 'View treatments', zh: '浏览服务' })}</Link>
+              <button type="button" onClick={() => setWechatOpen(true)} className="btn-ghost"><MessageCircle size={16} /> {t({ en: 'WeChat', zh: '微信联系' })}</button>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* Services grid */}
-      <section className="container-x py-20 sm:py-28">
-        <Reveal className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <p className="eyebrow mb-4">{t(ui.nav.services)}</p>
-            <h2 className={`font-display text-4xl font-light leading-tight sm:text-5xl ${lang === 'zh' ? 'md:whitespace-nowrap' : 'max-w-xl'}`}>
-              {t({ en: 'Everything you need to look and feel your best.', zh: '由内而外，焕发最佳状态。' })}
-            </h2>
-          </div>
-          <Link to="/treatments" className="group inline-flex items-center gap-2 text-sm font-medium">
-            {t({ en: 'All treatments', zh: '全部服务' })} <ArrowRight size={16} className="transition group-hover:translate-x-1" />
-          </Link>
-        </Reveal>
+      <Featured />
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.filter((c) => c.slug !== 'spa').map((c, i) => (
-            <Reveal key={c.slug} delay={(i % 3) * 100}>
-              <Link
-                to={`/treatments/${c.slug}`}
-                className="group relative flex h-full min-h-[22rem] flex-col justify-end overflow-hidden rounded-[2rem] bg-sand p-7"
-              >
-                <img src={t(c.cover)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-ink/0" />
-                <span className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full bg-ivory/90 text-ink transition group-hover:bg-gold group-hover:text-ivory">
-                  <ArrowUpRight size={18} />
-                </span>
-                <div className="relative text-ivory">
-                  <Icon name={c.icon} size={22} className="mb-3 text-gold-light" />
-                  <h3 className="font-display text-2xl">{t(c.name)}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ivory/80">{t(c.short)}</p>
-                </div>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+      <ConcernSearch />
 
       {/* Pillars */}
       <section className="bg-sand py-20 sm:py-28">
@@ -137,7 +109,7 @@ export default function Home() {
           <Reveal className="mx-auto max-w-2xl text-center">
             <p className="eyebrow mb-4">{t({ en: 'Why Nouvelle', zh: '为什么选择我们' })}</p>
             <h2 className="font-display text-4xl font-light leading-tight sm:text-5xl">
-              {t({ en: 'Natural results, guided by medicine.', zh: '以医学为本，追求自然效果。' })}
+              {t({ en: 'Natural results, guided by medicine.', zh: '以医学为本　追求自然效果' })}
             </h2>
           </Reveal>
           <div className="mt-14 grid gap-5 md:grid-cols-3">
@@ -171,6 +143,7 @@ export default function Home() {
         </Reveal>
       </section>
 
+      {wechatOpen && <WeChatModal onClose={() => setWechatOpen(false)} />}
       <CtaBand />
     </>
   )

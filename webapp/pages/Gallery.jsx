@@ -1,77 +1,58 @@
 import { useCallback, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { useLang } from '../i18n'
-import { beforeAfterPhotos, galleryPhotos } from '../data/site'
+import { beforeAfterPhotos } from '../data/site'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import CtaBand from '../components/CtaBand'
 import Lightbox from '../components/Lightbox'
 
-function PhotoGrid({ photos, onOpen }) {
-  const { t } = useLang()
+// Each case: the full case card on the left, a side panel with title and calls to action on the right.
+function CaseRow({ photo, onOpen }) {
+  const { t, lang } = useLang()
+  const [label, ...rest] = t(photo.caption).split(/[　·]\s*/)
+  const title = rest.join(lang === 'zh' ? ' ' : ' · ')
   return (
-    <div className="columns-1 gap-5 sm:columns-2 lg:columns-3">
-      {photos.map((g, i) => (
-        <button
-          key={g.src}
-          onClick={() => onOpen(i)}
-          className="group relative mb-5 block w-full overflow-hidden rounded-[1.5rem] bg-sand"
-        >
-          <img src={g.src} alt={t(g.caption)} loading="lazy" className="w-full transition duration-700 group-hover:scale-105" />
-          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent p-4 text-left text-sm text-ivory opacity-0 transition group-hover:opacity-100">
-            {t(g.caption)}
-          </span>
-        </button>
-      ))}
-    </div>
+    <article className="grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8">
+      <button onClick={onOpen} className="group relative block w-full overflow-hidden rounded-[1.5rem] bg-sand">
+        <img src={photo.src} alt={t(photo.caption)} loading="lazy" className="w-full transition duration-700 group-hover:scale-[1.02]" />
+      </button>
+      <div className="flex flex-col gap-4 rounded-[1.5rem] bg-sand p-6">
+        <div>
+          <p className="eyebrow mb-2">{label}</p>
+          <h2 className="font-display text-xl leading-snug sm:text-2xl">{title}</h2>
+        </div>
+        <Link to={photo.to} className="btn-ghost w-full">{t({ en: 'Treatment details', zh: '项目详情' })} <ArrowRight size={16} /></Link>
+        <Link to="/contact" className="btn-primary w-full">{t({ en: 'Book a free consultation', zh: '免费面诊预约' })} <ArrowRight size={16} /></Link>
+      </div>
+    </article>
   )
 }
 
-const TABS = [
-  { id: 'ba', label: { en: 'Before & After', zh: '前后对比' }, note: { en: 'Individual results; outcomes vary.', zh: '个案效果，结果因人而异。' } },
-  { id: 'clinic', label: { en: 'Our Clinic', zh: '诊所环境' }, note: { en: 'Reception, treatment rooms and wellness spaces.', zh: '接待区、疗程室与养生空间。' } },
-]
-const SETS = { ba: beforeAfterPhotos, clinic: galleryPhotos }
-
 export default function Gallery() {
   const { t } = useLang()
-  // /gallery#clinic opens the clinic photos directly; otherwise start with before & after.
-  const [tab, setTab] = useState(() => (window.location.hash === '#clinic' ? 'clinic' : 'ba'))
   const [openIndex, setOpenIndex] = useState(null)
-  const photos = SETS[tab]
+  const photos = beforeAfterPhotos
   const close = useCallback(() => setOpenIndex(null), [])
-  const step = useCallback((d) => setOpenIndex((i) => (i === null ? i : (i + d + SETS[tab].length) % SETS[tab].length)), [tab])
-  const active = TABS.find((x) => x.id === tab)
+  const step = useCallback((d) => setOpenIndex((i) => (i === null ? i : (i + d + beforeAfterPhotos.length) % beforeAfterPhotos.length)), [])
 
   return (
     <>
       <PageHeader
         eyebrow={t(ui.nav.gallery)}
-        title={t({ en: 'Results & our clinic.', zh: '效果见证与诊所环境。' })}
-        intro={t({
-          en: 'Choose what you’d like to see: real before & after results, or a look inside our clinic. Results vary by individual.',
-          zh: '请选择要查看的内容：真实的前后对比，或我们的诊间环境。效果因人而异。',
-        })}
+        title={t({ en: 'Client case studies', zh: '真实客户案例' })}
+        intro={t({ en: 'Real before & after results from our clients. Results vary by individual.', zh: '真实客户的前后对比，效果因人而异。' })}
       />
 
       <section className="container-x py-12">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex rounded-full bg-sand p-1" role="tablist" aria-label={t({ en: 'Gallery', zh: '画廊' })}>
-            {TABS.map((x) => (
-              <button
-                key={x.id}
-                role="tab"
-                aria-selected={tab === x.id}
-                onClick={() => { setTab(x.id); setOpenIndex(null) }}
-                className={`rounded-full px-6 py-2.5 text-sm font-medium transition ${tab === x.id ? 'bg-ink text-ivory shadow-sm' : 'text-muted hover:text-ink'}`}
-              >
-                {t(x.label)} <span className="ml-1 text-xs opacity-60">{SETS[x.id].length}</span>
-              </button>
-            ))}
+        {photos.length ? (
+          <div className="mx-auto grid max-w-6xl gap-10">
+            {photos.map((g, i) => <CaseRow key={g.src} photo={g} onOpen={() => setOpenIndex(i)} />)}
           </div>
-          <p className="text-sm text-muted">{t(active.note)}</p>
-        </div>
-
-        <PhotoGrid key={tab} photos={photos} onOpen={setOpenIndex} />
+        ) : (
+          <p className="py-24 text-center text-muted">{t({ en: 'New cases are coming soon', zh: '新案例整理中，敬请期待' })}</p>
+        )}
       </section>
 
       {openIndex !== null && <Lightbox photos={photos} index={openIndex} onClose={close} onStep={step} />}

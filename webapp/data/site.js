@@ -3,6 +3,7 @@ export const business = {
   name: 'Nouvelle Anti-Aging Center',
   phone: '(425) 598-1111',
   phoneHref: 'tel:+14255981111',
+  wechatId: 'nouvellespa',
   locations: [
     {
       id: 'seattle',
@@ -17,6 +18,7 @@ export const business = {
     { day: { en: 'Monday – Sunday', zh: '周一至周日' }, time: { en: '10:00 am – 7:00 pm', zh: '上午 10:00 – 晚上 7:00' } },
   ],
   holidayNote: { en: 'Closed on major holidays.', zh: '重大节日休息。' },
+  urgentNote: { en: 'For urgent or special timing, please call us.', zh: '如有紧急特定时间，可电联咨询。' },
 }
 
 // Images are served from the clinic's existing site CDN. Swap for local files in
@@ -2106,12 +2108,9 @@ export const serviceGroups = GROUPS.map((g) => ({
 export const galleryPhotos = [
   { src: '/images/gallery/outside-1.jpg', caption: { en: 'Clinic exterior', zh: '门店外观' } },
   { src: '/images/gallery/exterior-dusk.jpg', caption: { en: 'Clinic at dusk', zh: '暮色门面' } },
-  { src: '/images/gallery/outside-2.jpg', caption: { en: 'Clinic exterior', zh: '门店外观' } },
-  { src: '/images/gallery/sign-night.jpg', caption: { en: 'Signage at night', zh: '夜间招牌' } },
   { src: '/images/gallery/lounge.jpg', caption: { en: 'Reception lounge', zh: '休息厅' } },
   { src: '/images/gallery/front-desk-new.jpg', caption: { en: 'Front desk', zh: '前台' } },
   { src: '/images/gallery/hallway-new.jpg', caption: { en: 'Quiet hallway', zh: '走廊' } },
-  { src: '/images/gallery/indoor-logo.jpg', caption: { en: 'Reception', zh: '接待区' } },
   { src: '/images/gallery/waiting-area.jpg', caption: { en: 'Reception waiting area', zh: '接待休息区' } },
   { src: '/images/gallery/hallway-bright.jpg', caption: { en: 'Bright hallway', zh: '明亮走廊' } },
   { src: '/images/gallery/waiting-hall.jpg', caption: { en: 'Waiting hall', zh: '候诊厅' } },
@@ -2125,8 +2124,15 @@ export const galleryPhotos = [
   { src: '/images/gallery/brow-room-2.jpg', caption: { en: 'Permanent makeup room', zh: '纹绣房' } },
 ]
 
-// Before & after photos copied from the old site (stored in /public/images/before-after).
-export const beforeAfterPhotos = Array.from({ length: 13 }, (_, i) => ({
-  src: `/images/before-after/ba-${String(i + 1).padStart(2, '0')}.jpg`,
-  caption: { en: 'Before & After', zh: '前后对比' },
-}))
+// Real client cases (each image is a finished case card: profile, plan, before/after, review).
+export const beforeAfterPhotos = [
+  { src: '/images/cases/case-01.jpg', to: '/treatments/injectables#injectables-5', caption: { en: 'Case 01 · Full-face anti-aging & contour lift', zh: 'CASE 01　全脸抗衰 轮廓提升' } },
+  { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-6', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
+  { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', caption: { en: 'Case 03 · Acne skin repair', zh: 'CASE 03　痘肌修复 重建健康肌' } },
+  { src: '/images/cases/case-04.jpg', to: '/treatments/devices#skin-1', caption: { en: 'Case 04 · Thermage FLX skin tightening', zh: 'CASE 04　第五代热玛吉 紧肤抗衰' } },
+  { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', caption: { en: 'Case 05 · Japanese face sculpting', zh: 'CASE 05　日式小颜 面部线条管理' } },
+  { src: '/images/cases/case-06.jpg', to: '/treatments/injectables#injectables-2', caption: { en: 'Case 06 · Hyaluronic acid contouring', zh: 'CASE 06　玻尿酸微调 精致轮廓' } },
+  { src: '/images/cases/case-07.jpg', to: '/treatments/lash', caption: { en: 'Case 07 · Custom lash design', zh: 'CASE 07　专属美睫 放大双眸' } },
+  { src: '/images/cases/case-08.jpg', to: '/treatments', caption: { en: 'Case 08 · Comprehensive anti-aging', zh: 'CASE 08　综合抗衰 全面年轻化' } },
+  { src: '/images/cases/case-09.jpg', to: '/treatments/microblading#ombre-brows', caption: { en: 'Case 09 · Natural powder brow', zh: 'CASE 09　高级水雾眉 定制自然眉形' } },
+]

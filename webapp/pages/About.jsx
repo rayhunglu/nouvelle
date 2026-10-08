@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, MapPin, Phone } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, galleryPhotos } from '../data/site'
 import { ui } from '../components/ui'
@@ -9,6 +9,7 @@ import Reveal from '../components/Reveal'
 import CtaBand from '../components/CtaBand'
 import ArtistCard from '../components/ArtistCard'
 import Lightbox from '../components/Lightbox'
+import WeChatModal from '../components/WeChatModal'
 
 // Principles shown under "Our philosophy".
 const principles = [
@@ -51,7 +52,7 @@ const team = [
   },
   {
     name: 'Dr. Lee L.Q. Pu, MD',
-    role: { en: 'Internationally Renowned Plastic & Aesthetic Surgeon | Nouvelle Medical Advisor', zh: '国际知名整形美容外科专家｜Nouvelle 特邀医学顾问' },
+    role: { en: 'Internationally Renowned Plastic & Aesthetic Surgeon', zh: '国际知名整形美容外科专家' },
     image: '/images/team-lee-pu.jpg',
     bio: {
       en: [
@@ -125,6 +126,7 @@ export default function About() {
   const loc = business.locations[0]
   // The photo group and index currently shown enlarged in the modal (null = closed).
   const [open, setOpen] = useState(null)
+  const [wechatOpen, setWechatOpen] = useState(false)
   const groups = SPACE_GROUPS.map((g) => ({
     title: g.title,
     photos: g.files.map((n) => galleryPhotos.find((p) => p.src.includes(`/${n}.`))).filter(Boolean),
@@ -192,9 +194,6 @@ export default function About() {
               {t({ en: 'A calm, comfortable place to be cared for.', zh: '安静、舒适，让您放松，备受呵护' })}
             </h2>
           </div>
-          <Link to="/gallery#clinic" className="group inline-flex items-center gap-2 text-sm font-medium">
-            {t({ en: 'More photos', zh: '查看更多环境' })} <ArrowRight size={16} className="transition group-hover:translate-x-1" />
-          </Link>
         </Reveal>
         <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-5">
           {groups.map((g, i) => (
@@ -208,14 +207,19 @@ export default function About() {
       {/* Services */}
       <section className="bg-sand py-16 sm:py-24">
         <div className="container-x">
-          <Reveal className="max-w-3xl">
-            <p className="eyebrow mb-4">{t({ en: 'What we offer', zh: '经营项目' })}</p>
-            <h2 className="font-display text-2xl font-light leading-snug sm:text-3xl">
-              {t({
-                en: 'Covering medical aesthetic injectables, energy-based anti-aging, skin management, lashes and permanent makeup, and body and scalp care — professional technology and refined aesthetics, bringing out your natural beauty.',
-                zh: '涵盖医美注射、光电抗衰、肌肤管理、美睫纹绣、身体及头皮护理，以专业科技与精致美学，焕发自然之美。',
-              })}
-            </h2>
+          <Reveal className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+            <div className="max-w-3xl">
+              <p className="eyebrow mb-4">{t({ en: 'What we offer', zh: '经营项目' })}</p>
+              <h2 className="font-display text-2xl font-light leading-snug sm:text-3xl">
+                {t({
+                  en: 'Covering medical aesthetic injectables, energy-based anti-aging, skin management, lashes and permanent makeup, and body and scalp care — professional technology and refined aesthetics, bringing out your natural beauty.',
+                  zh: '涵盖医美注射、光电抗衰、肌肤管理、美睫纹绣、身体及头皮护理，以专业科技与精致美学，焕发自然之美。',
+                })}
+              </h2>
+            </div>
+            <Link to="/treatments" className="group inline-flex shrink-0 items-center gap-2 text-sm font-medium">
+              {t({ en: 'View all treatments', zh: '查看所有项目' })} <ArrowRight size={16} className="transition group-hover:translate-x-1" />
+            </Link>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((c, i) => (
@@ -250,6 +254,7 @@ export default function About() {
                 <span>
                   <span className="block font-medium">{t(loc.label)}</span>
                   {loc.line1}<br />{loc.line2}
+                  <span className="block text-sm text-muted">{t({ en: 'Ample free parking on site', zh: '配备充足的免费停车位' })}</span>
                 </span>
               </li>
               <li className="flex gap-3">
@@ -269,6 +274,7 @@ export default function About() {
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={loc.maps} target="_blank" rel="noreferrer" className="btn-ghost">{t(ui.directions)} <ArrowUpRight size={16} /></a>
               <Link to="/contact" className="btn-primary">{t(ui.book)} <ArrowRight size={16} /></Link>
+              <button type="button" onClick={() => setWechatOpen(true)} className="btn-ghost"><MessageCircle size={16} /> {t({ en: 'WeChat', zh: '微信联系' })}</button>
             </div>
           </Reveal>
           <Reveal delay={100} className="overflow-hidden rounded-[2rem] border border-ink/10 lg:col-span-7">
@@ -285,6 +291,7 @@ export default function About() {
           onStep={(d) => setOpen((o) => (o ? { ...o, index: (o.index + d + groups[o.group].photos.length) % groups[o.group].photos.length } : o))}
         />
       )}
+      {wechatOpen && <WeChatModal onClose={() => setWechatOpen(false)} />}
       <CtaBand />
     </>
   )

@@ -45,8 +45,13 @@ export default function Treatments() {
     <>
       <PageHeader
         eyebrow={t(ui.nav.services)}
-        title={t({ en: 'Treatments for face, skin, body & wellbeing.', zh: '面部、皮肤、身体与健康的全方位服务。' })}
-        intro={t({ en: 'Explore our services by category. Not sure where to start? A consultation will help us build the right plan with you.', zh: '按类别浏览服务。不确定从哪里开始？预约咨询，我们与您一起制定合适方案。' })}
+        title={t({ en: 'Treatments for face, skin, body & wellbeing', zh: '面部、皮肤、身体与健康的全方位服务' })}
+        intro={
+          <>
+            {t({ en: 'Explore our services by category. Not sure where to start? A consultation will help us build the right plan with you.', zh: '按类别浏览服务。不确定从哪里开始？预约咨询，我们与您一起制定合适方案。' })}{' '}
+            <Link to="/contact" className="font-medium text-gold underline underline-offset-4 hover:text-ink">{t({ en: 'Consult', zh: '咨询' })}</Link>
+          </>
+        }
       />
       <section className="container-x py-12">
         <Reveal><p className="eyebrow mb-2">{t(ui.nav.medical)}</p></Reveal>

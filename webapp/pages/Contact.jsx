@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CheckCircle2, Clock, MapPin, Phone } from 'lucide-react'
+import { CheckCircle2, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, serviceGroups } from '../data/site'
 import { clearConsultService, getConsultService, setConsultService } from '../consult'
@@ -12,8 +12,12 @@ const field = 'w-full rounded-2xl border border-ink/10 bg-ivory px-4 py-3.5 outl
 
 function useApiSubmit(endpoint, onSuccess, transform) {
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [failed, setFailed] = useState(false)
   const onSubmit = async (e) => {
     e.preventDefault()
+    setSending(true)
+    setFailed(false)
     const raw = Object.fromEntries(
       [...new FormData(e.target).entries()].filter(([, v]) => typeof v === 'string')
     )
@@ -27,12 +31,17 @@ function useApiSubmit(endpoint, onSuccess, transform) {
       if (res.ok) {
         setSent(true)
         onSuccess?.()
+      } else {
+        setFailed(true)
       }
     } catch {
       // network/API error — form stays visible so the visitor can retry
+      setFailed(true)
+    } finally {
+      setSending(false)
     }
   }
-  return [sent, onSubmit]
+  return [sent, onSubmit, { sending, failed }]
 }
 
 function Sent({ text }) {
@@ -213,7 +222,7 @@ export default function Contact() {
   const bookKey = Object.keys(BOOKABLE).find((k) => serviceItems.find((x) => x.key === k)?.value === interest) || ''
   const pkgParam = Number(params.get('package'))
   const [booking, setBooking] = useState({ pkg: Number.isInteger(pkgParam) && pkgParam > 0 ? pkgParam : 0, visit: 'first', date: '', time: '' })
-  const [sent, onSubmit] = useApiSubmit('contact', clearConsultService, (raw) => {
+  const [sent, onSubmit, { sending, failed }] = useApiSubmit('contact', clearConsultService, (raw) => {
     if (!bookKey) return raw
     const { opt, visit, price } = bookingInfo(bookKey, booking)
     return {
@@ -235,8 +244,13 @@ export default function Contact() {
     <>
       <PageHeader
         eyebrow={t(ui.nav.contact)}
-        title={t({ en: 'Let’s plan your visit.', zh: '预约您的到访。' })}
-        intro={t({ en: 'Reach out with questions, comments or scheduling requests. Treatments are by appointment — calling is the fastest way to book.', zh: '欢迎咨询、留言或预约。所有疗程需预约，电话预约最快捷。' })}
+        title={t({ en: 'Let’s plan your visit', zh: '预约您的到访' })}
+        intro={
+          <>
+            {t({ en: 'Reach out with questions, comments or scheduling requests. Treatments are by appointment — calling is the fastest way to book.', zh: '欢迎咨询、留言或预约。所有疗程需预约，电话预约最快捷。' })}
+            <span className="block">{t({ en: 'Ample, convenient free parking on site', zh: '配备充足便捷的免费停车位' })}</span>
+          </>
+        }
       >
         <a href={business.phoneHref} className="btn-primary mt-8"><Phone size={16} /> {business.phone}</a>
       </PageHeader>
@@ -281,7 +295,8 @@ export default function Contact() {
               <input type="hidden" name="interest" value={interest} />
               {bookKey && <ServiceBooking key={bookKey} serviceKey={bookKey} value={booking} onChange={setBooking} />}
               <textarea name="message" rows={5} placeholder={t({ en: 'How can we help?', zh: '请留言…' })} className={`${field} sm:col-span-2`} />
-              <button className="btn-primary sm:col-span-2 sm:justify-self-start">{t({ en: 'Send message', zh: '发送' })}</button>
+              <button disabled={sending} className="btn-primary sm:col-span-2 sm:justify-self-start disabled:opacity-60">{sending ? t({ en: 'Sending…', zh: '发送中…' }) : t({ en: 'Send message', zh: '发送' })}</button>
+              {failed && <p className="text-sm text-red-700 sm:col-span-2" role="alert">{t({ en: 'Sorry, the message could not be sent. Please try again or call us.', zh: '抱歉，发送失败，请稍后重试或直接致电我们。' })}</p>}
             </form>
           )}
         </Reveal>
@@ -297,6 +312,19 @@ export default function Contact() {
               ))}
             </dl>
             <p className="mt-4 text-sm text-muted">{t(business.holidayNote)}</p>
+            <p className="mt-1 text-sm text-muted">{t(business.urgentNote)}</p>
+          </div>
+
+          <div className="rounded-[2rem] bg-sand p-8">
+            <p className="eyebrow mb-4 flex items-center gap-2"><MessageCircle size={14} /> {t({ en: 'Contact us on WeChat', zh: '微信联系' })}</p>
+            <div className="flex items-center gap-6">
+              <img src="/images/wechat-qr.jpg" alt={t({ en: 'WeChat QR code', zh: '微信二维码' })} loading="lazy" className="h-32 w-32 shrink-0 rounded-xl bg-white p-1.5 sm:h-36 sm:w-36" />
+              <p className="leading-relaxed">
+                {t({ en: 'Scan the QR code to add us on WeChat', zh: '微信二维码添加好友' })}
+                <span className="block">{t({ en: 'or search for the WeChat ID:', zh: '或者微信搜索ID：' })}</span>
+                <span className="mt-1 block font-display text-xl text-gold">{business.wechatId}</span>
+              </p>
+            </div>
           </div>
 
           <div className="overflow-hidden rounded-[2rem] border border-ink/10">

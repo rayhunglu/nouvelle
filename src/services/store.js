@@ -62,15 +62,26 @@ function seed() {
 
 function load() {
   if (db) return db;
+  let fresh = false;
   try {
     db = JSON.parse(fs.readFileSync(FILE, 'utf8'));
   } catch (err) {
     if (err.code !== 'ENOENT') throw err;
     db = seed();
-    persist();
+    fresh = true;
   }
   migrate();
   for (const name of COLLECTIONS) if (!Array.isArray(db[name])) db[name] = [];
+  // On a read-only host (Vercel without MONGODB_URI) this fails; surface a clear message instead of
+  // leaving a half-initialised db behind.
+  if (fresh) {
+    try {
+      persist();
+    } catch (err) {
+      db = null;
+      throw new Error(`Cannot write ${FILE} (${err.code || err.message}). Set MONGODB_URI for a hosted datastore.`);
+    }
+  }
   return db;
 }
 
