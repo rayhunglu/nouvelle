@@ -84,20 +84,27 @@ async function sendContactNotification(rec) {
   return sent;
 }
 
-// Plain-text message with ASCII labels: carrier gateways tend to drop Chinese characters, so the
-// labels and the service names are English (the visitor's own message is sent as typed).
-// Capped at 300 characters; longer texts are split into several SMS by the carrier.
+// Plain ASCII text kept within one 160-character SMS: carrier gateways drop Chinese characters and
+// often fail on multi-part messages. The booking line is built from the structured fields, and the
+// visitor's own message is sent with non-ASCII characters removed (the email has the full text).
 async function sendSmsNotification(rec) {
   const to = smsRecipients();
   if (!to.length) return false;
-  const text = [
-    'New msg: ' + rec.name + ' ' + rec.phone + (rec.wechat ? ' WeChat:' + rec.wechat : ''),
-    (rec.categoryEn || rec.category) && 'Category: ' + (rec.categoryEn || rec.category),
-    (rec.interestEn || rec.interest) && 'Service: ' + (rec.interestEn || rec.interest),
-    rec.message && 'Msg: ' + rec.message.replace(/\s+/g, ' '),
-  ].filter(Boolean).join('\n').slice(0, 300);
+  const ascii = (v) => String(v || '').replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim();
+  const visit = { first: 'first visit', member: 'member', 'non-member': 'non-member' }[rec.visitType] || '';
+  const booking = [rec.date, rec.time, rec.price, visit].filter(Boolean).join(' ');
+  const lines = [
+    'New msg: ' + ascii(rec.name) + ' ' + ascii(rec.phone) + (rec.wechat ? ' WeChat:' + ascii(rec.wechat) : ''),
+    ascii(rec.interestEn || rec.categoryEn || ''),
+    booking,
+  ].filter(Boolean);
+  const room = 150 - lines.join('\n').length - 6; // "\nMsg: " + the "+" tail
+  const msg = ascii(rec.message.replace(/^[^\n]*\u3010[^\n]*\n?/, '')); // drop the Chinese booking summary line
+  if (msg && room > 8) lines.push('Msg: ' + msg.slice(0, room) + (msg.length > room ? '+' : ''));
+  const text = lines.join('\n').slice(0, 155);
   try {
-    await getTransporter().sendMail({ from: user(), to, subject: 'Nouvelle', text });
+    const info = await getTransporter().sendMail({ from: user(), to, subject: 'Nouvelle', text });
+    console.log('SMS gateway accepted:', JSON.stringify(info.accepted), '|', text.replace(/\n/g, ' / '));
     return true;
   } catch (err) {
     console.error('Failed to send SMS notification:', err.message);
