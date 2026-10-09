@@ -14,6 +14,13 @@ const recipients = () => {
   return list.length ? list : [user()];
 };
 
+// Email-to-SMS: carriers turn an email sent to <number>@<gateway> into a text message.
+//   SMS_TO       comma-separated: a full address (1234567890@tmomail.net) or just the digits
+//   SMS_GATEWAY  gateway used for entries that are only digits (default: tmomail.net, T-Mobile)
+const smsRecipients = () => (process.env.SMS_TO || '')
+  .split(',').map((x) => x.trim()).filter(Boolean)
+  .map((x) => (x.includes('@') ? x : x.replace(/\D/g, '') + '@' + (process.env.SMS_GATEWAY || 'tmomail.net')));
+
 const enabled = () => Boolean(user() && pass());
 
 let transporter;
@@ -45,6 +52,8 @@ async function sendContactNotification(rec) {
     ['姓名 Name', rec.name],
     ['电话 Phone', rec.phone],
     ['邮箱 Email', rec.email],
+    ['微信 WeChat', rec.wechat],
+    ['服务类别 Category', rec.category],
     ['咨询项目 Interest', rec.interest],
     ['预约套餐 Package', rec.package],
     ['到访类型 Visit', rec.visitType],
@@ -57,6 +66,7 @@ async function sendContactNotification(rec) {
     .map(([k, v]) => `<tr><td style="color:#888;white-space:nowrap;vertical-align:top">${esc(k)}</td><td>${esc(v).replace(/\n/g, '<br>')}</td></tr>`)
     .join('')}</table>`;
   const text = rows.map(([k, v]) => `${k}: ${v}`).join('\n');
+  let sent = false;
   try {
     await getTransporter().sendMail({
       from: `"Nouvelle 网站留言" <${user()}>`,
@@ -66,9 +76,31 @@ async function sendContactNotification(rec) {
       text,
       html,
     });
-    return true;
+    sent = true;
   } catch (err) {
     console.error('Failed to send contact email:', err.message);
+  }
+  await sendSmsNotification(rec);
+  return sent;
+}
+
+// Plain-text message with ASCII labels: carrier gateways tend to drop Chinese characters, so the
+// labels and the service names are English (the visitor's own message is sent as typed).
+// Capped at 300 characters; longer texts are split into several SMS by the carrier.
+async function sendSmsNotification(rec) {
+  const to = smsRecipients();
+  if (!to.length) return false;
+  const text = [
+    'New msg: ' + rec.name + ' ' + rec.phone + (rec.wechat ? ' WeChat:' + rec.wechat : ''),
+    (rec.categoryEn || rec.category) && 'Category: ' + (rec.categoryEn || rec.category),
+    (rec.interestEn || rec.interest) && 'Service: ' + (rec.interestEn || rec.interest),
+    rec.message && 'Msg: ' + rec.message.replace(/\s+/g, ' '),
+  ].filter(Boolean).join('\n').slice(0, 300);
+  try {
+    await getTransporter().sendMail({ from: user(), to, subject: 'Nouvelle', text });
+    return true;
+  } catch (err) {
+    console.error('Failed to send SMS notification:', err.message);
     return false;
   }
 }

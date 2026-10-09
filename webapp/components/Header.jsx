@@ -18,6 +18,9 @@ const skincareItems = categories
   .filter((c) => c.group === 'skincare')
   .flatMap((c) => c.treatments.map((x) => ({ key: x.key, to: `/treatments/${c.slug}#${x.key}`, name: x.name, short: x.short })))
 
+// The dropdown descriptions are shown without the closing full stop.
+const dropPeriod = (text) => text.replace(/[。.]\s*$/, '')
+
 function LangToggle({ className = '' }) {
   const { lang, setLang } = useLang()
   return (
@@ -59,7 +62,7 @@ function ServiceDropdown({ label, items, linkCls }) {
           {items.map((c) => (
             <Link key={c.key} to={c.to} onClick={close} className="rounded-2xl px-4 py-3 transition hover:bg-sand">
               <span className="block text-sm font-medium">{t(c.name)}</span>
-              {c.short && <span className="mt-0.5 line-clamp-1 block text-xs text-muted">{t(c.short)}</span>}
+              {c.short && <span className="mt-0.5 line-clamp-1 block text-xs text-muted">{dropPeriod(t(c.short))}</span>}
             </Link>
           ))}
         </div>

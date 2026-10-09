@@ -9,7 +9,8 @@
     "build-ui": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "start": "npm run build-ui && node -r dotenv/config src/index.js"
+    "start": "npm run build-ui && node -r dotenv/config src/index.js",
+    "server": "./scripts/server.sh"
   },
   "dependencies": {
     "connect-mongo": "^6.0.0",

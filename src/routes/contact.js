@@ -8,12 +8,13 @@ const clean = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 // and announced by email (Gmail SMTP) when GMAIL_* is set.
 async function postMessage(req, res, next) {
   try {
-    const { name, phone, email, interest, message, package: pkg, visitType, price, date, time } = req.body;
-    if (!name || !phone || !email) {
-      return res.status(400).json({ error: 'name, phone and email are required' });
+    const { name, phone, email, wechat, category, categoryEn, interestEn, interest, message, package: pkg, visitType, price, date, time } = req.body;
+    // Email and WeChat ID are optional; name and phone are required.
+    if (!name || !phone) {
+      return res.status(400).json({ error: 'name and phone are required' });
     }
     const record = {
-      name: clean(name, 120), phone: clean(phone, 40), email: clean(email, 160), interest: clean(interest, 200),
+      name: clean(name, 120), phone: clean(phone, 40), email: clean(email, 160), wechat: clean(wechat, 80), category: clean(category, 80), categoryEn: clean(categoryEn, 80), interestEn: clean(interestEn, 120), interest: clean(interest, 200),
       message: clean(message, 4000), package: clean(pkg, 200), visitType: clean(visitType, 20),
       price: clean(price, 20), date: clean(date, 20), time: clean(time, 10),
     };

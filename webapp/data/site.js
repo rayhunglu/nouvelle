@@ -749,7 +749,6 @@ const baseCategories = [
       artist: {
         name: 'Rina',
         role: { en: 'Senior Aesthetician', zh: '资深美容师' },
-        image: '/images/treatments/shared/rina-portrait.jpg',
         bio: {
           en: [
             'Rina comes from Japan and has more than 10 years of professional face-contouring experience in Japan. She brings the quality of an authentic Japanese service straight to our treatment room.',
@@ -1813,9 +1812,9 @@ export const categories = [
       zh: '精准、适度的注射与针剂项目，淡化细纹、恢复饱满、勾勒轮廓，并支持全身焕新。',
     },
     treatments: [
-      ...pick('injectables-1', 'injectables-2', 'injectables-3', 'injectables-4', 'injectables-5'),
+      ...pick('injectables-1', 'injectables-2', 'injectables-3', 'injectables-4'),
       collagenStimulator,
-      ...pick('skin-2', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
+      ...pick('skin-2', 'injectables-5', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
       tirzepatide,
     ],
   },
@@ -1842,8 +1841,8 @@ export const categories = [
       zh: '医疗级仪器，紧致、焕肤、祛斑、身体塑形与全身养护。',
     },
     treatments: pick(
-      'skin-1', 'skin-3', 'skin-4', 'skin-5', 'skin-6', 'skin-7', 'skin-8', 'skin-9', 'skin-10',
-      'hair-1', 'hair-3', 'body-1', 'body-2', 'wellness-1',
+      'skin-1', 'skin-3', 'skin-4', 'skin-5', 'skin-7', 'skin-8',
+      'hair-3', 'body-1', 'body-2', 'wellness-1',
     ),
   },
   keepBase('skincare-experts'),
@@ -1899,7 +1898,7 @@ const TREATMENT_PHOTOS = {
   'body-spa': { zh: '/images/treatments/shared/body-spa.jpg', en: '/images/treatments/shared/body-spa.jpg' },
   'head-spa': { zh: '/images/treatments/zh/head-spa.jpg', en: '/images/treatments/en/head-spa.jpg' },
   'microblading-cover': { zh: '/images/treatments/zh/microblading-cover.jpg', en: '/images/treatments/en/microblading-cover.jpg' },
-  'wellness-1': { zh: '/images/gallery/room-hbot.jpg', en: '/images/gallery/room-hbot.jpg' }, // the clinic's own HBOT room (no faces)
+  'wellness-1': { zh: '/images/treatments/zh/oxyair.jpg', en: '/images/treatments/zh/oxyair.jpg' },
 }
 
 // Photos are { zh, en } pairs: Asian faces for the Chinese site, Western faces for the English one
@@ -2048,12 +2047,770 @@ devices.treatments.filter((x) => x.key !== 'wellness-1').forEach((x, i) => {
   x.image = { ...x.image, zh: DEVICE_CROPS[i % DEVICE_CROPS.length] }
 })
 
+// 02 Photorejuvenation: renamed and given its own photo.
+const m22 = devices.treatments.find((x) => x.key === 'skin-3')
+m22.name = { ...m22.name, zh: 'M22光子嫩肤' }
+m22.image = { ...m22.image, zh: '/images/treatments/zh/m22-ipl.jpg' }
+Object.assign(m22, {
+  compact: true,
+  subtitle: { en: '', zh: 'STELLAR M22 IPL PHOTOREJUVENATION' },
+  body: {
+    en: 'Built on the Lumenis Stellar M22 platform, advanced IPL (intense pulsed light) improves pigmentation, redness and uneven skin tone for clear, refined, healthy-looking skin.',
+    zh: '采用美国 Lumenis 科医人 Stellar M22 光电平台，通过先进的 IPL 强脉冲光技术，改善色素沉着、泛红及肤色不均，焕现透亮细腻的健康肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Fade dark spots | Improves sun spots, freckles and some pigmentation',
+          'Reduce redness | Eases facial redness and visible superficial vessels',
+          'Brighter tone | Improves dullness and uneven skin tone',
+          'Refined texture | Improves overall skin texture and radiance',
+        ],
+        zh: [
+          '淡化色斑｜改善日晒斑、雀斑及部分色素沉着',
+          '改善泛红｜减轻面部泛红及可见的浅表血管问题',
+          '提亮肤色｜改善暗沉与肤色不均',
+          '细腻肤质｜改善肌肤整体质感与光泽度',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with dull skin, pigmentation concerns, facial redness, uneven tone, or who want to improve photo-aging.',
+        zh: '肤色暗沉、色斑困扰、面部泛红、肤色不均及有光老化改善需求的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Full face | Neck | Chest | Hands', zh: '全脸｜颈部｜胸前｜手部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'US light-based technology · Precise light energy · Multi-dimensional renewal · Personalised treatment',
+        zh: '美版光电科技 · 精准光能 · 多维焕肤 · 个性化治疗',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: results vary with skin type, pigment type and skin condition. Your treatment plan is set after assessment by a qualified professional.',
+    zh: '温馨提示：治疗效果因肤质、色素类型及皮肤状态而异，具体治疗方案需经专业人员评估后制定。',
+  },
+})
+
+// 03: renamed and given its own photo (the blurb below it is still the fractional-laser one).
+const pico = devices.treatments.find((x) => x.key === 'skin-4')
+pico.name = { en: 'Pico Laser Exploration', zh: '探索皮秒' }
+pico.image = { ...pico.image, zh: '/images/treatments/zh/pico-explore.jpg' }
+Object.assign(pico, {
+  compact: true,
+  subtitle: { en: '', zh: 'DISCOVERY PICO LASER' },
+  body: {
+    en: 'Using Quanta System (Italy) Discovery Pico laser technology, ultra-short pulses target pigment particles precisely to improve dark spots, uneven tone and skin texture for clear, refined, healthy-looking skin.',
+    zh: '采用意大利 Quanta System 探索皮秒激光技术，通过超短脉冲精准作用于色素颗粒，改善色斑、肤色不均及肌肤质感，焕现透亮细腻的健康肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Precise spot fading | Improves freckles, sun spots and some pigmentation',
+          'Brighter tone | Improves dullness and uneven skin tone',
+          'Refined texture | Improves roughness and skin smoothness',
+          'Acne-mark care | Fades some pigmented acne marks',
+          'Tattoo removal | Ultra-short pulses break up tattoo ink particles to help fade or remove tattoos',
+        ],
+        zh: [
+          '精准淡斑｜改善雀斑、日晒斑及部分色素沉着',
+          '提亮肤色｜改善暗沉与肤色不均',
+          '细腻肤质｜改善粗糙，提升肌肤细腻度',
+          '痘印改善｜淡化部分色素型痘印',
+          '纹身去除｜超短脉冲击碎纹身墨水颗粒，帮助淡化或去除纹身',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with dark spots, pigmentation, dull skin, acne marks or rough skin texture.',
+        zh: '有色斑、色素沉着、肤色暗沉、痘印及肤质粗糙困扰的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Full face | Individual spots | Neck | Hands', zh: '全脸｜局部色斑｜颈部｜手部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Italian light-based technology · Picosecond technology · Precise spot fading · Personalised treatment',
+        zh: '意大利光电科技 · 皮秒技术 · 精准淡斑 · 个性化治疗',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: results vary with spot type, skin type and skin condition. Your treatment plan is set after assessment by a qualified professional.',
+    zh: '温馨提示：治疗效果因色斑类型、肤质及皮肤状态而异，具体治疗方案需经专业人员评估后制定。',
+  },
+})
+
+// 04: the AviClear card now presents CO2 fractional laser resurfacing (own photo and copy).
+const co2 = devices.treatments.find((x) => x.key === 'skin-5')
+co2.name = { en: 'CO₂ Fractional Laser Resurfacing', zh: 'CO₂ 点阵激光焕肤' }
+co2.image = { ...co2.image, zh: '/images/treatments/zh/co2-laser.jpg' }
+delete co2.faq
+Object.assign(co2, {
+  compact: true,
+  subtitle: { en: '', zh: 'FRACTIONAL CO₂ LASER RESURFACING' },
+  body: {
+    en: 'Fractional CO₂ laser works precisely on the epidermis and dermis to promote collagen remodelling, improving acne scars, deep wrinkles, pigmentation and rough texture for smooth, refined, youthful skin.',
+    zh: '采用 CO₂ 点阵激光技术，精准作用于皮肤表层及真皮层，促进胶原蛋白重塑，改善痘疤、深层皱纹、色素沉着及肌肤粗糙，重现细腻平滑的年轻肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Acne scars | Softens acne pits and depressed scars',
+          'Sun damage | Improves skin concerns caused by photo-aging',
+          'Deep wrinkles | Improves visible wrinkles and signs of skin aging',
+          'Brown spots | Fades some pigmentation and sun spots',
+          'Stretch marks | Improves texture and uneven skin surface',
+          'Refined, firmer skin | Improves enlarged pores and promotes collagen remodelling',
+        ],
+        zh: [
+          '改善痤疮疤痕｜淡化痘坑及凹陷性疤痕',
+          '改善日晒损伤｜改善光老化引起的肤质问题',
+          '淡化深层皱纹｜改善明显皱纹与肌肤老化迹象',
+          '改善褐色斑点｜淡化部分色素沉着及日晒斑',
+          '改善妊娠纹｜改善纹路质感及皮肤凹凸不平',
+          '细腻紧致肌肤｜改善毛孔粗大，促进胶原重塑',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with acne scars, pits, deep wrinkles, sun damage, brown spots, stretch marks or rough skin texture.',
+        zh: '痤疮疤痕、痘坑、深层皱纹、日晒损伤、褐色斑点、妊娠纹及肤质粗糙困扰的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Full face | Eye area | Neck | Abdomen | Selected body areas', zh: '全脸｜眼周｜颈部｜腹部｜身体局部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Precise fractional · Deep resurfacing · Collagen remodelling · Better skin texture',
+        zh: '精准点阵 · 深层焕肤 · 胶原重塑 · 肤质改善',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: fractional CO₂ laser is an ablative treatment. The degree of improvement differs between types of spots, scars and stretch marks; your treatment plan is set after assessment by a qualified medical professional.',
+    zh: '温馨提示：CO₂ 点阵激光属于剥脱性治疗，不同类型的色斑、疤痕和妊娠纹改善程度不同，具体治疗方案需经专业医疗人员评估后制定。',
+  },
+})
+
+// 05: the RF microneedling card, renamed and given its own photo (the blurb is unchanged).
+const legend = devices.treatments.find((x) => x.key === 'skin-7')
+legend.name = { en: 'Legend Pro Gold RF Microneedling', zh: 'Legend Pro 黄金射频微针' }
+legend.image = { ...legend.image, zh: '/images/treatments/zh/legend-pro.jpg' }
+Object.assign(legend, {
+  compact: true,
+  subtitle: { en: '', zh: 'LEGEND PRO RF MICRONEEDLING' },
+  body: {
+    en: 'Legend Pro radiofrequency anti-aging technology combined with VoluDerm RF microneedling promotes collagen remodelling, improving enlarged pores, acne scars, fine lines and laxity for firm, refined, youthful skin.',
+    zh: '采用 Legend Pro 射频抗衰技术，结合 VoluDerm 射频微针，促进胶原蛋白重塑，改善毛孔粗大、痘坑痘疤、细纹及肌肤松弛，焕现紧致细腻的年轻肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Firming lift | Improves laxity and raises elasticity',
+          'Refined pores | Improves enlarged pores',
+          'Fade acne scars | Improves acne pits and acne scarring',
+          'Smoother fine lines | Softens fine lines and improves skin texture',
+          'Collagen renewal | Promotes collagen remodelling',
+        ],
+        zh: [
+          '紧致提升｜改善松弛，提升弹性',
+          '细致毛孔｜改善粗大毛孔',
+          '淡化痘疤｜改善痘坑及痤疮疤痕',
+          '平滑细纹｜淡化细纹，改善肤质',
+          '胶原新生｜促进胶原重塑',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with enlarged pores, acne pits and scars, fine lines, skin laxity, rough texture or stretch marks.',
+        zh: '毛孔粗大、痘坑痘疤、细纹、肌肤松弛、肤质粗糙及妊娠纹困扰的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Full face | Jawline | Neck | Abdomen | Selected body areas', zh: '全脸｜下颌线｜颈部｜腹部｜身体局部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'VoluDerm RF microneedling · Collagen remodelling · Firming lift · Personalised treatment',
+        zh: 'VoluDerm 射频微针 · 胶原重塑 · 紧致提升 · 个性化治疗',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: results vary with skin type and treatment area; your plan is set after assessment by a qualified medical professional.',
+    zh: '温馨提示：治疗效果因个人肤质及治疗部位而异，具体方案需经专业医疗人员评估后制定。',
+  },
+})
+
+// 06: the red/blue-light card now presents Viveve intimate RF therapy (own photo and copy).
+const viveve = devices.treatments.find((x) => x.key === 'skin-8')
+delete viveve.faq
+viveve.image = { ...viveve.image, zh: '/images/treatments/zh/viveve.jpg' }
+Object.assign(viveve, {
+  compact: true,
+  name: { en: 'Viveve Intimate RF Therapy', zh: 'Viveve 薇蜜私密射频护理' },
+  subtitle: { en: '', zh: 'VIVEVE INTIMATE RF THERAPY' },
+  body: {
+    en: 'Viveve radiofrequency technology applies RF energy with surface cooling to intimate tissue, exploring the potential for collagen remodelling and improved tissue elasticity — a professional, private, personalised wellness experience for women.',
+    zh: '采用 Viveve 射频技术，通过射频能量与表面冷却技术作用于私密组织，探索胶原蛋白重塑及组织弹性改善的潜力，为女性提供专业、私密的个性化健康护理体验。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要作用' },
+      items: {
+        en: [
+          'Collagen remodelling | Exploring the potential for tissue collagen renewal',
+          'Elasticity management | Attention to changes in intimate tissue elasticity',
+          'Postpartum care | Assessment of postpartum intimate health needs',
+          'Comfortable care | Privacy protection and a personalised experience',
+        ],
+        zh: [
+          '胶原重塑｜探索组织胶原更新潜力',
+          '弹性管理｜关注私密组织弹性变化',
+          '产后关怀｜针对产后私密健康需求进行评估',
+          '舒适护理｜注重隐私保护与个性化体验',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'Women concerned about postpartum intimate changes, age-related changes in tissue elasticity, and intimate health management.',
+        zh: '关注产后私密变化、年龄相关组织弹性变化及女性私密健康管理的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment area', zh: '护理部位' },
+      text: { en: 'Female intimate area', zh: '女性私密部位' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'RF technology · Surface cooling · Privacy protection · Personalised assessment',
+        zh: '射频科技 · 表面冷却 · 隐私保护 · 个性化评估',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: suitability and your specific plan must be assessed by a qualified medical professional.',
+    zh: '温馨提示：是否适用，具体方案需经专业医疗人员评估后制定。',
+  },
+})
+
+// 07: the scalp stem-cell card now presents BTL EMSculpt (own photo and copy).
+const emsculpt = devices.treatments.find((x) => x.key === 'hair-3')
+delete emsculpt.faq
+Object.assign(emsculpt, {
+  compact: true,
+  name: { en: 'BTL EMSculpt Body Contouring', zh: 'BTL 磁波塑肌燃脂' },
+  subtitle: { en: '', zh: 'BTL EMSCULPT BODY CONTOURING' },
+  image: { ...devices.treatments.find((x) => x.key === 'body-1').image, zh: '/images/treatments/zh/emsculpt-neo.jpg' },
+  body: {
+    en: 'BTL high-intensity focused electromagnetic technology (HIFEM) stimulates intense muscle contractions to help build muscle strength and improve body lines, for a firm, shapely silhouette.',
+    zh: '采用 BTL 高强度聚焦电磁技术（HIFEM），刺激肌肉产生高强度收缩，帮助增强肌肉力量、改善身体线条，打造紧致有型的理想曲线。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Stronger muscle | Builds muscle strength and firmness',
+          'Firming and shaping | Improves body contour and lines',
+          'Abdomen shaping | Strengthens the core and improves abdominal shape',
+          'Glute lift | Strengthens the glutes for fuller curves',
+          'Fat management | Some device models can help reduce localised fat',
+        ],
+        zh: [
+          '强化肌肉｜增强肌肉力量与紧实度',
+          '紧致塑形｜改善身体轮廓与线条',
+          '腹部塑形｜强化核心肌群，改善腹部形态',
+          '臀部提升｜增强臀部肌肉，塑造饱满曲线',
+          '脂肪管理｜部分设备型号可辅助减少局部脂肪',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People who want to improve abdominal lines, glute shape, muscle firmness and local body contour.',
+        zh: '希望改善腹部线条、臀部形态、肌肉紧实度及局部身体轮廓的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Abdomen | Glutes | Thighs | Arms', zh: '腹部｜臀部｜大腿｜手臂' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Non-invasive · Electromagnetic muscle toning · No surgery · Personalised contouring',
+        zh: '非侵入式 · 磁波塑肌 · 无需手术 · 个性化塑形',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: results vary from person to person. It may not be suitable during pregnancy or for people with a pacemaker or some metal implants; your plan must be assessed by a qualified professional.',
+    zh: '温馨提示：治疗效果因人而异，孕期、装有心脏起搏器或部分金属植入物的人群可能不适用，具体方案需经专业人员评估。',
+  },
+})
+
+// 08: the old EMSculpt card now presents Legend Pro scalp care (own photo and copy).
+const scalp = devices.treatments.find((x) => x.key === 'body-1')
+delete scalp.faq
+Object.assign(scalp, {
+  compact: true,
+  name: { en: 'Legend Pro Stem Cell-Derived Scalp Revitalising', zh: 'Legend Pro 干细胞科技头皮焕活' },
+  subtitle: { en: '', zh: 'LEGEND PRO STEM CELL–DERIVED SCALP CARE' },
+  image: { ...scalp.image, zh: '/images/treatments/zh/legend-scalp.jpg' },
+  body: {
+    en: 'Combining Legend Pro radiofrequency technology with stem cell-derived essence care, a personalised scalp revitalising treatment for scalp aging, dryness and hair-root health — helping maintain a healthy scalp environment and opening a refined scalp anti-aging routine.',
+    zh: '融合 Legend Pro 射频科技与干细胞来源精华养护理念，针对头皮老化、干燥及发根健康需求，打造个性化头皮焕活护理，帮助维持健康头皮环境，开启精致头皮抗衰管理。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Scalp anti-aging | Attention to scalp aging and changes in elasticity',
+          'Scalp revitalising | Improves dryness and roughness',
+          'Hair-root care | Supports a healthy scalp environment',
+          'Essence nourishment | Professional moisturising care',
+          'Scalp repair management | Attention to the scalp barrier and overall condition',
+        ],
+        zh: [
+          '头皮抗衰｜关注头皮老化与弹性变化',
+          '头皮焕活｜改善干燥与粗糙',
+          '发根养护｜支持健康头皮环境',
+          '精华滋养｜提供专业保湿养护',
+          '头皮修护管理｜关注头皮屏障与整体状态',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with a dry or aging scalp, fine hair, hair-root care needs, or an interest in scalp anti-aging.',
+        zh: '头皮干燥、头皮老化、发质细软、发根养护需求及关注头皮抗衰管理的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Crown | Hairline | Selected scalp areas', zh: '头顶部｜发际线｜头皮局部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Legend Pro technology · Stem cell-derived essence · Scalp anti-aging management · Personalised care',
+        zh: 'Legend Pro 科技 · 干细胞来源精华 · 头皮抗衰管理 · 个性化养护',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: results vary from person to person. It may not be suitable during pregnancy; your plan must be assessed by a qualified professional.',
+    zh: '温馨提示：治疗效果因人而异，孕期人群可能不适用，具体方案需经专业人员评估。',
+  },
+})
+
+// 09: the BTL fat-dissolving card now presents red & blue LED light therapy (own photo and copy).
+const led = devices.treatments.find((x) => x.key === 'body-2')
+delete led.faq
+Object.assign(led, {
+  compact: true,
+  name: { en: 'Red & Blue LED Light Therapy', zh: '红蓝光 LED 光疗' },
+  subtitle: { en: '', zh: 'RED & BLUE LED LIGHT THERAPY' },
+  image: { zh: '/images/treatments/zh/led-light.jpg', en: '/images/treatments/shared/skin-8.jpg' },
+  body: {
+    en: 'Professional LED red and blue light uses different wavelengths on the skin to help improve acne, redness and skin-quality concerns and support skin repair, revealing a naturally healthy, radiant glow.',
+    zh: '采用专业 LED 红蓝光技术，通过不同波长的光能作用于肌肤，帮助改善痘痘、泛红及肤质问题，促进肌肤修护，焕现健康透亮的自然光采。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Blue light for acne | Inhibits some acne-causing bacteria and improves mild to moderate inflammatory acne',
+          'Red light repair | Helps soothe skin and reduce redness',
+          'Calming inflammation | Helps ease discomfort from breakouts',
+          'Collagen care | Supports collagen metabolism and elasticity management',
+          'Radiant skin | Improves overall skin condition',
+        ],
+        zh: [
+          '蓝光净痘｜抑制部分致痘细菌，改善轻中度炎症性痘痘',
+          '红光修护｜帮助舒缓肌肤，减轻泛红',
+          '舒缓炎症｜辅助改善痘痘引起的不适',
+          '胶原养护｜支持肌肤胶原代谢与弹性管理',
+          '焕亮肤质｜改善肌肤整体状态',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'Acne-prone, oily or redness-prone skin, and people focused on skin repair, fine lines and everyday care.',
+        zh: '痘痘肌、油性肌肤、易泛红肌肤，以及关注肌肤修护、细纹与日常养护的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Full face | Forehead | Jawline | Back | Selected body areas', zh: '全脸｜额头｜下颌｜背部｜身体局部' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Non-invasive · Dual red and blue light · Gentle and comfortable · No downtime',
+        zh: '非侵入式 · 红蓝双光 · 温和舒适 · 无需恢复期',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: LED results vary with skin type, device wavelength and treatment plan, and usually need several sessions. People with light-sensitive skin or taking photosensitising medication need their plan assessed by a qualified professional.',
+    zh: '温馨提示：LED 光疗效果因个人肤质、设备波长及治疗方案而异，通常需要多次护理。光敏感人群及正在使用光敏性药物者，具体方案需经专业人员评估。',
+  },
+})
+
+// 10: HBOT card, renamed with structured copy (own photo).
+const oxy = devices.treatments.find((x) => x.key === 'wellness-1')
+Object.assign(oxy, {
+  compact: true,
+  name: { en: 'OXYAIR Hyperbaric Oxygen Revitalising', zh: 'OXYAIR 高压氧舱焕活全身抗衰' },
+  subtitle: { en: '', zh: 'OXYAIR OXYGEN WELLNESS THERAPY' },
+  body: {
+    en: 'OXYAIR oxygen-chamber technology creates a comfortable, tranquil oxygen-care space. Combined with a personalised wellness approach, it helps body and mind relax and opens an inside-out experience of renewed vitality.',
+    zh: '采用 OXYAIR 氧舱科技，打造舒适、静谧的氧气养护空间，结合个性化健康管理理念，帮助身心放松，开启由内而外的活力焕新体验。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Oxygen care | A professional oxygen-care experience',
+          'Body-mind relief | Relaxes body and mind and eases everyday tension',
+          'Vitality management | Attention to everyday energy and health',
+          'Healthy anti-aging | Supports healthy-aging management',
+          'Comfortable rest | A quiet, comfortable resting environment',
+        ],
+        zh: [
+          '氧气养护｜提供专业氧气护理体验',
+          '身心舒缓｜放松身心，缓解日常紧绷感',
+          '活力管理｜关注日常精力与健康状态',
+          '健康抗衰｜辅助健康老龄化管理',
+          '舒适休养｜打造安静舒适的休息环境',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People focused on everyday health management, relaxation, vitality care and healthy aging.',
+        zh: '关注日常健康管理、身心放松、活力养护及健康老龄化的人群。',
+      },
+    },
+    {
+      title: { en: 'Care format', zh: '护理方式' },
+      text: { en: 'Private oxygen chamber | Comfortable reclining | Personalised care', zh: '独立氧舱｜舒适躺卧｜个性化护理' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Oxygen-chamber technology · Comfortable experience · Relaxation · Wellness care',
+        zh: '氧舱科技 · 舒适体验 · 身心放松 · 健康养护',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: people with certain ear, nose and throat or lung conditions, or other related health issues, need to be assessed by a qualified medical professional before use.',
+    zh: '温馨提示：患有特定耳鼻喉、肺部疾病或其他相关健康问题的人群，使用前需经专业医疗人员评估。',
+  },
+})
+
+// Thermage FLX: structured copy (same layout as the injectables cards).
+Object.assign(devices.treatments.find((x) => x.key === 'skin-1'), {
+  compact: true,
+  name: { en: 'Thermage FLX (5th Generation)', zh: '第五代热玛吉' },
+  subtitle: { en: '', zh: 'THERMAGE FLX' },
+  body: {
+    en: 'Monopolar radiofrequency delivers heat deep into the skin to stimulate collagen remodelling, improving laxity and fine lines for a naturally firm, youthful contour.',
+    zh: '采用单极射频技术，将热能传递至皮肤深层，促进胶原蛋白重塑，改善肌肤松弛与细纹，打造自然紧致的年轻轮廓。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Firming lift | Improves laxity of the face and jawline',
+          'Softer fine lines | Improves fine lines around the eyes and face',
+          'Collagen renewal | Promotes collagen remodelling and skin elasticity',
+          'Contour refinement | Improves the jawline and overall facial firmness',
+        ],
+        zh: [
+          '紧致提升｜改善面部及下颌轮廓松弛',
+          '淡化细纹｜改善眼周及面部细纹',
+          '胶原新生｜促进胶原蛋白重塑，提升肌肤弹性',
+          '轮廓优化｜改善下颌线条与面部紧实度',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with mild to moderate facial laxity, increasing fine lines, reduced skin elasticity, or an interest in anti-aging.',
+        zh: '面部轻中度松弛、细纹增多、肌肤弹性下降及有抗衰需求的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: {
+        en: 'Full face | Eye area | Jawline | Neck | Selected body areas',
+        zh: '全脸｜眼周｜下颌线｜颈部｜身体局部',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Non-invasive · Monopolar radiofrequency · Collagen remodelling · Naturally firm',
+        zh: '非侵入式 · 单极射频 · 胶原重塑 · 自然紧致',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: actual results vary with skin type, degree of laxity and treatment area; your plan must be assessed by a qualified medical professional.',
+    zh: '温馨提示：实际效果因个人肤质、松弛程度及治疗部位而异，具体方案需经专业医疗人员评估。',
+  },
+})
+
 // IV drips: the clinic's own NAD+ drip photo for the Chinese site (full / arm & line / woman). English keeps its Western photos.
 const ivDrips = categories.find((c) => c.slug === 'iv-therapy')
-ivDrips.cover.zh = '/images/treatments/zh/nad2-full.jpg'
-const IV_PHOTOS = ['nad2-full', 'nad2-arm', 'nad2-woman'].map((n) => `/images/treatments/zh/${n}.jpg`)
+ivDrips.cover.zh = '/images/treatments/zh/nad-serene.jpg'
+const IV_PHOTOS = ['nad-serene', 'iv-nutrition', 'iv-vitality'].map((n) => `/images/treatments/zh/${n}.jpg`)
 ivDrips.treatments.forEach((x, i) => {
   x.image = { ...x.image, zh: IV_PHOTOS[i % IV_PHOTOS.length] }
+})
+
+// NAD+ IV: structured copy (same layout as the injectables cards).
+Object.assign(ivDrips.treatments.find((x) => x.key === 'iv-therapy-1'), {
+  name: { en: 'NAD+ IV Therapy', zh: 'NAD+ 静脉注射' },
+  compact: true,
+  subtitle: { en: '', zh: 'NAD+ IV THERAPY' },
+  body: {
+    en: 'NAD+ is replenished by intravenous infusion to take part in cellular energy metabolism — personalised support for health management and vitality care.',
+    zh: '通过静脉输注补充 NAD+，参与细胞能量代谢，为健康管理与活力养护提供个性化支持。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要作用' },
+      items: {
+        en: [
+          'Energy metabolism | Takes part in cellular energy production',
+          'Cell care | Supports normal cell function',
+          'Healthy aging | Focused on age-related metabolic change',
+          'Vitality management | Personalised health support',
+        ],
+        zh: [
+          '能量代谢｜参与细胞能量生成',
+          '细胞养护｜支持正常细胞功能',
+          '健康抗衰｜关注年龄相关代谢变化',
+          '活力管理｜提供个性化健康支持',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People focused on healthy aging, cell care and vitality management.',
+        zh: '关注健康老龄化、细胞养护及活力管理的人群。',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Professional assessment · IV infusion · Personalised care',
+        zh: '专业评估 · 静脉输注 · 个性化护理',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: ingredients, suitability and risks must be assessed by a qualified medical professional.',
+    zh: '温馨提示：具体成分、适用性及风险需由专业医疗人员评估。',
+  },
+})
+
+// Brightening IV (iv-therapy-2): same structured layout and tight spacing as NAD+.
+Object.assign(ivDrips.treatments.find((x) => x.key === 'iv-therapy-2'), {
+  name: { en: 'Brightening IV Therapy', zh: '美白焕肤针' },
+  compact: true,
+  subtitle: { en: '', zh: 'BRIGHTENING IV THERAPY' },
+  body: {
+    en: 'A personalised IV nutrition infusion that supports skin health and antioxidant management, for a naturally radiant glow.',
+    zh: '通过个性化静脉营养输注，为肌肤健康与抗氧化管理提供辅助支持，焕发自然光采。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要作用' },
+      items: {
+        en: [
+          'Antioxidant support | Helps maintain normal antioxidant function',
+          'Skin care | Focused on skin health and nutrient supplementation',
+          'Radiance management | A refined inside-out care experience',
+          'Personalised care | An infusion plan built around your needs',
+        ],
+        zh: [
+          '抗氧化支持｜辅助维持正常抗氧化功能',
+          '肌肤养护｜关注肌肤健康与营养补充',
+          '光采管理｜打造由内而外的精致养护体验',
+          '个性化护理｜根据个人需求制定输注方案',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People concerned about dull skin, antioxidant care and everyday health management.',
+        zh: '关注肌肤暗沉、抗氧化养护及日常健康管理的人群。',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Professional assessment · Nutritional support · IV infusion · Personalised plan',
+        zh: '专业评估 · 营养支持 · 静脉输注 · 个性化方案',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: ingredients, suitability and risks must be assessed by a qualified medical professional.',
+    zh: '温馨提示：具体成分、适用性及风险需由专业医疗人员评估。',
+  },
+})
+
+// Vitality IV (the former stem-cell card, key hormone-stem-cell-2): same layout and tight spacing.
+Object.assign(ivDrips.treatments.find((x) => x.key === 'hormone-stem-cell-2'), {
+  name: { en: 'Vitality Booster IV Therapy', zh: '活力能量针' },
+  compact: true,
+  subtitle: { en: '', zh: 'VITALITY BOOSTER IV THERAPY' },
+  body: {
+    en: 'A personalised IV nutrition infusion that replenishes the nutrients your body needs, supporting energy metabolism and everyday vitality for a healthier state.',
+    zh: '通过个性化静脉营养输注，补充身体所需营养素，支持能量代谢与日常活力管理，焕发健康状态。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要作用' },
+      items: {
+        en: [
+          'Energy support | Helps maintain normal energy metabolism',
+          'Nutrient replenishment | Supplies the vitamins and nutrients your body needs',
+          'Vitality care | Focused on everyday energy and physical condition',
+          'Personalised care | A nutrition plan built around your needs',
+        ],
+        zh: [
+          '能量支持｜辅助维持正常能量代谢',
+          '营养补充｜补充身体所需维生素及营养素',
+          '活力养护｜关注日常精力与身体状态',
+          '个性化护理｜根据个人需求制定营养方案',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People focused on everyday vitality, nutrient replenishment and health management.',
+        zh: '关注日常活力、营养补充及健康管理的人群。',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Professional assessment · Nutritional support · IV infusion · Personalised plan',
+        zh: '专业评估 · 营养支持 · 静脉输注 · 个性化方案',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: the effect of IV nutrition infusion on fatigue and energy varies from person to person. Ingredients, suitability and risks must be assessed by a qualified medical professional.',
+    zh: '温馨提示：静脉营养输注改善疲劳、提升精力的效果因人而异，具体成分、适用性及风险需由专业医疗人员评估。',
+  },
+})
+
+// The old steps belonged to the stem-cell card, which now has its own item (04) below.
+delete ivDrips.treatments.find((x) => x.key === 'hormone-stem-cell-2').steps
+
+// 04 Stem cell therapy: structured copy, same layout and tight spacing as the other IV cards.
+ivDrips.treatments.push({
+  key: 'stem-cell',
+  name: { en: 'Stem Cell Therapy', zh: '干细胞治疗' },
+  compact: true,
+  subtitle: { en: '', zh: 'STEM CELL THERAPY' },
+  image: { zh: '/images/treatments/zh/stem-cell-luxury.jpg', en: '/images/treatments/en/hormone-stem-cell-2.jpg' },
+  body: {
+    en: 'Explore the potential of stem cells in tissue repair and regenerative medicine — a personalised regenerative-medicine consultation built on professional medical assessment.',
+    zh: '探索干细胞在组织修复与再生医学领域的应用潜力，结合专业医疗评估，提供个性化的再生医学咨询方案。',
+  },
+  sections: [
+    {
+      title: { en: 'Research focus', zh: '主要研究方向' },
+      items: {
+        en: [
+          'Cell regeneration | Exploring how stem cells differentiate and renew',
+          'Tissue repair | Studying the repair potential of damaged tissue',
+          'Healthy aging | Focused on cellular aging and regenerative-medicine research',
+          'Personalised assessment | Suitability and risks assessed against your health status',
+        ],
+        zh: [
+          '细胞再生｜探索干细胞的分化与更新机制',
+          '组织修复｜研究受损组织的修复潜力',
+          '健康老龄化｜关注细胞衰老与再生医学研究',
+          '个性化评估｜根据个人健康状况评估适用性与风险',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People interested in regenerative medicine, healthy aging and cutting-edge cell science.',
+        zh: '关注再生医学、健康老龄化及前沿细胞科技的人群。',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Cutting-edge medicine · Professional assessment · Personalised consultation · Scientific management',
+        zh: '前沿医学 · 专业评估 · 个性化咨询 · 科学管理',
+      },
+    },
+  ],
+  note: {
+    en: 'Please note: ingredients, suitability and risks must be assessed by a qualified medical professional.',
+    zh: '温馨提示：具体成分、适用性及风险需由专业医疗人员评估。',
+  },
 })
 
 // Skincare: the clinic's own facial-mask photo for the Chinese site. The Japanese face-slimming card keeps its poster.
@@ -2127,7 +2884,7 @@ export const galleryPhotos = [
 // Real client cases (each image is a finished case card: profile, plan, before/after, review).
 export const beforeAfterPhotos = [
   { src: '/images/cases/case-01.jpg', to: '/treatments/injectables#injectables-5', caption: { en: 'Case 01 · Full-face anti-aging & contour lift', zh: 'CASE 01　全脸抗衰 轮廓提升' } },
-  { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-6', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
+  { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-4', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
   { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', caption: { en: 'Case 03 · Acne skin repair', zh: 'CASE 03　痘肌修复 重建健康肌' } },
   { src: '/images/cases/case-04.jpg', to: '/treatments/devices#skin-1', caption: { en: 'Case 04 · Thermage FLX skin tightening', zh: 'CASE 04　第五代热玛吉 紧肤抗衰' } },
   { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', caption: { en: 'Case 05 · Japanese face sculpting', zh: 'CASE 05　日式小颜 面部线条管理' } },

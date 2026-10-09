@@ -264,7 +264,8 @@ export default function Contact() {
             <form ref={formRef} onSubmit={onSubmit} className="mt-8 grid gap-4 sm:grid-cols-2">
               <input required name="name" placeholder={t({ en: 'Name', zh: '姓名' })} className={field} autoComplete="name" />
               <input required name="phone" type="tel" placeholder={t({ en: 'Phone', zh: '电话' })} className={field} autoComplete="tel" />
-              <input required name="email" type="email" placeholder={t({ en: 'Email', zh: '邮箱' })} className={`${field} sm:col-span-2`} autoComplete="email" />
+              <input name="email" type="email" placeholder={t({ en: 'Email (optional)', zh: '邮箱（选填）' })} className={field} autoComplete="email" />
+              <input name="wechat" placeholder={t({ en: 'WeChat ID (optional)', zh: '微信号（选填）' })} className={field} autoComplete="off" />
               {/* Step 1: big title */}
               <select
                 value={group}
@@ -293,6 +294,10 @@ export default function Contact() {
                   : activeGroup.sections.flatMap((sec) => sec.items).map((x) => <option key={x.key} value={x.value}>{t(x.name)}</option>))}
               </select>
               <input type="hidden" name="interest" value={interest} />
+              <input type="hidden" name="category" value={activeGroup ? activeGroup.name.zh : ''} />
+              {/* English names for the SMS alert (carrier gateways drop Chinese characters). */}
+              <input type="hidden" name="categoryEn" value={activeGroup ? activeGroup.name.en : ''} />
+              <input type="hidden" name="interestEn" value={serviceItems.find((x) => x.value === interest)?.name.en || ''} />
               {bookKey && <ServiceBooking key={bookKey} serviceKey={bookKey} value={booking} onChange={setBooking} />}
               <textarea name="message" rows={5} placeholder={t({ en: 'How can we help?', zh: '请留言…' })} className={`${field} sm:col-span-2`} />
               <button disabled={sending} className="btn-primary sm:col-span-2 sm:justify-self-start disabled:opacity-60">{sending ? t({ en: 'Sending…', zh: '发送中…' }) : t({ en: 'Send message', zh: '发送' })}</button>

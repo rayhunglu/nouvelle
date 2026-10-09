@@ -14,7 +14,7 @@ export default function CtaBand() {
         <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-rose/20 blur-3xl" />
         <p className="eyebrow relative !text-gold-light">{t({ en: 'Your plan starts here', zh: '从这里开始' })}</p>
         <h2 className="relative mx-auto mt-4 max-w-2xl font-display text-3xl font-light leading-tight sm:text-5xl">
-          {t({ en: 'A personalized anti-aging plan, designed around you.', zh: '为您量身定制的抗衰老方案。' })}
+          {t({ en: 'A personalized anti-aging plan, designed around you', zh: '为您量身定制的抗衰老方案' })}
         </h2>
         <div className="relative mt-10 flex flex-col justify-center gap-3 sm:flex-row">
           <a href={business.phoneHref} className="btn-light"><Phone size={16} /> {business.phone}</a>
