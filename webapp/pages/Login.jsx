@@ -37,7 +37,7 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-ink lg:block">
+      <div className="relative hidden overflow-hidden bg-plum-deep lg:block">
         <img src="/images/hero-main.png" alt="" className="absolute inset-0 h-full w-full object-cover object-[30%_center] opacity-60" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
         <div className="relative flex h-full flex-col justify-end p-12 text-ivory">

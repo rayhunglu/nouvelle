@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, MapPin, MessageCircle, Phone, ShoppingBag, ClipboardCheck, Fingerprint, Leaf, HeartHandshake } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, galleryPhotos } from '../data/site'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
+import Icon from '../components/Icon'
 import Reveal from '../components/Reveal'
 import CtaBand from '../components/CtaBand'
 import ArtistCard from '../components/ArtistCard'
@@ -14,18 +15,22 @@ import WeChatModal from '../components/WeChatModal'
 // Principles shown under "Our philosophy".
 const principles = [
   {
+    icon: ClipboardCheck,
     title: { en: 'Assess first', zh: '先评估，再方案' },
-    body: { en: 'Every visit starts with a professional assessment of your skin, face and goals.', zh: '每一次护理都从专业评估开始，了解您的肌肤、面部状态与期望。' },
+    body: { en: 'Every visit starts with a professional assessment of your face and goals.', zh: '每一次护理都从专业评估开始，了解您的面部状态与期望。' },
   },
   {
+    icon: Fingerprint,
     title: { en: 'Made for you', zh: '一人一方案' },
     body: { en: 'No one-size-fits-all packages: plans are designed around you.', zh: '不做千篇一律的套餐，依个人情况量身定制。' },
   },
   {
+    icon: Leaf,
     title: { en: 'Natural results', zh: '自然、协调' },
     body: { en: 'We aim for refined, harmonious results that still look like you.', zh: '追求精致、协调的效果，让您依然是自己最自然的样子。' },
   },
   {
+    icon: HeartHandshake,
     title: { en: 'Comfort and care', zh: '舒适、用心' },
     body: { en: 'A calm space and attentive service from the first consultation to aftercare.', zh: '安静舒适的环境，从咨询到护理后的每个细节都用心对待。' },
   },
@@ -138,33 +143,39 @@ export default function About() {
         eyebrow={t(ui.nav.about)}
         title={t({ en: 'Nouvelle Anti-Aging Center', zh: 'Nouvelle 抗衰老中心' })}
         intro={t({
-          en: 'Medical aesthetics, skincare, lashes, permanent makeup and whole-body anti-aging in one place — thoughtfully tailored, beautifully natural.',
-          zh: '医学美容、护肤、美睫、纹绣与全身抗衰老，集于一处——用心定制，自然美丽。',
+          en: 'Medical aesthetics, skincare, lashes, permanent makeup and whole-body anti-aging in one place — thoughtfully tailored, beautifully natural',
+          zh: '医学美容、护肤、美睫、纹绣与全身抗衰老，集于一处——用心定制，自然美丽',
         })}
       />
 
       {/* Philosophy */}
       <section className="container-x py-16 sm:py-24">
-        <Reveal className="max-w-2xl">
-          <p className="eyebrow mb-4">{t({ en: 'Our philosophy', zh: '经营理念' })}</p>
-          <h2 className="font-display text-3xl font-light leading-tight sm:text-5xl">
-            {t({ en: 'Natural, precise and personal.', zh: '自然、精准、个性化' })}
-          </h2>
-          <p className="mt-6 text-lg leading-relaxed text-muted">
-            {t({
-              en: 'We believe good aesthetic care starts with listening. Our team combines professional assessment with careful technique to design results that suit your features, your lifestyle and your goals.',
-              zh: '我们相信好的美容护理，是从倾听开始的。团队以专业评估为基础、细致的手法为支撑，为您设计契合五官、生活方式与期望的效果。',
-            })}
-          </p>
-        </Reveal>
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {principles.map((p, i) => (
-            <Reveal key={i} delay={i * 80} className="rounded-[2rem] bg-sand p-7">
-              <span className="font-display text-sm text-gold">{String(i + 1).padStart(2, '0')}</span>
-              <h3 className="mt-2 font-display text-2xl">{t(p.title)}</h3>
-              <p className="mt-3 leading-relaxed text-muted">{t(p.body)}</p>
-            </Reveal>
-          ))}
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+          <Reveal className="lg:col-span-5">
+            <p className="eyebrow mb-4">{t({ en: 'Our philosophy', zh: '经营理念' })}</p>
+            <h2 className="font-display text-3xl font-light leading-tight sm:text-5xl">
+              {t({ en: 'Natural, precise and personal.', zh: '自然、精准、个性化' })}
+            </h2>
+            <div className="mt-6 h-px w-16 bg-gold" />
+            <p className="mt-6 text-lg leading-relaxed text-muted">
+              {t({
+                en: 'We believe good aesthetic care starts with listening. Our team combines professional assessment with careful technique to design results that suit your features, your lifestyle and your goals.',
+                zh: <>我们相信好的美容护理，是从倾听开始的。团队以专业评估为基础、细致的手法为支撑，为您设计契合五官、生活方式与期望的效果。</>,
+              })}
+            </p>
+          </Reveal>
+          <div className="grid gap-5 sm:grid-cols-2 lg:col-span-7">
+            {principles.map((p, i) => (
+              <Reveal key={i} delay={i * 80} className="rounded-[2rem] bg-sand p-7 transition hover:shadow-xl hover:shadow-ink/5">
+                <div className="flex items-center justify-between">
+                  <span className="grid h-12 w-12 place-items-center rounded-full bg-ivory text-gold"><p.icon size={22} strokeWidth={1.6} /></span>
+                  <span className="font-display text-sm text-gold/70">{String(i + 1).padStart(2, '0')}</span>
+                </div>
+                <h3 className="mt-5 font-display text-2xl">{t(p.title)}</h3>
+                <p className="mt-3 leading-relaxed text-muted">{t(p.body)}</p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -222,15 +233,27 @@ export default function About() {
             </Link>
           </Reveal>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((c, i) => (
-              <Reveal key={c.slug} delay={(i % 3) * 80}>
+            {[
+              ...categories.map((c) => ({ key: c.slug, to: `/treatments/${c.slug}`, name: c.name, short: c.short, icon: <Icon name={c.icon} size={22} className="shrink-0 text-gold" /> })),
+              {
+                key: 'shop',
+                to: '/shop',
+                name: ui.nav.shop,
+                short: { en: 'Selected skincare, hair-care and professional beauty brands.', zh: '精选优质护肤、洗护及专业美容品牌。' },
+                icon: <ShoppingBag size={22} className="shrink-0 text-gold" />,
+              },
+            ].map((c, i) => (
+              <Reveal key={c.key} delay={(i % 3) * 80}>
                 <Link
-                  to={`/treatments/${c.slug}`}
+                  to={c.to}
                   className="group flex h-full items-start justify-between gap-4 rounded-[1.5rem] bg-ivory p-6 transition hover:shadow-xl hover:shadow-ink/5"
                 >
                   <span>
-                    <span className="block font-display text-2xl">{t(c.name)}</span>
-                    <span className="mt-2 block text-sm leading-relaxed text-muted">{t(c.short)}</span>
+                    <span className="flex items-center gap-3">
+                      {c.icon}
+                      <span className="block font-display text-2xl">{t(c.name)}</span>
+                    </span>
+                    <span className="mt-2 block text-sm leading-relaxed text-muted">{t(c.short).replace(/[。.]\s*$/, '')}</span>
                   </span>
                   <ArrowUpRight size={18} className="mt-1 shrink-0 text-gold transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>

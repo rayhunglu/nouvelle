@@ -89,7 +89,7 @@ function GalleryDetail({ item }) {
   const copy = item.styles?.[i] ?? item
   return (
     <Reveal as="article" id={item.key} className="scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 lg:gap-16">
-      <div className="lg:col-span-5">
+      <div className={`lg:col-span-5 ${item.imageLeft ? 'lg:order-2' : ''}`}>
         <h3 className="font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
         {!item.prices?.[i] && <div className="mt-4"><ConsultLink item={item} pkg={i} /></div>}
         <p className="mt-5 text-lg leading-relaxed text-muted">{t(copy.body)}</p>
@@ -111,10 +111,49 @@ function GalleryDetail({ item }) {
           </div>
         )}
       </div>
-      <div className="lg:col-span-7">
+      <div className={`lg:col-span-7 ${item.imageLeft ? 'lg:order-1' : ''}`}>
         <PosterGallery images={item.posters} alt={t(item.name)} i={i} setI={setI} />
       </div>
     </Reveal>
+  )
+}
+
+// Package cards (name, price, steps, who it's for, "Book now"): shared by the detail and photo layouts.
+function PackageCards({ item }) {
+  const { t } = useLang()
+  if (!item.packages?.some((pk) => pk.price)) return null
+  return (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {item.packages.map((pk, i) => (
+              <div key={i} className="flex flex-col rounded-[1.5rem] border border-ink/10 p-6">
+                <p className="font-display text-xl">{t(pk.name)}</p>
+                <p className="mt-3 flex items-baseline gap-2">
+                  <span className="font-display text-4xl">{pk.price}</span>
+                  {pk.was && <span className="text-sm text-muted line-through">{pk.was}</span>}
+                  {pk.tag && <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs text-gold">{t(pk.tag)}</span>}
+                </p>
+                <p className="mt-2 text-sm text-muted">{t(pk.perks).join(' · ')}</p>
+                <ol className="mt-5 space-y-3">
+                  {t(pk.steps).map((st, n) => (
+                    <li key={st} className="flex gap-3 text-sm">
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-xs text-ivory">{n + 1}</span>
+                      <span className="pt-0.5 leading-relaxed">{st}</span>
+                    </li>
+                  ))}
+                </ol>
+                {pk.suited && (
+                  <p className="mt-5 text-sm leading-relaxed">
+                    <span className="font-medium">{t({ en: 'Who it’s for: ', zh: '适合：' })}</span>{t(pk.suited)}
+                  </p>
+                )}
+                <div className="mt-auto pt-6">
+                  <Link to={`/contact?package=${i}`} onClick={() => setConsultService(item.key)} className="btn-primary !w-full !justify-center">
+                    {t({ en: 'Book now', zh: '马上预约' })} <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
   )
 }
 
@@ -192,46 +231,14 @@ function Detail({ item, index }) {
             <p className="leading-relaxed">{t(item.suited)}</p>
           </div>
         )}
-        {item.packages && (
-          <div className="grid gap-5 sm:grid-cols-2">
-            {item.packages.map((pk, i) => (
-              <div key={i} className="flex flex-col rounded-[1.5rem] border border-ink/10 p-6">
-                <p className="font-display text-xl">{t(pk.name)}</p>
-                <p className="mt-3 flex items-baseline gap-2">
-                  <span className="font-display text-4xl">{pk.price}</span>
-                  {pk.was && <span className="text-sm text-muted line-through">{pk.was}</span>}
-                  {pk.tag && <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs text-gold">{t(pk.tag)}</span>}
-                </p>
-                <p className="mt-2 text-sm text-muted">{t(pk.perks).join(' · ')}</p>
-                <ol className="mt-5 space-y-3">
-                  {t(pk.steps).map((st, n) => (
-                    <li key={st} className="flex gap-3 text-sm">
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink text-xs text-ivory">{n + 1}</span>
-                      <span className="pt-0.5 leading-relaxed">{st}</span>
-                    </li>
-                  ))}
-                </ol>
-                {pk.suited && (
-                  <p className="mt-5 text-sm leading-relaxed">
-                    <span className="font-medium">{t({ en: 'Who it’s for: ', zh: '适合：' })}</span>{t(pk.suited)}
-                  </p>
-                )}
-                <div className="mt-auto pt-6">
-                  <Link to={`/contact?package=${i}`} onClick={() => setConsultService(item.key)} className="btn-primary !w-full !justify-center">
-                    {t({ en: 'Book now', zh: '马上预约' })} <ArrowRight size={16} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <PackageCards item={item} />
         {item.steps && (
           <div>
             <h4 className="eyebrow mb-4">{t(item.stepsTitle ?? { en: 'What to expect', zh: '护理流程' })}</h4>
             <ol className="space-y-4">
               {t(item.steps).map((st, i) => (
                 <li key={st} className="flex gap-4">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-sm text-ivory">{i + 1}</span>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold text-sm text-ivory">{i + 1}</span>
                   <span className="pt-1 leading-relaxed">{st}</span>
                 </li>
               ))}
@@ -262,7 +269,7 @@ function Detail({ item, index }) {
 
 function Treatment({ item, index }) {
   const { t } = useLang()
-  const flip = index % 2 === 1
+  const flip = index % 2 === 1 && !item.imageLeft // imageLeft keeps the photo on the left on desktop
   // Cards with structured sections (injectables) get larger type on desktop to balance the tall poster beside them.
   const rich = Boolean(item.sections)
   // `compact` items (NAD+) use tighter line and block spacing.
@@ -343,13 +350,23 @@ function Treatment({ item, index }) {
           <ol className="mt-6 space-y-3">
             {t(item.steps).map((s, i) => (
               <li key={s} className="flex gap-4 text-sm">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink text-xs text-ivory">{i + 1}</span>
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gold text-xs text-ivory">{i + 1}</span>
                 <span className="pt-1">{s}</span>
               </li>
             ))}
           </ol>
         )}
         {item.note && <p className={`text-xs text-muted ${tight ? 'mt-4 leading-snug lg:mt-5' : `mt-6 leading-relaxed ${rich ? 'lg:mt-9' : ''}`} ${rich ? 'lg:text-sm' : ''}`}>{t(item.note)}</p>}
+        {item.packages && !item.packages.some((pk) => pk.price) && (
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {item.packages.map((pk, i) => (
+              <Link key={i} to={`/contact?package=${i}`} onClick={() => setConsultService(item.key)} className="btn-primary !justify-between !px-5">
+                <span>{t(pk.name)}</span>
+                <span className="inline-flex items-center gap-1.5 text-sm">{t({ en: 'Book now', zh: '马上预约' })} <ArrowRight size={14} /></span>
+              </Link>
+            ))}
+          </div>
+        )}
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <ConsultLink item={item} />
           <Link to={`/faq#${encodeURIComponent(item.key)}`} className="inline-flex items-center gap-2 text-sm font-medium text-ink underline decoration-gold decoration-2 underline-offset-4 hover:text-gold">
@@ -357,6 +374,7 @@ function Treatment({ item, index }) {
           </Link>
         </div>
       </div>
+      {item.packages?.some((pk) => pk.price) && <div className="lg:col-span-2"><PackageCards item={item} /></div>}
     </Reveal>
   )
 }
@@ -374,7 +392,18 @@ export default function Category() {
   if (!cat) return <NotFound />
 
   const idx = categories.indexOf(cat)
-  const next = categories[(idx + 1) % categories.length]
+  // Spa is the last treatment page, so its "next" leads on to the Products section instead of wrapping round.
+  const nextCat = categories[(idx + 1) % categories.length]
+  const next = cat.slug === 'spa-care' ? { to: '/shop', name: ui.nav.shop } : { to: `/treatments/${nextCat.slug}`, name: nextCat.name }
+  // Pages that also link back to the previous section: skincare to the medical devices page, devices to IV therapy, lashes to skincare, brows to lashes, spa to brows.
+  const PREV = {
+    'skincare-experts': { to: '/treatments/devices', name: { en: 'Medical Treatments', zh: '医美项目' } },
+    devices: { to: '/treatments/iv-therapy', name: categories.find((c) => c.slug === 'iv-therapy')?.name },
+    lash: { to: '/treatments/skincare-experts', name: categories.find((c) => c.slug === 'skincare-experts')?.name },
+    microblading: { to: '/treatments/lash', name: categories.find((c) => c.slug === 'lash')?.name },
+    'spa-care': { to: '/treatments/microblading', name: categories.find((c) => c.slug === 'microblading')?.name },
+  }
+  const prev = PREV[cat.slug] ?? null
   const detailed = cat.treatments.filter((x) => !x.image && (x.steps || x.packages || x.layout === 'detail'))
   const withImages = cat.treatments.filter((x) => x.image)
   const textOnly = cat.treatments.filter((x) => !x.image && !x.steps && !x.packages && x.layout !== 'detail')
@@ -388,7 +417,7 @@ export default function Category() {
               key={t(x.name)}
               type="button"
               onClick={() => document.getElementById(x.key)?.scrollIntoView({ behavior: 'smooth' })}
-              className="rounded-full border border-ink/10 bg-ivory/70 px-4 py-1.5 text-sm transition hover:border-ink hover:bg-ink hover:text-ivory"
+              className="rounded-full border border-ink/10 bg-ivory/70 px-4 py-1.5 text-sm transition hover:border-gold hover:bg-gold hover:text-ivory"
             >
               {t(x.name)}
             </button>
@@ -418,7 +447,7 @@ export default function Category() {
 
       <section className="container-x divide-y divide-ink/10">
         {withImages.map((item, i) => <Treatment key={i} item={item} index={i} />)}
-        {detailed.map((item, i) => <Detail key={item.id} item={item} index={i} />)}
+        {detailed.map((item, i) => <Detail key={item.id} item={item} index={withImages.length + i} />)}
       </section>
 
       {textOnly.length > 0 && (
@@ -427,13 +456,22 @@ export default function Category() {
         </section>
       )}
 
-      <section className="container-x pt-12">
-        <Link to={`/treatments/${next.slug}`} className="group flex items-center justify-between rounded-[2rem] border border-ink/10 p-8 transition hover:border-ink">
-          <div>
+      <section className={`container-x grid gap-5 pt-12 ${prev ? 'md:grid-cols-2' : ''}`}>
+        {prev && (
+          <Link to={prev.to} className="group flex items-center justify-start gap-5 rounded-[2rem] border border-ink/10 p-8 transition hover:border-ink">
+            <ArrowLeft className="shrink-0 transition group-hover:-translate-x-2" />
+            <div className="text-left">
+              <p className="text-sm text-muted">{t({ en: 'Previous', zh: '上一项' })}</p>
+              <p className="font-display text-2xl sm:text-3xl">{t(prev.name)}</p>
+            </div>
+          </Link>
+        )}
+        <Link to={next.to} className={`group flex items-center gap-5 rounded-[2rem] border border-ink/10 p-8 transition hover:border-ink ${prev ? 'justify-end' : 'justify-between'}`}>
+          <div className={prev ? 'text-right' : ''}>
             <p className="text-sm text-muted">{t({ en: 'Next', zh: '下一项' })}</p>
             <p className="font-display text-2xl sm:text-3xl">{t(next.name)}</p>
           </div>
-          <ArrowRight className="transition group-hover:translate-x-2" />
+          <ArrowRight className="shrink-0 transition group-hover:translate-x-2" />
         </Link>
       </section>
 

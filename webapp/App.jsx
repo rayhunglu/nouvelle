@@ -8,6 +8,7 @@ import Treatments from './pages/Treatments'
 import Category from './pages/Category'
 import Gallery from './pages/Gallery'
 import Shop from './pages/Shop'
+import ShopHome from './pages/ShopHome'
 import Faq from './pages/Faq'
 import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
@@ -65,7 +66,7 @@ export default function App() {
           <Route path="/treatments/hair" element={<Navigate to="/treatments/injectables" replace />} />
           <Route path="/treatments/hormone-stem-cell" element={<Navigate to="/treatments/injectables" replace />} />
           <Route path="/treatments/:slug" element={<Category />} />
-          <Route path="/shop" element={<Navigate to="/shop/cellcosmet" replace />} />
+          <Route path="/shop" element={<ShopHome />} />
           <Route path="/shop/:brand" element={<Shop />} />
           <Route path="/gallery" element={<Gallery />} />
           <Route path="/faq" element={<Faq />} />

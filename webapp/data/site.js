@@ -17,8 +17,8 @@ export const business = {
   hours: [
     { day: { en: 'Monday – Sunday', zh: '周一至周日' }, time: { en: '10:00 am – 7:00 pm', zh: '上午 10:00 – 晚上 7:00' } },
   ],
-  holidayNote: { en: 'Closed on major holidays.', zh: '重大节日休息。' },
-  urgentNote: { en: 'For urgent or special timing, please call us.', zh: '如有紧急特定时间，可电联咨询。' },
+  holidayNote: { en: 'Closed on major holidays', zh: '重大节日休息' },
+  urgentNote: { en: 'For urgent or special appointments, please call us', zh: '如有紧急特定预约，可电联咨询' },
 }
 
 // Images are served from the clinic's existing site CDN. Swap for local files in
@@ -2841,16 +2841,280 @@ bodyHeadSpa.treatments.forEach((x, i) => {
   x.photo = { ...x.photo, zh: SPA_PHOTOS[i % SPA_PHOTOS.length] }
 })
 
+// Body spa: Japanese lymphatic drainage spa, in the same structured layout as the other updated cards.
+const bodySpa = bodyHeadSpa.treatments.find((x) => x.key === 'body-spa')
+for (const k of ['bullets', 'steps', 'facts', 'photo']) delete bodySpa[k]
+Object.assign(bodySpa, {
+  compact: true,
+  name: { en: 'Japanese Lymphatic Drainage Spa', zh: '日式淋巴排毒 SPA' },
+  short: { en: 'Gentle lymphatic drainage for a lighter, relaxed body', zh: '日式淋巴引流，舒缓消肿、全身放松' },
+  subtitle: { en: '', zh: 'JAPANESE LYMPHATIC DRAINAGE SPA' },
+  image: { zh: SPA_PHOTOS[0], en: '/images/treatments/shared/body-spa.jpg' },
+  body: {
+    en: 'Refined Japanese massage technique meets professional body care. Gentle, rhythmic lymphatic drainage promotes relaxation and supports lymph return, easing everyday puffiness and tightness for a lighter, soothing inside-out experience.',
+    zh: '融合日式精细按摩手法与专业身体护理，通过轻柔、有节奏的淋巴引流按摩，促进身体放松，辅助淋巴液回流，缓解日常浮肿与身体紧绷感，开启由内而外的轻盈舒缓体验。',
+  },
+  // Two bookable lengths; first visit = member price, "was" = the returning non-member price.
+  packages: [
+    {
+      name: { en: 'Japanese Lymphatic · Light Relaxation Spa · 60 min', zh: '日式淋巴 · 轻盈舒缓 SPA 60 分钟' },
+      price: '$108',
+      was: '$138',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Basic lymphatic drainage', 'Eases puffiness', 'Full-body relaxation'],
+        zh: ['基础淋巴引流', '缓解浮肿', '全身放松'],
+      },
+      steps: {
+        en: [
+          'Aromatic calming · body and mind relaxation',
+          'Neck, shoulder and back soothing massage',
+          'Arm and underarm lymphatic drainage',
+          'Leg lymphatic drainage · eases puffiness',
+          'Warm towel soothing',
+          'Head relaxation to finish',
+        ],
+        zh: [
+          '芳香舒缓 · 身心放松',
+          '肩颈背部舒缓按摩',
+          '手臂及腋下淋巴引流',
+          '腿部淋巴引流 · 缓解浮肿',
+          '温热毛巾舒缓',
+          '头部放松收尾',
+        ],
+      },
+      suited: {
+        en: 'People who sit or stand for long hours, with mild puffiness or tight neck and shoulders, who want regular relaxation and basic body care.',
+        zh: '久坐久站、轻微浮肿、肩颈紧绷、希望定期放松及基础身体养护的人群。',
+      },
+    },
+    {
+      name: { en: 'Japanese Lymphatic · Deep Revitalising Spa · 90 min', zh: '日式淋巴 · 深层焕活 SPA 90 分钟' },
+      price: '$158',
+      was: '$198',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Full-body lymphatic drainage', 'Deep relaxation', 'Refined body care'],
+        zh: ['全身淋巴引流', '深层舒缓', '精致身体养护'],
+      },
+      steps: {
+        en: [
+          'Aromatic calming · warm relaxation',
+          'Deep neck, shoulder and back soothing · releases tight muscles',
+          'Arm and underarm lymphatic drainage',
+          'Waist and hip soothing with body-contour care',
+          'Fine leg drainage · eases puffiness',
+          'Warm care to finish',
+          'Collarbone, chest and underarm lymphatic drainage',
+          'Head relaxation · stress relief',
+        ],
+        zh: [
+          '芳香舒缓 · 温热放松',
+          '肩颈背部深层舒缓 · 放松紧绷肌肉',
+          '手臂及腋下淋巴引流',
+          '腰臀部舒缓与身体轮廓护理',
+          '腿部精细引流 · 缓解浮肿',
+          '温热护理舒缓收尾',
+          '锁骨前胸腋下淋巴引流',
+          '头部放松 · 舒缓压力',
+        ],
+      },
+      suited: {
+        en: 'People prone to puffiness, full-body tightness or fatigue from sitting, who want a more complete body treatment and deep relaxation.',
+        zh: '容易浮肿、全身紧绷、久坐疲劳，以及希望体验更完整身体护理与深度放松的人群。',
+      },
+    },
+  ],
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Lymphatic drainage | Supports lymph circulation and eases mild puffiness',
+          'Lighter body | Relieves swelling and a heavy feeling',
+          'Fatigue relief | Releases tight muscles and stress',
+          'Body contouring | Reduces the bulky look caused by puffiness',
+          'Mind-body restoration | Deep relaxation that restores comfort',
+        ],
+        zh: [
+          '淋巴引流｜辅助淋巴循环，改善轻微浮肿',
+          '轻盈消肿｜缓解身体水肿与沉重感',
+          '舒缓疲劳｜放松紧绷肌肉，释放压力',
+          '身体塑形｜改善浮肿带来的轮廓臃肿感',
+          '身心疗愈｜深度放松，恢复舒适状态',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People who sit or stand for long hours, retain water, feel tight or tired, and want to relax and feel lighter.',
+        zh: '久坐久站、容易浮肿、身体紧绷、日常疲劳及希望放松身心、改善身体轻盈感的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '护理部位' },
+      text: { en: 'Neck and shoulders | Back | Arms | Abdomen | Legs | Full body', zh: '肩颈｜背部｜手臂｜腹部｜腿部｜全身' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Japanese hand technique · Lymphatic drainage · Soothing de-puffing · Full-body relaxation',
+        zh: '日式手技 · 淋巴引流 · 舒缓消肿 · 全身放松',
+      },
+    },
+  ],
+})
+
+// Head spa: Japanese anti-aging head spa, same structured layout as the body spa.
+const headSpa = bodyHeadSpa.treatments.find((x) => x.key === 'head-spa')
+const headPhoto = headSpa.photo
+for (const k of ['bullets', 'steps', 'facts', 'photo']) delete headSpa[k]
+Object.assign(headSpa, {
+  compact: true,
+  imageLeft: true,
+  name: { en: 'Japanese Anti-Aging Head Spa', zh: '日式头皮抗衰 SPA' },
+  short: { en: 'Japanese scalp cleansing, massage and nourishment', zh: '日式头皮深层净化、按摩与滋养' },
+  subtitle: { en: '', zh: 'JAPANESE ANTI-AGING HEAD SPA' },
+  image: { ...headPhoto, zh: '/images/treatments/zh/head-spa-warm.jpg' },
+  // Bookable lengths (first visit = member price, "was" = returning non-member price).
+  packages: [
+    {
+      name: { en: 'Japanese Scalp · Clear Revitalising Spa · 60 min', zh: '日式头皮 · 净澈焕活 SPA 60 分钟' },
+      price: '$108',
+      was: '$138',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Deep scalp purifying', 'Hydrating facial care', 'Body-mind relaxation'],
+        zh: ['深层头皮净化', '面部水润养护', '身心舒缓'],
+      },
+      steps: {
+        en: [
+          'Scalp assessment · personalised care evaluation',
+          'Makeup removal · gentle facial cleansing',
+          'Aromatic calming · head acupoint relaxation',
+          'Deep scalp cleansing · gentle exfoliation',
+          'Japanese scalp massage · eases tightness',
+          'Warm hydrotherapy · soothing shampoo',
+          'Warm steam · hydrating mask care',
+          'Scalp essence nourishment · hair-care finish',
+        ],
+        zh: [
+          '头皮检测 · 个性化护理评估',
+          '面部卸妆 · 温和清洁',
+          '芳香舒缓 · 头部穴位放松',
+          '头皮深层清洁 · 温和去角质',
+          '日式头皮按摩 · 舒缓紧绷',
+          '温热水疗 · 舒缓洗发',
+          '温热蒸汽 · 保湿面膜护理',
+          '头皮精华滋养 · 护发收尾',
+        ],
+      },
+      suited: {
+        en: 'People with an oily, dry or tight scalp or flat hair roots who want scalp care, facial hydration and body-mind relaxation together.',
+        zh: '头皮油腻、干燥、紧绷、发根扁塌，以及希望同时享受头皮养护、面部补水与身心放松的人群。',
+      },
+    },
+    {
+      name: { en: 'Japanese Scalp · Age-Defying Head Spa · 90 min', zh: '日式头皮 · 御龄深养 SPA 90 分钟' },
+      price: '$158',
+      was: '$198',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Scalp anti-aging care', 'Deep essence nourishment', 'Neck and shoulder restoration'],
+        zh: ['头皮抗衰养护', '深层精华滋养', '肩颈疗愈'],
+      },
+      steps: {
+        en: [
+          'Scalp assessment · personalised care evaluation',
+          'Makeup removal · gentle facial cleansing',
+          'Aromatic calming · head acupoint relaxation',
+          'Deep scalp cleansing · gentle exfoliation',
+          'Japanese scalp massage · eases tightness',
+          'Neck, shoulder and collarbone soothing massage · relieves fatigue',
+          'Warm hydrotherapy · soothing shampoo',
+          'Warm steam · hydrating mask care',
+          'Neck mask · hand nourishing care',
+          'Scalp essence nourishment · hair-care finish',
+        ],
+        zh: [
+          '头皮检测 · 个性化护理评估',
+          '面部卸妆 · 温和清洁',
+          '芳香舒缓 · 头部穴位放松',
+          '头皮深层清洁 · 温和去角质',
+          '日式头皮按摩 · 舒缓紧绷',
+          '肩颈锁骨舒缓按摩 · 放松疲劳',
+          '温热水疗 · 舒缓洗发',
+          '温热蒸汽 · 保湿面膜护理',
+          '颈部颈膜 · 手部滋养护理',
+          '头皮精华滋养 · 护发收尾',
+        ],
+      },
+      suited: {
+        en: 'People focused on scalp anti-aging, or with a dry scalp, fine hair or a tight scalp, who want deep nourishment, neck and shoulder relief and a complete body-mind relaxation experience.',
+        zh: '关注头皮抗衰、头皮干燥、发质细软、头皮紧绷，以及希望享受深层滋养、肩颈舒缓与完整身心放松体验的人群。',
+      },
+    },
+  ],
+  body: {
+    en: 'Refined Japanese scalp care meets professional massage — from deep scalp cleansing and soothing massage to essence nourishment. It cares for scalp health, eases dryness, oiliness and tightness, and revives scalp vitality for a luxurious head-to-heart restorative experience.',
+    zh: '融合日式精细头皮护理与专业按摩手法，从头皮深层清洁、舒缓按摩到精华滋养，全方位呵护头皮健康，改善干燥、油腻及紧绷状态，焕发头皮活力，开启由头至心的奢宠疗愈体验。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: [
+          'Scalp anti-aging | Attention to scalp aging and healthy care',
+          'Deep purifying | Cleanses excess oil and old keratin',
+          'Scalp revitalising | Soothing massage that eases tightness',
+          'Hair-root care | Nourishes the scalp and the hair-root environment',
+          'Stress relief | Relaxes the head, neck and shoulders and eases fatigue',
+          'Hydrating repair | Improves dryness and keeps water-oil balance',
+        ],
+        zh: [
+          '头皮抗衰｜关注头皮老化与健康养护',
+          '深层净化｜清洁多余油脂与老废角质',
+          '头皮焕活｜舒缓按摩，改善紧绷感',
+          '发根养护｜滋养头皮，呵护发根环境',
+          '舒压疗愈｜放松头部与肩颈，缓解疲劳',
+          '水润修护｜改善头皮干燥，维持水油平衡',
+        ],
+      },
+    },
+    {
+      title: { en: 'Suitable for', zh: '适合人群' },
+      text: {
+        en: 'People with an oily, dry or tight scalp, fine hair or high daily stress, and anyone interested in scalp anti-aging and healthy care.',
+        zh: '头皮油腻、干燥、紧绷、发质细软、日常压力较大，以及关注头皮抗衰与健康养护的人群。',
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '护理部位' },
+      text: { en: 'Scalp | Hairline | Head | Neck and shoulders', zh: '头皮｜发际线｜头部｜肩颈' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: {
+        en: 'Refined Japanese hand technique · Deep scalp purifying · Essence nourishment · Body-mind relaxation',
+        zh: '日式精细手技 · 深层头皮净化 · 精华滋养 · 身心舒缓',
+      },
+    },
+  ],
+})
+
 // Contact-form choices, two levels: top-level menu group, then its services.
 // Medical has several categories, so its services are sub-headed by category.
 const GROUPS = [
   { id: 'medical', name: { en: 'Medical Treatments', zh: '医美项目' } },
   { id: 'skincare', name: { en: 'Skincare Experts', zh: '护肤项目' } },
-  { id: 'spa', name: { en: 'Spa', zh: 'Spa' } },
   { id: 'lash', name: { en: 'Lashes', zh: '美睫' } },
   { id: 'brow', name: { en: 'Permanent Makeup', zh: '纹绣' } },
+  { id: 'spa', name: { en: 'Spa', zh: 'Spa' } },
 ]
-export const serviceGroups = GROUPS.map((g) => ({
+import { brands } from './shop'
+
+const baseServiceGroups = GROUPS.map((g) => ({
   ...g,
   sections: categories
     .filter((c) => c.group === g.id)
@@ -2860,6 +3124,23 @@ export const serviceGroups = GROUPS.map((g) => ({
       items: c.treatments.map((x) => ({ key: x.key, name: x.name, value: `${c.name.zh} · ${x.name.zh}` })),
     })),
 }))
+
+// "Product enquiry": the contact form's last group; its services are the brands we carry.
+export const serviceGroups = [
+  ...baseServiceGroups,
+  {
+    id: 'shop',
+    name: { en: 'Product enquiry', zh: '产品咨询' },
+    sections: brands.map((b) => ({
+      slug: `shop-${b.slug}`,
+      name: b.name,
+      items: [
+        { key: `brand-${b.slug}`, name: { en: `${b.name.en} · general enquiry`, zh: `${b.name.zh} · 品牌咨询` }, value: `产品咨询 · ${b.name.zh}` },
+        ...b.products.map((p) => ({ key: `product-${b.slug}-${p.id}`, name: p.name, value: `产品咨询 · ${b.name.zh} · ${p.name.zh}` })),
+      ],
+    })),
+  },
+]
 
 // Gallery: clinic photos stored in /public/images/gallery (copied from the old site).
 export const galleryPhotos = [
@@ -2881,15 +3162,39 @@ export const galleryPhotos = [
   { src: '/images/gallery/brow-room-2.jpg', caption: { en: 'Permanent makeup room', zh: '纹绣房' } },
 ]
 
+// `to` = the treatment page, `service` = the treatment key that "book a consultation" pre-selects in the contact form.
 // Real client cases (each image is a finished case card: profile, plan, before/after, review).
 export const beforeAfterPhotos = [
-  { src: '/images/cases/case-01.jpg', to: '/treatments/injectables#injectables-5', caption: { en: 'Case 01 · Full-face anti-aging & contour lift', zh: 'CASE 01　全脸抗衰 轮廓提升' } },
-  { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-4', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
-  { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', caption: { en: 'Case 03 · Acne skin repair', zh: 'CASE 03　痘肌修复 重建健康肌' } },
-  { src: '/images/cases/case-04.jpg', to: '/treatments/devices#skin-1', caption: { en: 'Case 04 · Thermage FLX skin tightening', zh: 'CASE 04　第五代热玛吉 紧肤抗衰' } },
-  { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', caption: { en: 'Case 05 · Japanese face sculpting', zh: 'CASE 05　日式小颜 面部线条管理' } },
-  { src: '/images/cases/case-06.jpg', to: '/treatments/injectables#injectables-2', caption: { en: 'Case 06 · Hyaluronic acid contouring', zh: 'CASE 06　玻尿酸微调 精致轮廓' } },
-  { src: '/images/cases/case-07.jpg', to: '/treatments/lash', caption: { en: 'Case 07 · Custom lash design', zh: 'CASE 07　专属美睫 放大双眸' } },
+  { src: '/images/cases/case-01.jpg', to: '/treatments/injectables#injectables-4', service: 'injectables-4', caption: { en: 'Case 01 · Full-face anti-aging & contour lift', zh: 'CASE 01　全脸抗衰 轮廓提升' } },
+  { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-4', service: 'skin-4', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
+  { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', service: 'acne-clearing', caption: { en: 'Case 03 · Acne skin repair', zh: 'CASE 03　痘肌修复 重建健康肌' } },
+  { src: '/images/cases/case-04.jpg', to: '/treatments/devices#skin-1', service: 'skin-1', caption: { en: 'Case 04 · Thermage FLX skin tightening', zh: 'CASE 04　第五代热玛吉 紧肤抗衰' } },
+  { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', service: 'japanese-face-correction', caption: { en: 'Case 05 · Japanese face sculpting', zh: 'CASE 05　日式小颜 面部线条管理' } },
+  { src: '/images/cases/case-06.jpg', to: '/treatments/injectables#injectables-2', service: 'injectables-2', caption: { en: 'Case 06 · Hyaluronic acid contouring', zh: 'CASE 06　玻尿酸微调 精致轮廓' } },
+  { src: '/images/cases/case-07.jpg', to: '/treatments/lash', service: 'classic-lashes', caption: { en: 'Case 07 · Custom lash design', zh: 'CASE 07　专属美睫 放大双眸' } },
   { src: '/images/cases/case-08.jpg', to: '/treatments', caption: { en: 'Case 08 · Comprehensive anti-aging', zh: 'CASE 08　综合抗衰 全面年轻化' } },
-  { src: '/images/cases/case-09.jpg', to: '/treatments/microblading#ombre-brows', caption: { en: 'Case 09 · Natural powder brow', zh: 'CASE 09　高级水雾眉 定制自然眉形' } },
+  { src: '/images/cases/case-09.jpg', to: '/treatments/microblading#ombre-brows', service: 'ombre-brows', caption: { en: 'Case 09 · Natural powder brow', zh: 'CASE 09　高级水雾眉 定制自然眉形' } },
 ]
+
+// Medical treatments regrouped by what they do for the client (the categories above group them by method).
+export const medicalFunctions = [
+  { id: 'lifting', name: { en: 'Anti-wrinkle & Lifting', zh: '除皱 · 紧致提升' }, short: { en: 'Smooth lines and firm the face', zh: '抚平皱纹、紧致提拉' }, keys: ['injectables-1', 'injectables-5', 'collagen-stimulator', 'skin-1', 'skin-7'] },
+  { id: 'contour', name: { en: 'Filler & Contouring', zh: '填充 · 轮廓塑形' }, short: { en: 'Restore volume and refine facial proportions', zh: '补充容量、优化面部比例' }, keys: ['injectables-2', 'injectables-4', 'injectables-3'] },
+  { id: 'renewal', name: { en: 'Skin Renewal & Brightening', zh: '嫩肤 · 祛斑 · 焕肤' }, short: { en: 'Even tone, refine texture, restore glow', zh: '均匀肤色、细腻肤质、焕发光泽' }, keys: ['skin-3', 'skin-4', 'skin-5', 'skin-2', 'iv-therapy-2', 'body-2'] },
+  { id: 'body', name: { en: 'Body Sculpting & Weight', zh: '身体塑形 · 体重管理' }, short: { en: 'Reduce stubborn fat and build muscle tone', zh: '减少顽固脂肪、紧实肌肉线条' }, keys: ['body-3', 'hair-3', 'tirzepatide'] },
+  { id: 'scalp', name: { en: 'Scalp & Hair Growth', zh: '头皮 · 生发' }, short: { en: 'Revive the scalp and support thicker hair', zh: '焕活头皮、支持头发浓密' }, keys: ['hair-2', 'body-1'] },
+  { id: 'vitality', name: { en: 'Whole-body Anti-aging & Vitality', zh: '全身抗衰 · 活力调理' }, short: { en: 'Energy, hormone balance and cellular renewal', zh: '能量、荷尔蒙平衡与细胞焕新' }, keys: ['iv-therapy-1', 'hormone-stem-cell-2', 'stem-cell', 'wellness-2', 'hormone-stem-cell-1', 'wellness-1'] },
+  { id: 'intimate', name: { en: 'Intimate Wellness', zh: '私密健康' }, short: { en: 'Radiofrequency intimate care', zh: '私密射频护理' }, keys: ['skin-8'] },
+].map((f) => ({
+  ...f,
+  treatments: f.keys.map((k) => {
+    for (const c of categories) {
+      const x = c.treatments.find((y) => y.key === k)
+      if (x) return { key: k, name: x.name, short: x.short, to: `/treatments/${c.slug}#${k}`, image: x.poster || x.image }
+    }
+    throw new Error(`medicalFunctions: unknown treatment ${k}`)
+  }),
+}))
+
+// Lash page: photo on the left, copy and prices on the right for every service.
+for (const c of categories) if (c.slug === 'lash') for (const x of c.treatments) x.imageLeft = true

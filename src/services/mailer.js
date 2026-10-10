@@ -112,4 +112,37 @@ async function sendSmsNotification(rec) {
   }
 }
 
-module.exports = { enabled, sendContactNotification };
+// Job applications go out as their own email, with the resume attached. CAREERS_MAIL_TO picks the
+// recipients (comma-separated); without it they go to the normal MAIL_TO list.
+const careersRecipients = () => {
+  const list = (process.env.CAREERS_MAIL_TO || '').split(',').map((x) => x.trim()).filter(Boolean);
+  return list.length ? list : recipients();
+};
+
+async function sendCareerApplication(rec, resume) {
+  if (!enabled()) {
+    console.warn('Mail not configured (GMAIL_USER / GMAIL_APP_PASSWORD); skipping application email');
+    return false;
+  }
+  const rows = [['姓名 Name', rec.name], ['电话 Phone', rec.phone], ['邮箱 Email', rec.email], ['简历 Resume', resume ? resume.filename : '未附简历 (none attached)']].filter(([, v]) => v);
+  const html = `<table cellpadding="6" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">${rows
+    .map(([k, v]) => `<tr><td style="color:#888;white-space:nowrap">${esc(k)}</td><td>${esc(v)}</td></tr>`)
+    .join('')}</table>`;
+  try {
+    await getTransporter().sendMail({
+      from: `"Nouvelle 招聘申请" <${user()}>`,
+      to: careersRecipients(),
+      replyTo: rec.email || undefined,
+      subject: `招聘申请：${rec.name}`,
+      text: rows.map(([k, v]) => `${k}: ${v}`).join('\n'),
+      html,
+      attachments: resume ? [{ filename: resume.filename, content: resume.content }] : [],
+    });
+    return true;
+  } catch (err) {
+    console.error('Failed to send application email:', err.message);
+    return false;
+  }
+}
+
+module.exports = { enabled, sendContactNotification, sendCareerApplication };

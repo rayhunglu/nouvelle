@@ -12,7 +12,7 @@ export default function Footer() {
   const skincare = categories.filter((c) => c.group !== 'medical')
 
   return (
-    <footer className="bg-ink text-ivory/80">
+    <footer className="bg-plum-deep text-ivory/80">
       <div className="container-x grid gap-12 py-16 md:grid-cols-12">
         <div className="md:col-span-4">
           <p className="font-display text-3xl text-ivory">Nouvelle</p>
@@ -41,7 +41,7 @@ export default function Footer() {
         </div>
 
         <div className="md:col-span-2">
-          <p className="eyebrow !text-gold-light">{t(ui.nav.skincare)}</p>
+          <p className="eyebrow !text-gold-light">{t({ en: 'Beauty & Care', zh: '美容养护' })}</p>
           <ul className="mt-4 space-y-2 text-sm">
             {skincare.map((c) => (
               <li key={c.slug}><Link to={`/treatments/${c.slug}`} className="hover:text-ivory">{t(c.name)}</Link></li>

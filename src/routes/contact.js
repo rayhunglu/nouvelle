@@ -43,17 +43,42 @@ async function postMessage(req, res, next) {
   }
 }
 
+const RESUME_TYPES = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+const MAX_RESUME_BYTES = 3 * 1024 * 1024;
+
+// Job application: details plus an optional resume (base64 in the JSON body), emailed on its own
+// and saved to MongoDB (without the file) when configured.
 async function postApplication(req, res, next) {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, resumeName, resumeData } = req.body;
     if (!name || !email) {
       return res.status(400).json({ error: 'name and email are required' });
     }
-    console.log('New job application:', { name, email });
+    let resume = null;
+    if (resumeData) {
+      const ext = clean(resumeName, 200).split('.').pop().toLowerCase();
+      const content = Buffer.from(String(resumeData), 'base64');
+      if (!RESUME_TYPES[ext] || !content.length || content.length > MAX_RESUME_BYTES) {
+        return res.status(400).json({ error: 'resume must be a PDF/DOC/DOCX under 3MB' });
+      }
+      resume = { filename: `${clean(name, 60).replace(/[^\w\u4e00-\u9fa5-]+/g, '_')}-resume.${ext}`, content };
+    }
+    const record = { name: clean(name, 120), email: clean(email, 160), phone: clean(phone, 40) };
+    console.log('New job application:', { ...record, resume: resume ? resume.filename : null });
+    let saved = false;
     if (mongo.enabled()) {
-      await store.create('applications', { name: clean(name, 120), email: clean(email, 160), phone: clean(phone, 40) });
+      try {
+        await store.create('applications', { ...record, resumeName: resume ? resume.filename : '' });
+        saved = true;
+      } catch (err) {
+        console.error('Could not save job application:', err.message);
+      }
     } else {
       console.warn('MONGODB_URI not set; job application not saved');
+    }
+    const emailed = await mailer.sendCareerApplication(record, resume);
+    if (!saved && !emailed) {
+      return res.status(500).json({ error: 'Could not save or send the application' });
     }
     res.status(200).json({ ok: true });
   } catch (err) {

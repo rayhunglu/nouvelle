@@ -250,7 +250,7 @@ function autoItems(item, hasHand) {
       },
     })
   }
-  if (item.packages) {
+  if (item.packages?.some((p) => p.price)) { // packages without a listed price (body spa) get no price answer
     out.push({
       q: L('What options and prices are available?', '有哪些方案和价格？'),
       a: {

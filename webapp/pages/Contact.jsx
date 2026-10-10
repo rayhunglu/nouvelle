@@ -10,6 +10,13 @@ import Reveal from '../components/Reveal'
 
 const field = 'w-full rounded-2xl border border-ink/10 bg-ivory px-4 py-3.5 outline-none transition focus:border-gold'
 
+const readBase64 = (file) => new Promise((resolve, reject) => {
+  const r = new FileReader()
+  r.onload = () => resolve(String(r.result).split(',')[1] || '')
+  r.onerror = reject
+  r.readAsDataURL(file)
+})
+
 function useApiSubmit(endpoint, onSuccess, transform) {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
@@ -18,11 +25,17 @@ function useApiSubmit(endpoint, onSuccess, transform) {
     e.preventDefault()
     setSending(true)
     setFailed(false)
-    const raw = Object.fromEntries(
-      [...new FormData(e.target).entries()].filter(([, v]) => typeof v === 'string')
-    )
+    const form = new FormData(e.target)
+    const raw = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string'))
     const data = transform ? transform(raw) : raw
     try {
+      // The resume travels inside the JSON body as base64 (the careers API emails it as an attachment).
+      const file = form.get('resume')
+      if (file instanceof File && file.size > 0) {
+        if (file.size > 3 * 1024 * 1024) throw new Error('resume too large')
+        data.resumeName = file.name
+        data.resumeData = await readBase64(file)
+      }
       const res = await fetch(`/api/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,6 +77,8 @@ const BOOKABLE = {
   'classic-lashes': 'styles',
   'hybrid-lashes': 'styles',
   'lash-fills': 'styles',
+  'body-spa': 'packages',
+  'head-spa': 'packages',
 }
 const treatmentByKey = (key) => categories.flatMap((c) => c.treatments).find((x) => x.key === key)
 const PACKAGE_MINUTES = [60, 90]
@@ -121,10 +136,10 @@ function bookingSummary(key, b, t) {
   const { opt, visit, price } = bookingInfo(key, b)
   return [
     `【${t({ en: 'Booking', zh: '预约' })}】${t(opt.name)}`,
-    `${t({ en: 'Visit', zh: '到访类型' })}: ${t(visit.label)}`,
-    `${t({ en: 'Price', zh: '价格' })}: ${price}`,
+    price && `${t({ en: 'Visit', zh: '到访类型' })}: ${t(visit.label)}`,
+    price && `${t({ en: 'Price', zh: '价格' })}: ${price}`,
     `${t({ en: 'Date', zh: '日期' })}: ${b.date} ${b.time}`,
-  ].join(' | ')
+  ].filter(Boolean).join(' | ')
 }
 
 function ServiceBooking({ serviceKey, value, onChange }) {
@@ -157,6 +172,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
         </div>
       </div>
 
+      {price && (
       <div>
         <p className="eyebrow mb-3">{t({ en: 'Visit type', zh: '初次或再来' })}</p>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -168,6 +184,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
           ))}
         </div>
       </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
@@ -184,8 +201,8 @@ function ServiceBooking({ serviceKey, value, onChange }) {
       </div>
 
       <p className="flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-4">
-        <span className="text-sm text-muted">{t(opt.name)} · {t(visitOf(value.visit).label)}</span>
-        <span className="font-display text-3xl">{price}</span>
+        <span className="text-sm text-muted">{t(opt.name)}{price ? ` · ${t(visitOf(value.visit).label)}` : ''}</span>
+        {price ? <span className="font-display text-3xl">{price}</span> : <span className="text-sm text-muted">{t({ en: 'Price confirmed when we call you', zh: '价格由我们与您确认' })}</span>}
       </p>
       <p className="text-xs text-muted">{t({ en: 'Open 10:00 am – 7:00 pm. Our team will confirm your appointment by phone or email.', zh: '营业时间 10:00 – 19:00，我们会通过电话或邮件与您确认预约。' })}</p>
     </div>
@@ -200,6 +217,11 @@ export default function Contact() {
   // A "Consult" button on a service page leaves the service key in a cookie.
   // It only seeds the form once; after that the visitor can change both selects.
   const findService = (key) => {
+    // 'group:<id>' pre-selects only the top-level category (e.g. the Products page enquiry button).
+    if (key.startsWith('group:')) {
+      const g = serviceGroups.find((x) => x.id === key.slice(6))
+      return g ? { group: g.id, value: '' } : null
+    }
     for (const g of serviceGroups) for (const sec of g.sections) for (const x of sec.items) {
       if (x.key === key) return { group: g.id, value: x.value }
     }
@@ -247,7 +269,7 @@ export default function Contact() {
         title={t({ en: 'Let’s plan your visit', zh: '预约您的到访' })}
         intro={
           <>
-            {t({ en: 'Reach out with questions, comments or scheduling requests. Treatments are by appointment — calling is the fastest way to book.', zh: '欢迎咨询、留言或预约。所有疗程需预约，电话预约最快捷。' })}
+            {t({ en: 'Reach out with questions, comments or scheduling requests. We warmly welcome your visit.', zh: '欢迎咨询、留言或预约。我们诚挚地欢迎您的到来。' })}
             <span className="block">{t({ en: 'Ample, convenient free parking on site', zh: '配备充足便捷的免费停车位' })}</span>
           </>
         }
@@ -343,7 +365,7 @@ export default function Contact() {
       </section>
 
       {/* Careers */}
-      <section className="bg-ink py-20 text-ivory">
+      <section className="bg-plum-deep py-20 text-ivory">
         <div className="container-x grid gap-12 lg:grid-cols-2">
           <Reveal>
             <p className="eyebrow !text-gold-light">{t({ en: 'We’re hiring', zh: '招聘' })}</p>
@@ -363,7 +385,7 @@ export default function Contact() {
                 <input name="phone" placeholder={t({ en: 'Phone', zh: '电话' })} type="tel" className={field} autoComplete="tel" />
                 <input required name="email" type="email" placeholder={t({ en: 'Email', zh: '邮箱' })} className={`${field} sm:col-span-2`} autoComplete="email" />
                 <label className="sm:col-span-2 cursor-pointer rounded-2xl border border-dashed border-ivory/25 px-4 py-6 text-center text-sm text-ivory/60 transition hover:border-gold-light">
-                  {t({ en: 'Attach resume (PDF, DOC)', zh: '上传简历（PDF、DOC）' })}
+                  {t({ en: 'Attach resume (PDF, DOC, up to 3MB)', zh: '上传简历（PDF、DOC，3MB 以内）' })}
                   <input type="file" name="resume" accept=".pdf,.doc,.docx" className="sr-only" />
                 </label>
                 <button className="btn-light sm:col-span-2 sm:justify-self-start">{t({ en: 'Submit application', zh: '提交申请' })}</button>

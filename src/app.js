@@ -11,6 +11,8 @@ module.exports.createServer = () => {
   const app = express();
 
   app.use(logger('dev'));
+  // Job applications carry the resume as base64, so that route gets a larger body limit (Vercel caps requests at ~4.5MB).
+  app.use('/api/careers', express.json({ limit: '5mb' }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
   app.use(cookieParser());

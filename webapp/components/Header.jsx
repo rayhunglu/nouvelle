@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, LayoutDashboard, LogIn, Menu, Phone, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, LayoutDashboard, LogIn, Menu, Phone, X } from 'lucide-react'
 import { useLang } from '../i18n'
 import { useAuth } from '../auth'
 import { business, categories } from '../data/site'
 import { brands } from '../data/shop'
 import { ui } from './ui'
 
-const medicalItems = categories
-  .filter((c) => c.group === 'medical')
-  .map((c) => ({ key: c.slug, to: `/treatments/${c.slug}`, name: c.name, short: c.short }))
+const medicalItems = [
+  ...categories
+    .filter((c) => c.group === 'medical')
+    .map((c) => ({ key: c.slug, to: `/treatments/${c.slug}`, name: c.name, short: c.short })),
+]
 const spaItems = categories
   .filter((c) => c.group === 'spa')
   .flatMap((c) => c.treatments.map((x) => ({ key: x.key, to: `/treatments/${c.slug}#${x.key}`, name: x.name, short: x.short })))
@@ -30,7 +32,7 @@ function LangToggle({ className = '' }) {
           key={code}
           onClick={() => setLang(code)}
           aria-pressed={lang === code}
-          className={`rounded-full px-3 py-1.5 transition ${lang === code ? 'bg-ink text-ivory' : 'text-muted hover:text-ink'}`}
+          className={`rounded-full px-3 py-1.5 transition ${lang === code ? 'bg-gold text-ivory' : 'text-muted hover:text-ink'}`}
         >
           {label}
         </button>
@@ -39,7 +41,7 @@ function LangToggle({ className = '' }) {
   )
 }
 
-function ServiceDropdown({ label, items, linkCls }) {
+function ServiceDropdown({ label, items, linkCls, to, allTo, allLabel }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   const close = () => {
@@ -54,11 +56,22 @@ function ServiceDropdown({ label, items, linkCls }) {
       onFocus={() => setOpen(true)}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false) }}
     >
-      <button type="button" aria-expanded={open} className={`${linkCls({ isActive: false })} flex items-center gap-1`}>
-        {label} <ChevronDown size={14} className={`transition ${open ? 'rotate-180' : ''}`} />
-      </button>
+      {to ? (
+        <Link to={to} onClick={close} className={`${linkCls({ isActive: false })} flex items-center gap-1`}>
+          {label} <ChevronDown size={14} className={`transition ${open ? 'rotate-180' : ''}`} />
+        </Link>
+      ) : (
+        <button type="button" aria-expanded={open} className={`${linkCls({ isActive: false })} flex items-center gap-1`}>
+          {label} <ChevronDown size={14} className={`transition ${open ? 'rotate-180' : ''}`} />
+        </button>
+      )}
       <div className={`absolute left-1/2 top-full w-[22rem] -translate-x-1/2 pt-5 transition duration-300 ${open ? 'visible opacity-100' : 'invisible opacity-0'}`}>
         <div className="flex flex-col gap-1 rounded-3xl border border-ink/5 bg-ivory p-3 shadow-2xl shadow-ink/10">
+          {allTo && (
+            <Link to={allTo} onClick={close} className="mb-1 flex items-center justify-between rounded-2xl border-b border-ink/10 px-4 py-3 text-sm font-medium transition hover:bg-sand">
+              {t(allLabel || { en: 'All treatments', zh: '全部项目' })} <ArrowRight size={14} />
+            </Link>
+          )}
           {items.map((c) => (
             <Link key={c.key} to={c.to} onClick={close} className="rounded-2xl px-4 py-3 transition hover:bg-sand">
               <span className="block text-sm font-medium">{t(c.name)}</span>
@@ -71,7 +84,7 @@ function ServiceDropdown({ label, items, linkCls }) {
   )
 }
 
-function MobileGroup({ label, items }) {
+function MobileGroup({ label, items, homeTo, homeLabel, allTo }) {
   const { t } = useLang()
   const [open, setOpen] = useState(false)
   return (
@@ -87,6 +100,12 @@ function MobileGroup({ label, items }) {
       </button>
       {open && (
         <ul className="pb-3">
+          {homeTo && (
+            <li><Link to={homeTo} className="block py-2.5 pl-3 text-[0.95rem] font-medium text-ink">{homeLabel}</Link></li>
+          )}
+          {allTo && (
+            <li><Link to={allTo} className="block py-2.5 pl-3 text-[0.95rem] font-medium text-ink">{t({ en: 'All treatments', zh: '全部项目' })}</Link></li>
+          )}
           {items.map((c) => (
             <li key={c.key}>
               <Link to={c.to} className="block py-2.5 pl-3 text-[0.95rem] text-muted active:text-ink">{t(c.name)}</Link>
@@ -122,13 +141,13 @@ export default function Header() {
 
         <nav className="hidden items-center gap-6 2xl:gap-8 lg:flex">
           <NavLink to="/about" className={linkCls}>{t(ui.nav.about)}</NavLink>
-          <ServiceDropdown label={t(ui.nav.medical)} items={medicalItems} linkCls={linkCls} />
+          <ServiceDropdown label={t(ui.nav.medical)} items={medicalItems} linkCls={linkCls} to="/treatments" allTo="/treatments" />
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />
-          <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
           <NavLink to="/treatments/lash" className={linkCls}>{t(ui.nav.lash)}</NavLink>
           <NavLink to="/treatments/microblading" className={linkCls}>{t(ui.nav.brow)}</NavLink>
-          <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} />
+          <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
           <NavLink to="/gallery" className={linkCls}>{t(ui.nav.gallery)}</NavLink>
+          <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} to="/shop" allTo="/shop" allLabel={{ en: 'Select brands', zh: '精选品牌 · 品质生活' }} />
           <NavLink to="/faq" className={linkCls}>{t(ui.nav.faq)}</NavLink>
           <NavLink to="/contact" className={linkCls}>{t(ui.nav.contact)}</NavLink>
         </nav>
@@ -155,13 +174,16 @@ export default function Header() {
         <div className="h-[calc(100dvh-5rem)] overflow-y-auto border-t border-ink/10 bg-white lg:hidden">
           <nav className="container-x flex flex-col pb-24 pt-2">
             <NavLink to="/about" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.about)}</NavLink>
-            <MobileGroup label={t(ui.nav.medical)} items={medicalItems} />
+            <MobileGroup label={t(ui.nav.medical)} items={medicalItems} allTo="/treatments" />
             <MobileGroup label={t(ui.nav.skincare)} items={skincareItems} />
-            <MobileGroup label={t(ui.nav.spa)} items={spaItems} />
             <NavLink to="/treatments/lash" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.lash)}</NavLink>
             <NavLink to="/treatments/microblading" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.brow)}</NavLink>
-            <MobileGroup label={t(ui.nav.shop)} items={shopItems} />
-            {[['/gallery', ui.nav.gallery], ['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
+            <MobileGroup label={t(ui.nav.spa)} items={spaItems} />
+            {[['/gallery', ui.nav.gallery]].map(([to, label]) => (
+              <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
+            ))}
+            <MobileGroup label={t(ui.nav.shop)} items={shopItems} homeTo="/shop" homeLabel={t({ en: 'Select brands', zh: '精选品牌 · 品质生活' })} />
+            {[['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
             <Link to={user ? '/crm' : '/login'} className="btn-ghost mt-8">

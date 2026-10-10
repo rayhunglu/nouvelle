@@ -5,8 +5,11 @@
   --color-sand: #f1e9df;
   --color-ink: #2b2420;
   --color-muted: #6f625a;
-  --color-gold: #b88a5e;
-  --color-gold-light: #d9b48f;
+  /* Brand accent now follows the logo (plum + orchid). To revert: gold #b88a5e, gold-light #d9b48f. */
+  --color-logo-pink: #e0a0c0; /* the pink in the logo */
+  --color-plum-deep: #2f1d35; /* dark panels (revert: use bg-ink) */
+  --color-gold: #6b3f73;
+  --color-gold-light: #d9a7c7;
   --color-rose: #e8cfc4;
   --font-display: "Fraunces", "Noto Serif SC", Georgia, serif;
   --font-sans: "Inter", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
@@ -21,8 +24,8 @@ body {
 @utility container-x { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10; }
 @utility eyebrow { @apply text-xs font-semibold uppercase tracking-[0.22em] text-gold; }
 @utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition duration-300; }
-@utility btn-primary { @apply btn bg-ink text-ivory hover:bg-gold; }
-@utility btn-ghost { @apply btn border border-ink/20 text-ink hover:border-ink hover:bg-ink hover:text-ivory; }
+@utility btn-primary { @apply btn bg-gold text-ivory hover:bg-plum-deep; } /* revert: bg-ink ... hover:bg-gold */
+@utility btn-ghost { @apply btn border border-ink/20 text-ink hover:border-gold hover:bg-gold hover:text-ivory; }
 @utility btn-light { @apply btn bg-ivory text-ink hover:bg-gold-light; }
 
 .reveal { transition: opacity .7s ease, transform .7s ease; }

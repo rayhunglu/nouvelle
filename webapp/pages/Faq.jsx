@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { ChevronDown, Plus, Search } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { ArrowLeft, ArrowRight, ChevronDown, Plus, Search } from 'lucide-react'
 import { useLang } from '../i18n'
 import { faqCategories } from '../data/faqs'
 import { business } from '../data/site'
@@ -80,7 +80,7 @@ export default function Faq() {
   const singleService = !!sel.key
   const activeCat = faqCategories.find((c) => c.slug === sel.cat)
   const link = (active) =>
-    `w-full rounded-xl px-3 py-2 text-left text-sm transition ${active ? 'bg-ink text-ivory' : 'text-muted hover:bg-sand hover:text-ink'}`
+    `w-full rounded-xl px-3 py-2 text-left text-sm transition ${active ? 'bg-gold text-ivory' : 'text-muted hover:bg-sand hover:text-ink'}`
 
   return (
     <>
@@ -181,6 +181,23 @@ export default function Faq() {
             </section>
           ))}
         </div>
+      </section>
+
+      <section className="container-x grid gap-5 py-12 md:grid-cols-2">
+        <Link to="/shop" className="group flex items-center justify-start gap-5 rounded-[2rem] border border-ink/10 p-8 transition hover:border-ink">
+          <ArrowLeft className="shrink-0 transition group-hover:-translate-x-2" />
+          <div className="text-left">
+            <p className="text-sm text-muted">{t({ en: 'Previous', zh: '上一项' })}</p>
+            <p className="font-display text-2xl sm:text-3xl">{t(ui.nav.shop)}</p>
+          </div>
+        </Link>
+        <Link to="/contact" className="group flex items-center justify-end gap-5 rounded-[2rem] border border-ink/10 p-8 transition hover:border-ink">
+          <div className="text-right">
+            <p className="text-sm text-muted">{t({ en: 'Next', zh: '下一项' })}</p>
+            <p className="font-display text-2xl sm:text-3xl">{t(ui.nav.contact)}</p>
+          </div>
+          <ArrowRight className="shrink-0 transition group-hover:translate-x-2" />
+        </Link>
       </section>
 
       <CtaBand />
