@@ -138,12 +138,12 @@ export default function Shop() {
               {g.items.map((p) => (
                 <article key={p.id} id={p.id} className="flex scroll-mt-40 flex-col rounded-2xl border border-ink/10 p-3 transition hover:border-ink/30 sm:p-4">
                   <ProductImage brand={brand.slug} product={p} alt={t(p.name)} />
-                  <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-gold">{t(p.line)}</p>
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-gold">{t(p.line)}</p>
                   <h4 className="mt-1.5 font-display text-base leading-snug sm:text-lg">{t(p.name)}</h4>
                   {p.sizes && <p className="mt-1 text-xs text-muted">{t({ en: 'Sizes', zh: '规格' })} · {t(p.sizes)}</p>}
                   <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted" title={t(p.body)}>{t(p.body)}</p>
                   <div className="mt-auto">
-                    <Link to="/contact" onClick={() => setConsultService(`product-${brand.slug}-${p.id}`)} className="mt-3 inline-block self-start text-xs font-medium text-gold underline underline-offset-4 hover:text-gold-light">
+                    <Link to="/contact" onClick={() => setConsultService(`product-${brand.slug}-${p.id}`)} className="-mb-2 mt-1 inline-block self-start py-2.5 text-xs font-medium text-gold underline underline-offset-4 hover:text-gold-light">
                       {t({ en: 'Enquire to buy', zh: '购买咨询' })} &gt;
                     </Link>
                   </div>

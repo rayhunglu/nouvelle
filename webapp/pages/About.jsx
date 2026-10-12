@@ -186,6 +186,7 @@ export default function About() {
           <h2 className="font-display text-3xl font-light leading-tight sm:text-5xl">
             {t({ en: 'The people behind your care.', zh: '医学美容专家团队' })}
           </h2>
+            <div className="mt-6 h-px w-16 bg-gold" />
         </Reveal>
         <div className="mt-12 space-y-8">
           {team.map((m) => (
@@ -204,6 +205,7 @@ export default function About() {
             <h2 className={`font-display text-3xl font-light leading-tight sm:text-5xl ${lang === 'zh' ? 'md:whitespace-nowrap' : 'max-w-xl'}`}>
               {t({ en: 'A calm, comfortable place to be cared for.', zh: '安静、舒适，让您放松，备受呵护' })}
             </h2>
+            <div className="mt-6 h-px w-16 bg-gold" />
           </div>
         </Reveal>
         <div className="mt-10 grid gap-8 md:grid-cols-3 md:gap-5">
@@ -227,6 +229,7 @@ export default function About() {
                   zh: '涵盖医美注射、光电抗衰、肌肤管理、美睫纹绣、身体及头皮护理，以专业科技与精致美学，焕发自然之美。',
                 })}
               </h2>
+              <div className="mt-6 h-px w-16 bg-gold" />
             </div>
             <Link to="/treatments" className="group inline-flex shrink-0 items-center gap-2 text-sm font-medium">
               {t({ en: 'View all treatments', zh: '查看所有项目' })} <ArrowRight size={16} className="transition group-hover:translate-x-1" />
@@ -271,6 +274,7 @@ export default function About() {
             <h2 className="font-display text-3xl font-light leading-tight sm:text-4xl">
               {t({ en: 'Find us in Bellevue, WA.', zh: '位于华盛顿州贝尔维尤' })}
             </h2>
+            <div className="mt-6 h-px w-16 bg-gold" />
             <ul className="mt-8 space-y-5">
               <li className="flex gap-3">
                 <MapPin size={20} className="mt-1 shrink-0 text-gold" />

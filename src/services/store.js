@@ -123,6 +123,7 @@ const fileStore = {
     return load()[name];
   },
   async get(name, id) {
+    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
     return load()[name].find((r) => r.id === id) || null;
   },
   async create(name, data) {
@@ -132,6 +133,7 @@ const fileStore = {
     return record;
   },
   async update(name, id, data) {
+    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
     const rows = load()[name];
     const i = rows.findIndex((r) => r.id === id);
     if (i === -1) return null;
@@ -140,6 +142,7 @@ const fileStore = {
     return rows[i];
   },
   async remove(name, id) {
+    if (typeof id !== 'string') return false; // ids are plain strings: rejects query objects such as {"$ne": null}
     const rows = load()[name];
     const i = rows.findIndex((r) => r.id === id);
     if (i === -1) return false;
@@ -182,6 +185,7 @@ const mongoStore = {
     return (await col(name)).find({}, NO_ID).sort({ createdAt: 1 }).toArray();
   },
   async get(name, id) {
+    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
     return (await col(name)).findOne({ id }, NO_ID);
   },
   async create(name, data) {
@@ -190,6 +194,7 @@ const mongoStore = {
     return record;
   },
   async update(name, id, data) {
+    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
     return (await col(name)).findOneAndUpdate(
       { id },
       { $set: { ...data, id, updatedAt: new Date().toISOString() } },
@@ -197,6 +202,7 @@ const mongoStore = {
     );
   },
   async remove(name, id) {
+    if (typeof id !== 'string') return false; // ids are plain strings: rejects query objects such as {"$ne": null}
     return (await (await col(name)).deleteOne({ id })).deletedCount > 0;
   },
 };

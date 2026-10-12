@@ -32,7 +32,7 @@ function LangToggle({ className = '' }) {
           key={code}
           onClick={() => setLang(code)}
           aria-pressed={lang === code}
-          className={`rounded-full px-3 py-1.5 transition ${lang === code ? 'bg-gold text-ivory' : 'text-muted hover:text-ink'}`}
+          className={`rounded-full px-3.5 py-2 transition ${lang === code ? 'bg-gold text-ivory' : 'text-muted hover:text-ink'}`}
         >
           {label}
         </button>

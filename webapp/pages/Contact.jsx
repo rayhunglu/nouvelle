@@ -18,6 +18,8 @@ const readBase64 = (file) => new Promise((resolve, reject) => {
 })
 
 function useApiSubmit(endpoint, onSuccess, transform) {
+  // When the form appeared: the server rejects submissions made faster than a person could type.
+  const [shownAt] = useState(() => Date.now())
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -27,7 +29,7 @@ function useApiSubmit(endpoint, onSuccess, transform) {
     setFailed(false)
     const form = new FormData(e.target)
     const raw = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === 'string'))
-    const data = transform ? transform(raw) : raw
+    const data = { ...(transform ? transform(raw) : raw), _elapsed: Date.now() - shownAt }
     try {
       // The resume travels inside the JSON body as base64 (the careers API emails it as an attachment).
       const file = form.get('resume')
@@ -284,6 +286,7 @@ export default function Contact() {
             <div className="mt-8"><Sent text={t({ en: 'Thank you — we’ll be in touch soon.', zh: '感谢留言，我们会尽快联系您。' })} /></div>
           ) : (
             <form ref={formRef} onSubmit={onSubmit} className="mt-8 grid gap-4 sm:grid-cols-2">
+              <input type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
               <input required name="name" placeholder={t({ en: 'Name', zh: '姓名' })} className={field} autoComplete="name" />
               <input required name="phone" type="tel" placeholder={t({ en: 'Phone', zh: '电话' })} className={field} autoComplete="tel" />
               <input name="email" type="email" placeholder={t({ en: 'Email (optional)', zh: '邮箱（选填）' })} className={field} autoComplete="email" />
@@ -381,6 +384,7 @@ export default function Contact() {
               <div className="text-ink"><Sent text={t({ en: 'Application received — thank you!', zh: '已收到您的申请，谢谢！' })} /></div>
             ) : (
               <form onSubmit={onApply} className="grid gap-4 sm:grid-cols-2 [&_input]:border-ivory/15 [&_input]:bg-ivory/5 [&_input]:text-ivory [&_input]:placeholder:text-ivory/40">
+                <input type="text" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
                 <input required name="name" placeholder={t({ en: 'Name', zh: '姓名' })} className={field} autoComplete="name" />
                 <input name="phone" placeholder={t({ en: 'Phone', zh: '电话' })} type="tel" className={field} autoComplete="tel" />
                 <input required name="email" type="email" placeholder={t({ en: 'Email', zh: '邮箱' })} className={`${field} sm:col-span-2`} autoComplete="email" />

@@ -88,7 +88,7 @@ function GalleryDetail({ item }) {
   const [i, setI] = useState(0)
   const copy = item.styles?.[i] ?? item
   return (
-    <Reveal as="article" id={item.key} className="scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 lg:gap-16">
+    <Reveal as="article" id={item.key} className="scroll-mt-28 grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-12 lg:gap-16">
       <div className={`lg:col-span-5 ${item.imageLeft ? 'lg:order-2' : ''}`}>
         <h3 className="font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
         {!item.prices?.[i] && <div className="mt-4"><ConsultLink item={item} pkg={i} /></div>}
@@ -161,7 +161,7 @@ function Detail({ item, index }) {
   const { t } = useLang()
   if (item.posters?.length > 1) return <GalleryDetail item={item} />
   return (
-    <Reveal as="article" id={item.key} className={`scroll-mt-28 grid gap-10 py-12 lg:grid-cols-12 ${item.bodyBesideImage ? 'lg:gap-x-16 lg:gap-y-6' : 'lg:gap-16'}`}>
+    <Reveal as="article" id={item.key} className={`scroll-mt-28 grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-12 ${item.bodyBesideImage ? 'lg:gap-x-16 lg:gap-y-6' : 'lg:gap-16'}`}>
       {item.artist && <ArtistCard artist={item.artist} className="lg:col-span-12" />}
       <div className={item.bodyBesideImage ? 'lg:col-span-12' : 'lg:col-span-5'}>
         {!item.hideIndex && <span className="font-display text-sm text-gold">{String(index + 1).padStart(2, '0')}</span>}

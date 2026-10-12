@@ -6,10 +6,13 @@ var logger = require('morgan');
 var session = require('express-session');
 var crypto = require('crypto');
 var mongo = require('./services/mongo');
+var { securityHeaders } = require('./middleware/security');
 
 module.exports.createServer = () => {
   const app = express();
 
+  app.disable('x-powered-by');
+  app.use(securityHeaders);
   app.use(logger('dev'));
   // Job applications carry the resume as base64, so that route gets a larger body limit (Vercel caps requests at ~4.5MB).
   app.use('/api/careers', express.json({ limit: '5mb' }));
@@ -62,7 +65,10 @@ module.exports.createServer = () => {
   // error handler
   app.use(function (err, req, res, _next) {
     res.status(err.status || 500);
-    res.json({ error: err.message });
+    // Internal error details stay in the server log in production.
+    const expose = (err.status || 500) < 500 || process.env.NODE_ENV !== 'production';
+    if (!expose) console.error(err);
+    res.json({ error: expose ? err.message : 'Internal server error' });
   });
 
   var port = normalizePort(process.env.PORT || '3000');

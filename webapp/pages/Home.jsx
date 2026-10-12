@@ -50,7 +50,7 @@ export default function Home() {
           }`}
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ivory/90 via-ivory/30 to-transparent lg:bg-gradient-to-l lg:from-ivory/55 lg:via-transparent lg:to-transparent" />
-        <div className={`container-x pt-24 lg:pb-0 lg:pt-0 ${lang === 'zh' ? 'pb-32' : 'pb-6'}`}>
+        <div className={`container-x pt-24 lg:pb-0 lg:pt-0 ${lang === 'zh' ? 'pb-6' : 'pb-6'}`}>
           <Reveal
             className={`lg:ml-auto lg:max-w-xl ${
               lang === 'zh'
@@ -73,24 +73,24 @@ export default function Home() {
               <br />
               {t({ en: 'you.', zh: '的你' })}
             </h1>
-            <p className={`mt-8 max-w-md leading-relaxed text-ink/75 ${lang === 'zh' ? 'text-base' : 'text-lg'}`}>
+            <p className={`mt-12 max-w-md leading-relaxed text-ink/75 lg:mt-8 ${lang === 'zh' ? 'text-base' : 'text-lg'}`}>
               {lang === 'zh' ? (
                 // Each service name is kept whole: lines only break between items.
                 <>
-                  {['注射微整', '先进光电', '日式护肤', '美睫', '纹绣', '身体塑形', '全身抗衰老'].map((x, i) => (
+                  {['注射微整', '先进光电', '日式护肤', '美睫', '纹绣', '身体塑形', '按摩头疗Spa', '全身抗衰老一站式服务'].map((x, i) => (
                     <span key={x}>
                       {i > 0 && '、'}
                       <span className="whitespace-nowrap">{x}</span>
                     </span>
                   ))}
                   ——<span className="whitespace-nowrap">用心定制，</span>
-                  <span className="whitespace-nowrap">自然美丽。</span>
+                  <span className="whitespace-nowrap">自然美丽</span>
                 </>
               ) : (
-                'Injectables, advanced light- and energy-based treatments, Japanese-style skincare, lash extensions, permanent makeup, body sculpting and whole-body anti-aging — thoughtfully tailored, beautifully natural.'
+                'Injectables, advanced light- and energy-based treatments, Japanese-style skincare, lash extensions, permanent makeup, body sculpting, scalp-massage spa and whole-body anti-aging, all in one place — thoughtfully tailored, beautifully natural'
               )}
             </p>
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row lg:mt-10">
               <Link to="/treatments" className="btn-ghost">{t({ en: 'All treatments', zh: '全部服务' })}</Link>
               <Link to="/contact" className="btn-primary">{t(ui.book)} <ArrowRight size={16} /></Link>
               <button type="button" onClick={() => setWechatOpen(true)} className="btn-ghost"><MessageCircle size={16} /> {t({ en: 'WeChat', zh: '微信联系' })}</button>

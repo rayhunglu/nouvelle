@@ -1,6 +1,7 @@
 const store = require('../services/store');
 const mailer = require('../services/mailer');
 const mongo = require('../services/mongo');
+const { checkSpam, validPhone, validEmail } = require('../services/spam');
 
 const clean = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
@@ -12,6 +13,15 @@ async function postMessage(req, res, next) {
     // Email and WeChat ID are optional; name and phone are required.
     if (!name || !phone) {
       return res.status(400).json({ error: 'name and phone are required' });
+    }
+    if (!validPhone(phone) || !validEmail(email)) {
+      return res.status(400).json({ error: 'invalid phone or email' });
+    }
+    // Bots get the same "ok" as everyone else; the message is just not saved or emailed.
+    const spam = checkSpam(req.body, ['name', 'wechat', 'message']);
+    if (spam) {
+      console.warn('Blocked spam contact message:', spam, '|', clean(name, 40), clean(req.ip, 60));
+      return res.status(200).json({ ok: true });
     }
     const record = {
       name: clean(name, 120), phone: clean(phone, 40), email: clean(email, 160), wechat: clean(wechat, 80), category: clean(category, 80), categoryEn: clean(categoryEn, 80), interestEn: clean(interestEn, 120), interest: clean(interest, 200),
@@ -53,6 +63,14 @@ async function postApplication(req, res, next) {
     const { name, email, phone, resumeName, resumeData } = req.body;
     if (!name || !email) {
       return res.status(400).json({ error: 'name and email are required' });
+    }
+    if (!validEmail(email) || (phone && !validPhone(phone))) {
+      return res.status(400).json({ error: 'invalid phone or email' });
+    }
+    const spam = checkSpam(req.body, ['name']);
+    if (spam) {
+      console.warn('Blocked spam job application:', spam, '|', clean(name, 40), clean(req.ip, 60));
+      return res.status(200).json({ ok: true });
     }
     let resume = null;
     if (resumeData) {

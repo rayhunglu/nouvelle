@@ -3,6 +3,7 @@ const contact = require('../routes/contact');
 const auth = require('../routes/auth');
 const crm = require('../routes/crm');
 const mongo = require('../services/mongo');
+const { rateLimit } = require('../middleware/security');
 
 const REST_PREFIX = '/api';
 // Everything under this prefix is for the CRM only and requires a signed-in session.
@@ -17,16 +18,18 @@ module.exports = (app) => {
       try {
         await (await mongo.getDb()).command({ ping: 1 });
         out.mongo = 'connected';
-      } catch (err) {
-        out.mongo = `error: ${err.message}`;
+      } catch {
+        out.mongo = 'error';
       }
     }
     res.json(out);
   });
 
   // Public website endpoints
-  app.post(`${REST_PREFIX}/contact`, contact.postMessage);
-  app.post(`${REST_PREFIX}/careers`, contact.postApplication);
+  // At most 5 submissions per IP per 10 minutes on each public form.
+  const formLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 5 });
+  app.post(`${REST_PREFIX}/contact`, formLimit, contact.postMessage);
+  app.post(`${REST_PREFIX}/careers`, formLimit, contact.postApplication);
 
   // Session auth
   app.post(`${REST_PREFIX}/auth/login`, auth.login);

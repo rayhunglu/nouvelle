@@ -24,10 +24,10 @@ export default function Footer() {
             <Phone size={16} /> {business.phone}
           </a>
           <div className="mt-6 flex gap-4 text-sm">
-            <Link to="/about" className="hover:text-ivory">{t(ui.nav.about)}</Link>
-            <Link to="/gallery" className="hover:text-ivory">{t(ui.nav.gallery)}</Link>
-            <Link to="/faq" className="hover:text-ivory">{t(ui.nav.faq)}</Link>
-            <Link to="/contact" className="hover:text-ivory">{t(ui.nav.contact)}</Link>
+            <Link to="/about" className="inline-block py-1 hover:text-ivory">{t(ui.nav.about)}</Link>
+            <Link to="/gallery" className="inline-block py-1 hover:text-ivory">{t(ui.nav.gallery)}</Link>
+            <Link to="/faq" className="inline-block py-1 hover:text-ivory">{t(ui.nav.faq)}</Link>
+            <Link to="/contact" className="inline-block py-1 hover:text-ivory">{t(ui.nav.contact)}</Link>
           </div>
         </div>
 
@@ -35,7 +35,7 @@ export default function Footer() {
           <p className="eyebrow !text-gold-light">{t(ui.nav.medical)}</p>
           <ul className="mt-4 space-y-2 text-sm">
             {medical.map((c) => (
-              <li key={c.slug}><Link to={`/treatments/${c.slug}`} className="hover:text-ivory">{t(c.name)}</Link></li>
+              <li key={c.slug}><Link to={`/treatments/${c.slug}`} className="inline-block py-1 hover:text-ivory">{t(c.name)}</Link></li>
             ))}
           </ul>
         </div>
@@ -44,7 +44,7 @@ export default function Footer() {
           <p className="eyebrow !text-gold-light">{t({ en: 'Beauty & Care', zh: '美容养护' })}</p>
           <ul className="mt-4 space-y-2 text-sm">
             {skincare.map((c) => (
-              <li key={c.slug}><Link to={`/treatments/${c.slug}`} className="hover:text-ivory">{t(c.name)}</Link></li>
+              <li key={c.slug}><Link to={`/treatments/${c.slug}`} className="inline-block py-1 hover:text-ivory">{t(c.name)}</Link></li>
             ))}
           </ul>
         </div>
