@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, MessageCircle, Sparkles, MessageCircleQuestion } from 'lucide-react'
 import { useLang } from '../i18n'
@@ -89,11 +89,9 @@ function GalleryDetail({ item }) {
   const copy = item.styles?.[i] ?? item
   return (
     <Reveal as="article" id={item.key} className="scroll-mt-28 grid grid-cols-[minmax(0,1fr)] gap-10 py-12 lg:grid-cols-12 lg:gap-16">
-      <div className={`lg:col-span-5 ${item.imageLeft ? 'lg:order-2' : ''}`}>
+      <div className={`flex flex-col lg:col-span-5 ${item.imageLeft ? 'lg:order-2' : 'lg:order-1'}`}>
         <h3 className="font-display text-3xl font-light sm:text-4xl">{t(item.name)}</h3>
-        {!item.prices?.[i] && <div className="mt-4"><ConsultLink item={item} pkg={i} /></div>}
-        <p className="mt-5 text-lg leading-relaxed text-muted">{t(copy.body)}</p>
-        {item.prices?.[i] && <Price row={item.prices[i]} action={<ConsultLink item={item} pkg={i} />} />}
+                <p className="mt-5 text-lg leading-relaxed text-muted">{t(copy.body)}</p>
         {copy.bullets && (
           <div className="mt-8">
             <h4 className="eyebrow mb-4">{item.styles ? t({ en: 'Style highlights', zh: '款式特点' }) : copy.suited ? t({ en: 'Highlights', zh: '项目特点' }) : t({ en: 'Benefits', zh: '功效' })}</h4>
@@ -110,8 +108,14 @@ function GalleryDetail({ item }) {
             <p className="leading-relaxed">{t(copy.suited)}</p>
           </div>
         )}
+        {/* Price card with the booking button closes the text column (bottom right on desktop). */}
+        <div className="mt-8 lg:mt-auto lg:pt-8 [&_a]:!py-3.5 [&_a]:!text-base">
+          {item.prices?.[i]
+            ? <Price row={item.prices[i]} action={<ConsultLink item={item} pkg={i} />} />
+            : <div className="[&_a]:w-full [&_a]:justify-center"><ConsultLink item={item} pkg={i} /></div>}
+        </div>
       </div>
-      <div className={`lg:col-span-7 ${item.imageLeft ? 'lg:order-1' : ''}`}>
+      <div className={`order-first lg:col-span-7 ${item.imageLeft ? 'lg:order-1' : 'lg:order-2'}`}>
         <PosterGallery images={item.posters} alt={t(item.name)} i={i} setI={setI} />
       </div>
     </Reveal>
@@ -259,7 +263,7 @@ function Detail({ item, index }) {
       {item.outro && (
         <div className="space-y-1 rounded-[2rem] bg-sand px-6 py-8 text-center lg:col-span-12">
           {t(item.outro).map((line, n) => (
-            <p key={n} className={n === 0 ? 'font-display text-xl sm:text-2xl' : n === 1 ? 'pt-3 font-display text-lg tracking-wide' : 'text-sm text-muted'}>{line}</p>
+            <p key={n} className={n === 0 ? 'font-display text-xl sm:text-2xl' : n === 1 ? 'pt-3 font-display text-lg tracking-wide' : 'text-sm text-muted'}>{line.split('\n').map((seg, k) => <Fragment key={k}>{k > 0 && <br className="sm:hidden" />}{seg}</Fragment>)}</p>
           ))}
         </div>
       )}

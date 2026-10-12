@@ -1544,7 +1544,7 @@ const baseCategories = [
             "Professional lashes | Detailed care | Designed around your eye shape"
           ],
           zh: [
-            "精致的睫毛，不只是“接得好”，更要养得好、护得好。",
+            "精致的睫毛，不只是“接得好”，\n更要养得好、护得好。",
             "Nouvelle Anti-aging",
             "专业美睫｜精细护理｜定制你的眼型美学"
           ]

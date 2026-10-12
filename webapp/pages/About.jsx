@@ -80,7 +80,7 @@ const SPACE_GROUPS = [
   { title: { en: 'Reception & lobby', zh: '接待大厅' }, files: ['lounge', 'front-desk-new', 'hallway-new', 'waiting-area', 'hallway-bright', 'waiting-hall'] },
   {
     title: { en: 'Treatment rooms', zh: '诊疗室' },
-    files: ['treatment-room-new', 'treatment-room-purple', 'treatment-room-laser', 'treatment-room-laser-2', 'treatment-room-twin', 'treatment-room-spa', 'brow-room', 'brow-room-2'],
+    files: ['treatment-room-laser-2', 'treatment-room-laser', 'treatment-room-new', 'treatment-room-purple', 'brow-room', 'brow-room-2', 'treatment-room-twin', 'treatment-room-spa'],
   },
 ]
 
@@ -203,7 +203,7 @@ export default function About() {
           <div>
             <p className="eyebrow mb-4">{t({ en: 'Our space', zh: '诊所环境' })}</p>
             <h2 className={`font-display text-3xl font-light leading-tight sm:text-5xl ${lang === 'zh' ? 'md:whitespace-nowrap' : 'max-w-xl'}`}>
-              {t({ en: 'A calm, comfortable place to be cared for.', zh: '安静、舒适，让您放松，备受呵护' })}
+              {t({ en: 'A calm, comfortable place to be cared for.', zh: '安静、舒适，让您备受呵护' })}
             </h2>
             <div className="mt-6 h-px w-16 bg-gold" />
           </div>
