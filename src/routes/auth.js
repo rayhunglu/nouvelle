@@ -36,14 +36,9 @@ function recordFail(ip) {
   else entry.count += 1;
 }
 
-const DEFAULT_CREDS = ADMIN_USER === 'admin' && ADMIN_PASSWORD === 'admin';
-
 function login(req, res, next) {
-  // The built-in admin/admin pair is for local testing only: in production the CRM stays locked until
-  // CRM_ADMIN_USER and CRM_ADMIN_PASSWORD are set.
-  if (DEFAULT_CREDS && process.env.NODE_ENV === 'production') {
-    return res.status(503).json({ error: 'CRM login is disabled until CRM_ADMIN_PASSWORD is configured' });
-  }
+  // TEMPORARY: the built-in admin/admin pair works everywhere again, including production. Set
+  // CRM_ADMIN_USER and CRM_ADMIN_PASSWORD (Vercel > Settings > Environment Variables) to replace it.
   const ip = req.ip;
   if (tooManyFails(ip)) {
     return res.status(429).json({ error: 'Too many attempts. Try again later.' });

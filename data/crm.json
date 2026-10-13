@@ -1,0 +1,402 @@
+{
+  "customers": [
+    {
+      "id": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "name": "示例客户 A",
+      "phone": "(425) 555-0101",
+      "email": "a@example.com",
+      "notes": "偏好下午预约",
+      "tags": [
+        "VIP"
+      ],
+      "createdAt": "2026-08-06T17:00:00.000Z"
+    },
+    {
+      "id": "e3f0a483-0519-4d8b-a61a-46e305a21055",
+      "name": "示例客户 B",
+      "phone": "(425) 555-0102",
+      "email": "b@example.com",
+      "notes": "",
+      "tags": [
+        "新客"
+      ],
+      "createdAt": "2026-09-25T17:00:00.000Z"
+    },
+    {
+      "id": "dab07f3c-5dd6-4289-b1b5-eb8263d15e34",
+      "name": "示例客户 C",
+      "phone": "(206) 555-0103",
+      "email": "",
+      "notes": "对玻尿酸有兴趣",
+      "tags": [],
+      "createdAt": "2026-09-05T17:00:00.000Z"
+    }
+  ],
+  "appointments": [
+    {
+      "id": "9e997da8-aa54-4f1e-ad84-47eaccd40ce0",
+      "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "service": "日式小颜 60 分钟",
+      "start": "2026-10-05T21:00:00.000Z",
+      "durationMin": 60,
+      "status": "completed",
+      "price": 158,
+      "notes": "",
+      "createdAt": "2026-10-03T16:00:00.000Z",
+      "updatedAt": "2026-10-05T20:59:48.815Z",
+      "room": "room1",
+      "staff": "示例员工 A"
+    },
+    {
+      "id": "1f69cb6a-e012-4a95-8336-f25b1715b6e0",
+      "customerId": "e3f0a483-0519-4d8b-a61a-46e305a21055",
+      "service": "Botox 肉毒素",
+      "start": "2026-10-03T18:00:00.000Z",
+      "durationMin": 30,
+      "status": "completed",
+      "price": 300,
+      "notes": "",
+      "createdAt": "2026-10-04T16:00:00.000Z",
+      "updatedAt": "2026-10-06T06:17:01.769Z",
+      "room": "room4",
+      "staff": "示例员工 B"
+    },
+    {
+      "id": "6c870424-5bbb-4aa1-a86e-f6482ee1d6c7",
+      "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "service": "HydraFacial",
+      "start": "2026-09-28T22:00:00.000Z",
+      "durationMin": 60,
+      "status": "completed",
+      "price": 180,
+      "notes": "",
+      "createdAt": "2026-09-26T16:00:00.000Z",
+      "room": "room3",
+      "staff": "示例员工 A"
+    },
+    {
+      "id": "e6e42138-3d3e-4b3f-9935-db0e972f5a41",
+      "customerId": "dab07f3c-5dd6-4289-b1b5-eb8263d15e34",
+      "service": "咨询",
+      "start": "2026-10-08T17:00:00.000Z",
+      "durationMin": 30,
+      "status": "completed",
+      "price": 0,
+      "notes": "",
+      "createdAt": "2026-10-05T16:00:00.000Z",
+      "updatedAt": "2026-10-05T20:59:50.555Z",
+      "room": "room4",
+      "staff": "示例员工 B"
+    },
+    {
+      "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "service": "PRP 生发疗程",
+      "start": "2026-10-06T18:00:00.000Z",
+      "durationMin": 60,
+      "price": 0,
+      "status": "completed",
+      "room": "room1",
+      "staff": "示例员工 A",
+      "notes": "",
+      "id": "faa5f5b4-8df0-4985-a2e4-94fcc5cf1523",
+      "createdAt": "2026-10-06T05:26:17.754Z",
+      "updatedAt": "2026-10-06T06:13:03.456Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "55eade19-8f6c-450c-b2dc-717b4114402c",
+      "name": "咨询",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "212b7e3e-693c-4df6-b5b7-fbdafc7d4cc8",
+      "name": "Botox 肉毒素",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "c8f7163c-7be4-42fb-9dab-9a3be0d2b5c1",
+      "name": "玻尿酸填充",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "cdf0276a-0ca7-411b-aa91-42b009c8d328",
+      "name": "Belkyra 双下巴溶脂",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "8ad106be-1560-4712-a9ff-e7431e314582",
+      "name": "Silhouette InstaLift 童颜线",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "75c61bac-0c78-403c-b912-9539da97bf27",
+      "name": "Thermage 热玛吉",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "bedc8ca0-a847-45c8-801e-c44aa0b5f55d",
+      "name": "Stellar M22 光子嫩肤",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "62ad022f-58d6-4712-9eb4-f4e899d09eeb",
+      "name": "点阵激光",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "7269cbde-baa8-4e5b-83e0-fa676e953921",
+      "name": "Pico 激光",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "5c84cc86-d569-4dc7-a9a1-b67e3efd47a2",
+      "name": "RF 射频微针",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "e1e55bc4-9a27-4e4b-94e7-634fdcaec398",
+      "name": "AviClear 祛痘激光",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "025a223f-c3e7-4b67-9d4e-04356b41fdfb",
+      "name": "HydraFacial",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "eb237d5c-180d-4fe9-81b8-6c522fef3963",
+      "name": "PRP 生发",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "f8c64d86-2918-4b80-ad90-128f57778b96",
+      "name": "NAD+ 静脉注射",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "7ab64584-d8ce-42e2-815a-5df0e49fd025",
+      "name": "高压氧舱 HBOT",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "21e66c57-a4ca-4c50-93ca-ea19b992bd26",
+      "name": "EMSculpt 磁波塑肌",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "de41e701-47ca-4710-b0ba-f7f60e816e9f",
+      "name": "BTL 溶脂刀",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "4e2fc151-4bbc-4063-b02f-7f5a38e14462",
+      "name": "日式小颜 60 分钟",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "8902f768-5016-4676-b8ef-698f72fc2df3",
+      "name": "日式小颜 90 分钟",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "24753c2d-e295-44df-b992-df48b5ea8214",
+      "name": "修丽可清洁补水",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "67ccf0c5-726f-4be2-85cc-6032c400dc83",
+      "name": "修丽可滋润修复",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "98132d95-5d7d-475d-89ba-0c1de96ce482",
+      "name": "中式古法面部刮痧",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "991ee493-49f9-4e23-9038-6106b4338dde",
+      "name": "专业祛痘针清",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "aa9e9dd4-616e-4f27-903a-1f8c413e4ce1",
+      "name": "身体 Spa",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "833f778e-647e-4324-b16d-f1d35ca7777a",
+      "name": "头皮 Spa",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "a7ab694f-3f78-4f64-8b75-01c5058d4481",
+      "name": "睫毛嫁接 · 经典",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "735fbd3f-4ae0-4c3f-83ad-5df8d571f8ef",
+      "name": "睫毛嫁接 · 混合",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "6f945695-88f8-4705-9e1a-669d5acab292",
+      "name": "睫毛嫁接 · 浓密",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "03128a04-6527-40c7-a73f-d51c415b338a",
+      "name": "半永久纹绣",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "id": "d29160f6-e48d-4e76-b9aa-27ba54828196",
+      "name": "产品销售",
+      "createdAt": "2026-10-06T05:31:54.984Z"
+    },
+    {
+      "name": "童颜针",
+      "id": "33b52d28-86be-42a6-a2c7-99e0e696eeca",
+      "createdAt": "2026-10-06T20:48:56.539Z"
+    },
+    {
+      "name": "替西帕肽减肥针",
+      "id": "f9b05010-78b2-48c5-8769-417f064eae5e",
+      "createdAt": "2026-10-06T20:48:56.548Z"
+    },
+    {
+      "name": "定制修眉",
+      "id": "d14ab4a4-fca7-4875-b449-39a4850eac90",
+      "createdAt": "2026-10-06T22:27:33.279Z",
+      "updatedAt": "2026-10-06T22:41:54.146Z"
+    },
+    {
+      "name": "高级感水雾眉",
+      "id": "183a73fc-92c3-4e87-b6de-de72f493eac9",
+      "createdAt": "2026-10-06T22:27:33.288Z"
+    },
+    {
+      "name": "自然款美瞳线",
+      "id": "f946be22-91ff-467d-bcaf-762f061cdf62",
+      "createdAt": "2026-10-06T22:27:33.298Z"
+    },
+    {
+      "name": "无创洗眉",
+      "id": "69e68e41-4b13-4d7d-94eb-2723809ac438",
+      "createdAt": "2026-10-06T22:27:33.306Z"
+    },
+    {
+      "name": "无创洗眼线",
+      "id": "34d1d45c-74ec-4bfa-8d96-4310b5e64f12",
+      "createdAt": "2026-10-06T22:27:33.316Z"
+    },
+    {
+      "name": "个人形象定制妆容",
+      "id": "67382af9-ac76-4331-9c01-d3797e3ead1b",
+      "createdAt": "2026-10-06T22:44:37.300Z"
+    }
+  ],
+  "payments": [
+    {
+      "id": "67543b65-b403-4355-8734-7df69b4ebb2b",
+      "appointmentId": null,
+      "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "datetime": "2026-09-28T19:00:00.000Z",
+      "serviceIds": [],
+      "amount": 180,
+      "tipAmount": 0,
+      "paymentMethod": "credit_card",
+      "staff": "",
+      "referralSource": "",
+      "createdAt": "2026-09-28T19:00:00.000Z"
+    },
+    {
+      "id": "5c2902d9-cdce-47ef-8fef-93bff30d1f16",
+      "appointmentId": null,
+      "customerId": "e3f0a483-0519-4d8b-a61a-46e305a21055",
+      "datetime": "2026-09-15T19:00:00.000Z",
+      "serviceIds": [],
+      "amount": 158,
+      "tipAmount": 0,
+      "paymentMethod": "credit_card",
+      "staff": "",
+      "referralSource": "",
+      "createdAt": "2026-09-15T19:00:00.000Z"
+    },
+    {
+      "appointmentId": "9e997da8-aa54-4f1e-ad84-47eaccd40ce0",
+      "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
+      "datetime": "2026-10-05T21:00:00.000Z",
+      "serviceIds": [
+        "4e2fc151-4bbc-4063-b02f-7f5a38e14462"
+      ],
+      "amount": 158,
+      "tipAmount": 20,
+      "paymentMethod": "credit_card",
+      "referralSource": "",
+      "staff": "示例员工 A",
+      "id": "95c33194-91b1-45e6-930a-8d9e86f8ba67",
+      "createdAt": "2026-10-06T05:32:32.317Z"
+    },
+    {
+      "appointmentId": "1f69cb6a-e012-4a95-8336-f25b1715b6e0",
+      "customerId": "e3f0a483-0519-4d8b-a61a-46e305a21055",
+      "datetime": "2026-10-06T18:00:00.000Z",
+      "serviceIds": [
+        "212b7e3e-693c-4df6-b5b7-fbdafc7d4cc8"
+      ],
+      "amount": 300,
+      "tipAmount": 20,
+      "paymentMethod": "credit_card",
+      "referralSource": "",
+      "staff": "示例员工 B",
+      "id": "f6988441-0639-440f-abff-41bafbea2b03",
+      "createdAt": "2026-10-06T06:16:34.607Z"
+    }
+  ],
+  "messages": [
+    {
+      "name": "Jui-Hung Lu",
+      "phone": "7023218283",
+      "email": "raylu107@gmail.com",
+      "interest": "半永久纹绣 · 定制修眉",
+      "message": "",
+      "package": "",
+      "visitType": "",
+      "price": "",
+      "date": "",
+      "time": "",
+      "id": "8ba14c9c-bf2e-4a43-bd6d-e8e3e12b8007",
+      "createdAt": "2026-10-08T01:05:14.737Z"
+    },
+    {
+      "name": "ray",
+      "phone": "1231231234",
+      "email": "s9509344@gmail.com",
+      "interest": "注射针剂类 · 肉毒杆菌素注射",
+      "message": "測試",
+      "package": "",
+      "visitType": "",
+      "price": "",
+      "date": "",
+      "time": "",
+      "id": "7cf4485e-6c23-4776-9922-92cbfb58baec",
+      "createdAt": "2026-10-08T06:41:28.242Z"
+    },
+    {
+      "name": "ray",
+      "phone": "1231231234",
+      "email": "raylu107@gmail.com",
+      "interest": "护肤项目 · 日式小颜徒手矫正",
+      "message": "【预约】日式小颜·基础矫正 60 分钟 | 到访类型: 初次体验 | 价格: $158 | 日期: 2026-10-08 10:00\nlocal test2",
+      "package": "日式小颜·基础矫正 60 分钟",
+      "visitType": "first",
+      "price": "$158",
+      "date": "2026-10-08",
+      "time": "10:00",
+      "id": "e6833262-6b12-4b66-bf82-0ae586c9ca3e",
+      "createdAt": "2026-10-08T06:45:34.081Z"
+    }
+  ],
+  "applications": []
+}

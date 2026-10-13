@@ -24,5 +24,4 @@ dist-ssr
 *.sw?
 
 # CRM runtime data and secrets
-data/
 .env
