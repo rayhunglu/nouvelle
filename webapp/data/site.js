@@ -566,7 +566,7 @@ const baseCategories = [
     slug: 'microblading',
     group: 'medical',
     icon: 'PenTool',
-    name: { en: 'Microblading', zh: '半永久纹绣' },
+    name: { en: 'Permanent Makeup', zh: '半永久纹绣' },
     short: { en: 'Brows, lash-line liner and non-invasive pigment removal by a certified artist.', zh: '认证纹绣师打造眉形、美瞳线，并提供无创洗眉洗眼线。' },
     intro: {
       en: 'Semi-permanent makeup takes both precise technique and a strong aesthetic eye. Wake up with brows designed for your face.',
@@ -991,7 +991,7 @@ const baseCategories = [
         smallBody: true,
         poster: '/images/treatments/shared/rejuran-care-poster.jpg',
         name: {
-          en: "Swiss Rejuran Firming & Revitalizing Care",
+          en: "Swiss Cellcosmet Revitalizing & Firming Care",
           zh: "瑞士瑞妍生机弹绷护理"
         },
         short: {
@@ -1022,7 +1022,7 @@ const baseCategories = [
         },
         packages: [
           {
-            name: { en: "Rejuran Brightening & Hydration · 60 min", zh: "瑞妍亮白水润 60 分钟" },
+            name: { en: "Cellcosmet Brightening & Hydration · 60 min", zh: "瑞妍亮白水润 60 分钟" },
             price: "$158",
             was: "$188",
             tag: { en: "First-visit offer", zh: "初次体验" },
@@ -1034,7 +1034,7 @@ const baseCategories = [
               en: [
                 "Deep cleanse and gentle exfoliation",
                 "Infusion of revitalizing essence water",
-                "Rejuran-technique neck, shoulder and facial massage",
+                "Cellcosmet-technique neck, shoulder and facial massage",
                 "Brightening and hydrating mask",
                 "Moisturizer and sun protection"
               ],
@@ -1048,7 +1048,7 @@ const baseCategories = [
             }
           },
           {
-            name: { en: "Rejuran V-Face Firming · 90 min", zh: "瑞妍V脸生机弹绷 90 分钟" },
+            name: { en: "Cellcosmet V-Face Firming · 90 min", zh: "瑞妍V脸生机弹绷 90 分钟" },
             price: "$198",
             was: "$248",
             tag: { en: "First-visit offer", zh: "初次体验" },
@@ -1060,7 +1060,7 @@ const baseCategories = [
               en: [
                 "Deep cleanse and gentle exfoliation",
                 "Infusion of revitalizing essence water",
-                "Rejuran-technique lifting and contouring massage",
+                "Cellcosmet-technique lifting and contouring massage",
                 "Brightening and hydrating mask",
                 "Red-carpet skin-renewal mask",
                 "Anti-aging nourishing neck mask",
@@ -1568,7 +1568,7 @@ const baseCategories = [
     slug: 'spa-care',
     group: 'spa',
     icon: 'Flower2',
-    name: { en: 'Body & Head Spa', zh: '身体 · 头皮 Spa' },
+    name: { en: 'Body & Scalp Spa', zh: '身体 · 头皮 Spa' },
     short: { en: 'Full-body renewal and Japanese-style scalp care.', zh: '全身焕新与日式头皮护理。' },
     intro: {
       en: 'Unwind and renew. Our spa treatments pair skin-smoothing care with deep relaxation — from head to toe.',
@@ -1653,7 +1653,7 @@ const baseCategories = [
       {
         id: "head-spa",
         name: {
-          en: "Head Spa",
+          en: "Scalp Spa",
           zh: "头皮 Spa"
         },
         short: {
@@ -1852,7 +1852,7 @@ export const categories = [
 ]
 
 // Display order for the home grid, treatments page and menus (anything not listed follows).
-const ORDER = ['injectables', 'iv-therapy', 'devices', 'skincare-experts', 'lash', 'microblading', 'spa-care']
+const ORDER = ['injectables', 'devices', 'iv-therapy', 'skincare-experts', 'lash', 'microblading', 'spa-care']
 const rank = (c) => (ORDER.includes(c.slug) ? ORDER.indexOf(c.slug) : ORDER.length)
 categories.sort((a, b) => rank(a) - rank(b))
 
@@ -2973,7 +2973,7 @@ for (const k of ['bullets', 'steps', 'facts', 'photo']) delete headSpa[k]
 Object.assign(headSpa, {
   compact: true,
   imageLeft: true,
-  name: { en: 'Japanese Anti-Aging Head Spa', zh: '日式头皮抗衰 SPA' },
+  name: { en: 'Japanese Anti-Aging Scalp Spa', zh: '日式头皮抗衰 SPA' },
   short: { en: 'Japanese scalp cleansing, massage and nourishment', zh: '日式头皮深层净化、按摩与滋养' },
   subtitle: { en: '', zh: 'JAPANESE ANTI-AGING HEAD SPA' },
   image: { ...headPhoto, zh: '/images/treatments/zh/head-spa-warm.jpg' },
@@ -3016,7 +3016,7 @@ Object.assign(headSpa, {
       },
     },
     {
-      name: { en: 'Japanese Scalp · Age-Defying Head Spa · 90 min', zh: '日式头皮 · 御龄深养 SPA 90 分钟' },
+      name: { en: 'Japanese Scalp · Age-Defying Scalp Spa · 90 min', zh: '日式头皮 · 御龄深养 SPA 90 分钟' },
       price: '$158',
       was: '$198',
       tag: { en: 'First-visit offer', zh: '初次体验' },
@@ -3148,7 +3148,7 @@ export const galleryPhotos = [
   { src: '/images/gallery/exterior-dusk.jpg', caption: { en: 'Clinic at dusk', zh: '暮色门面' } },
   { src: '/images/gallery/lounge.jpg', caption: { en: 'Reception lounge', zh: '休息厅' } },
   { src: '/images/gallery/front-desk-new.jpg', caption: { en: 'Front desk', zh: '前台' } },
-  { src: '/images/gallery/hallway-new.jpg', caption: { en: 'Quiet hallway', zh: '走廊' } },
+  { src: '/images/gallery/hallway-new.jpg', caption: { en: 'Hallway', zh: '走廊' } },
   { src: '/images/gallery/waiting-area.jpg', caption: { en: 'Reception waiting area', zh: '接待休息区' } },
   { src: '/images/gallery/hallway-bright.jpg', caption: { en: 'Bright hallway', zh: '明亮走廊' } },
   { src: '/images/gallery/waiting-hall.jpg', caption: { en: 'Waiting hall', zh: '候诊厅' } },
@@ -3167,13 +3167,13 @@ export const galleryPhotos = [
 export const beforeAfterPhotos = [
   { src: '/images/cases/case-01.jpg', to: '/treatments/injectables#injectables-4', service: 'injectables-4', caption: { en: 'Case 01 · Full-face anti-aging & contour lift', zh: 'CASE 01　全脸抗衰 轮廓提升' } },
   { src: '/images/cases/case-02.jpg', to: '/treatments/devices#skin-4', service: 'skin-4', caption: { en: 'Case 02 · Targeted pigment removal & skin renewal', zh: 'CASE 02　精准祛斑 肤色焕新' } },
-  { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', service: 'acne-clearing', caption: { en: 'Case 03 · Acne skin repair', zh: 'CASE 03　痘肌修复 重建健康肌' } },
+  { src: '/images/cases/case-03.jpg', to: '/treatments/skincare-experts#acne-clearing', service: 'acne-clearing', caption: { en: 'Case 03 · Acne-skin repair & healthy skin renewal', zh: 'CASE 03　痘肌修复 重建健康肌' } },
   { src: '/images/cases/case-04.jpg', to: '/treatments/devices#skin-1', service: 'skin-1', caption: { en: 'Case 04 · Thermage FLX skin tightening', zh: 'CASE 04　第五代热玛吉 紧肤抗衰' } },
-  { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', service: 'japanese-face-correction', caption: { en: 'Case 05 · Japanese face sculpting', zh: 'CASE 05　日式小颜 面部线条管理' } },
-  { src: '/images/cases/case-06.jpg', to: '/treatments/injectables#injectables-2', service: 'injectables-2', caption: { en: 'Case 06 · Hyaluronic acid contouring', zh: 'CASE 06　玻尿酸微调 精致轮廓' } },
-  { src: '/images/cases/case-07.jpg', to: '/treatments/lash', service: 'classic-lashes', caption: { en: 'Case 07 · Custom lash design', zh: 'CASE 07　专属美睫 放大双眸' } },
-  { src: '/images/cases/case-08.jpg', to: '/treatments', caption: { en: 'Case 08 · Comprehensive anti-aging', zh: 'CASE 08　综合抗衰 全面年轻化' } },
-  { src: '/images/cases/case-09.jpg', to: '/treatments/microblading#ombre-brows', service: 'ombre-brows', caption: { en: 'Case 09 · Natural powder brow', zh: 'CASE 09　高级水雾眉 定制自然眉形' } },
+  { src: '/images/cases/case-05.jpg', to: '/treatments/skincare-experts#japanese-face-correction', service: 'japanese-face-correction', caption: { en: 'Case 05 · Japanese face slimming & facial line management', zh: 'CASE 05　日式小颜 面部线条管理' } },
+  { src: '/images/cases/case-06.jpg', to: '/treatments/injectables#injectables-2', service: 'injectables-2', caption: { en: 'Case 06 · Hyaluronic acid fine-tuning for a refined contour', zh: 'CASE 06　玻尿酸微调 精致轮廓' } },
+  { src: '/images/cases/case-07.jpg', to: '/treatments/lash', service: 'classic-lashes', caption: { en: 'Case 07 · Custom lashes that open up the eyes', zh: 'CASE 07　专属美睫 放大双眸' } },
+  { src: '/images/cases/case-08.jpg', to: '/treatments', caption: { en: 'Case 08 · Comprehensive anti-aging & overall rejuvenation', zh: 'CASE 08　综合抗衰 全面年轻化' } },
+  { src: '/images/cases/case-09.jpg', to: '/treatments/microblading#ombre-brows', service: 'ombre-brows', caption: { en: 'Case 09 · Premium misty brows, custom natural shape', zh: 'CASE 09　高级水雾眉 定制自然眉形' } },
 ]
 
 // Medical treatments regrouped by what they do for the client (the categories above group them by method).

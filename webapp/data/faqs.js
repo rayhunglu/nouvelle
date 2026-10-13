@@ -233,7 +233,9 @@ const bookingAnswer = L(
 function autoItems(item, hasHand) {
   const out = []
   if (!hasHand && item.body) {
-    out.push({ q: L(`What is ${item.name.en}?`, `什么是${item.name.zh}？`), a: item.body })
+    // Plural names (lashes, shots, fills, brows) take "are".
+    const verb = /(Lashes|Shots|Fills|Brows)$/.test(item.name.en) ? 'are' : 'is'
+    out.push({ q: L(`What ${verb} ${item.name.en}?`, `什么是${item.name.zh}？`), a: item.body })
   }
   if (item.bullets) {
     out.push({

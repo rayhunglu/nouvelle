@@ -399,10 +399,10 @@ export default function Category() {
   // Spa is the last treatment page, so its "next" leads on to the Products section instead of wrapping round.
   const nextCat = categories[(idx + 1) % categories.length]
   const next = cat.slug === 'spa-care' ? { to: '/shop', name: ui.nav.shop } : { to: `/treatments/${nextCat.slug}`, name: nextCat.name }
-  // Pages that also link back to the previous section: skincare to the medical devices page, devices to IV therapy, lashes to skincare, brows to lashes, spa to brows.
+  // Pages that also link back to the previous section: IV drips to devices, skincare to the last medical page, lashes to skincare, brows to lashes, spa to brows.
   const PREV = {
-    'skincare-experts': { to: '/treatments/devices', name: { en: 'Medical Treatments', zh: '医美项目' } },
-    devices: { to: '/treatments/iv-therapy', name: categories.find((c) => c.slug === 'iv-therapy')?.name },
+    'iv-therapy': { to: '/treatments/devices', name: categories.find((c) => c.slug === 'devices')?.name },
+    'skincare-experts': { to: '/treatments/iv-therapy', name: { en: 'Medical Treatments', zh: '医美项目' } },
     lash: { to: '/treatments/skincare-experts', name: categories.find((c) => c.slug === 'skincare-experts')?.name },
     microblading: { to: '/treatments/lash', name: categories.find((c) => c.slug === 'lash')?.name },
     'spa-care': { to: '/treatments/microblading', name: categories.find((c) => c.slug === 'microblading')?.name },

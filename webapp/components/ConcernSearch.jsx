@@ -12,7 +12,7 @@ const face = [
   { zh: '眼袋', en: 'Eye bags', to: '/treatments/injectables#injectables-2', dot: [45.0, 40.5], label: [22, 33.2], side: 'l' },
   { zh: '泪沟', en: 'Tear troughs', to: '/treatments/injectables#injectables-2', dot: [41.0, 42.0], label: [22, 41.6], side: 'l' },
   { zh: '苹果肌', en: 'Cheeks', to: '/treatments/injectables#injectables-2', dot: [39, 43.5], label: [22, 50.0], side: 'l' },
-  { zh: '全脸松弛', en: 'Skin laxity', to: '/treatments/injectables#injectables-5', dot: [40.5, 59.5], label: [22, 83.6], side: 'l' },
+  { zh: '全脸松弛', en: 'Facial laxity', to: '/treatments/injectables#injectables-5', dot: [40.5, 59.5], label: [22, 83.6], side: 'l' },
   { zh: '下巴', en: 'Chin', to: '/treatments/injectables#injectables-4', dot: [54.3, 65.0], label: [78, 91.0] },
   { zh: '毛孔', en: 'Pores', to: '/treatments/skincare-experts', dot: [44, 47], label: [22, 58.4], side: 'l' },
   { zh: '痘印', en: 'Acne marks', to: '/treatments/skincare-experts#acne-clearing', dot: [40, 53], label: [22, 66.8], side: 'l' },
@@ -25,8 +25,8 @@ const face = [
   { zh: '鼻基底', en: 'Nose base', to: '/treatments/injectables#injectables-2', dot: [49.5, 47.5], label: [22, 75.2], side: 'l' },
   { zh: '痘痘', en: 'Acne', to: '/treatments/skincare-experts#acne-clearing', dot: [68.0, 50.0], label: [78, 65.5] },
   { zh: '唇部', en: 'Lips', to: '/treatments/injectables#injectables-2', dot: [53.5, 56.0], label: [22, 92.0], side: 'l' },
-  { zh: '肤质・美白', en: 'Brightening', to: '/treatments/skincare-experts', dot: [67.0, 57.0], label: [78, 74.0] },
-  { zh: '小脸・轮廓', en: 'Face contour', to: '/treatments/skincare-experts#japanese-face-correction', dot: [63.5, 62.0], label: [78, 82.5] },
+  { zh: '肤质・美白', en: 'Skin brightening', to: '/treatments/skincare-experts', dot: [67.0, 57.0], label: [78, 74.0] },
+  { zh: '小脸・轮廓', en: 'Face slimming', to: '/treatments/skincare-experts#japanese-face-correction', dot: [63.5, 62.0], label: [78, 82.5] },
 ]
 const body = [
   { zh: '颈部', en: 'Neck', to: '/treatments/injectables#injectables-1', dot: [45.7, 19.5], label: [22, 18.5], side: 'l' },
@@ -34,10 +34,10 @@ const body = [
   { zh: '腹部', en: 'Abdomen', to: '/treatments/injectables#body-3', dot: [47.3, 40.0], label: [22, 40.0], side: 'l' },
   { zh: '肩膀', en: 'Shoulders', to: '/treatments/injectables#body-3', dot: [57.1, 19.0], label: [78, 19.0] },
   { zh: '小腿', en: 'Calves', to: '/treatments/injectables#body-3', dot: [47.3, 78.0], label: [22, 78.0], side: 'l' },
-  { zh: '全身抗衰', en: 'Anti-aging', to: '/treatments/injectables#hormone-stem-cell-1', dot: [59.5, 25.5], label: [78, 27.5] },
-  { zh: '体重管理', en: 'Weight', to: '/treatments/injectables#tirzepatide', dot: [58.9, 40.0], label: [78, 40.0] },
-  { zh: '全身紧致', en: 'Firming', to: '/treatments/injectables#hormone-stem-cell-1', dot: [59.8, 50.0], label: [78, 50.0] },
-  { zh: '全身美白', en: 'Whitening', to: '/treatments/skincare-experts#rejuran-brightening', dot: [42.5, 53.5], label: [22, 55.0], side: 'l' },
+  { zh: '全身抗衰', en: 'Body anti-aging', to: '/treatments/injectables#hormone-stem-cell-1', dot: [59.5, 25.5], label: [78, 27.5] },
+  { zh: '体重管理', en: 'Weight control', to: '/treatments/injectables#tirzepatide', dot: [58.9, 40.0], label: [78, 40.0] },
+  { zh: '全身紧致', en: 'Body firming', to: '/treatments/injectables#hormone-stem-cell-1', dot: [59.8, 50.0], label: [78, 50.0] },
+  { zh: '全身美白', en: 'Body brightening', to: '/treatments/skincare-experts#rejuran-brightening', dot: [42.5, 53.5], label: [22, 55.0], side: 'l' },
   { zh: '大腿', en: 'Thighs', to: '/treatments/injectables#body-3', dot: [53.6, 56.0], label: [78, 58.5] },
 ]
 

@@ -4,8 +4,8 @@ import { categories } from '../data/site'
 import Reveal from './Reveal'
 
 const RECOMMENDED = [
-  { key: 'japanese-face-correction', title: { en: 'Japanese Face Sculpting', zh: '日式小颜' }, tag: { en: 'Artisan hands, an effortless line', zh: '匠心手技，线条自然流畅' } },
-  { key: 'acne-clearing', title: { en: 'Acne Clearing Facial', zh: '祛痘微针' }, tag: { en: 'Clear, calm, renewed skin', zh: '清透净澈，重塑健康肌' } },
+  { key: 'japanese-face-correction', title: { en: 'Japanese Face Slimming', zh: '日式小颜' }, tag: { en: 'Artisan hands, an effortless line', zh: '匠心手技，线条自然流畅' } },
+  { key: 'acne-clearing', title: { en: 'Acne-Clearing Microneedling', zh: '祛痘微针' }, tag: { en: 'Clear and pure, rebuilding healthy skin', zh: '清透净澈，重塑健康肌' } },
   { key: 'classic-lashes', title: { en: 'Signature Lashes', zh: '专属美睫' }, tag: { en: 'Designed for your eyes alone', zh: '因眼而设，自然动人' } },
   { key: 'skin-1', image: '/images/treatments/shared/eye-area-injection-closeup.jpg', title: { en: 'Thermage 5th Generation', zh: '第五代热玛吉' }, tag: { en: 'Deep firming, a sculpted youthful contour', zh: '深层紧致，雕琢年轻轮廓' } },
 ]

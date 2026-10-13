@@ -184,7 +184,7 @@ export default function About() {
         <Reveal className="max-w-2xl">
           <p className="eyebrow mb-4">{t({ en: 'Our team', zh: '专业团队' })}</p>
           <h2 className="font-display text-3xl font-light leading-tight sm:text-5xl">
-            {t({ en: 'The people behind your care.', zh: '医学美容专家团队' })}
+            {t({ en: 'Our medical aesthetics expert team.', zh: '医学美容专家团队' })}
           </h2>
             <div className="mt-6 h-px w-16 bg-gold" />
         </Reveal>

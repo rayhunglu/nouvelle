@@ -5,7 +5,7 @@ export const brands = [
     slug: 'cellcosmet',
     groupByLine: true,
     short: { en: 'Swiss cellular skincare', zh: '瑞士细胞活肤护肤' },
-    name: { en: 'Cellcosmet (瑞妍)', zh: '瑞妍 Cellcosmet' },
+    name: { en: 'Cellcosmet', zh: '瑞妍 Cellcosmet' },
     tagline: { en: 'Swiss cellular skincare', zh: '瑞士细胞活肤护肤' },
     intro: {
       en: 'Cellcosmet is a Swiss premium skincare brand developed in a biological research laboratory with biologists, pathologists and dermatologists. Its formulas are built around stabilised cellular extracts, aimed at revitalising mature skin, boosting hydration and supporting firmness.',
@@ -448,7 +448,7 @@ export const brands = [
     slug: 'skinceuticals',
     groupByLine: true,
     short: { en: 'Medical-grade skincare', zh: '医学级护肤' },
-    name: { en: 'SkinCeuticals (修丽可)', zh: '修丽可 SkinCeuticals' },
+    name: { en: 'SkinCeuticals', zh: '修丽可 SkinCeuticals' },
     tagline: { en: 'Medical-grade skincare', zh: '医学级护肤' },
     intro: {
       en: 'SkinCeuticals is a professional skincare brand known for science-led, antioxidant-rich formulas. Its philosophy is simple: Prevent, Correct, Protect — and it is the same line we use in our SkinCeuticals facials.',
@@ -995,7 +995,7 @@ export const brands = [
     slug: 'virtue',
     groupByLine: true,
     short: { en: 'Alpha Keratin hair care', zh: 'Alpha Keratin 护发' },
-    name: { en: 'Virtue (维特)', zh: '维特 Virtue' },
+    name: { en: 'Virtue', zh: '维特 Virtue' },
     tagline: { en: 'Alpha Keratin hair care', zh: 'Alpha Keratin 专业护发' },
     intro: {
       en: 'Virtue Labs is a professional hair-care brand built around Alpha Keratin 60ku®, its signature ingredient across the range. Products are organised by hair need — Recovery, Flourish, Full, Smooth, Curl, Scalp and more — from cleansing to treatments and styling.',
@@ -1393,7 +1393,7 @@ export const brands = [
     slug: 'milbon',
     groupByLine: true,
     short: { en: 'Japanese scalp care', zh: '日本头皮护理' },
-    name: { en: 'Milbon (玫丽盼)', zh: '玫丽盼 Milbon' },
+    name: { en: 'Milbon', zh: '玫丽盼 Milbon' },
     tagline: { en: 'Japanese professional scalp care', zh: '日本专业头皮护理' },
     intro: {
       en: 'Milbon is a Japanese professional hair-care company. Its hair-care range covers shampoos, conditioners and treatments by need — scalp care, repair, moisture, smoothing, volume, colour care and more — plus professional salon treatments.',
@@ -1700,7 +1700,7 @@ export const brands = [
     slug: 'olaplex',
     groupByLine: true,
     short: { en: 'Bond-building hair care', zh: '键合修护护发' },
-    name: { en: 'Olaplex (欧拉裴)', zh: '欧拉裴 Olaplex' },
+    name: { en: 'Olaplex', zh: '欧拉裴 Olaplex' },
     tagline: { en: 'Bond-building shampoo & conditioner', zh: '键合修护洗护系列' },
     intro: {
       en: 'Olaplex is a bond-building hair-care brand known for its numbered range. The range covers shampoos and conditioners for every hair need, treatments and masks, styling and finishing products, and value sets.',
@@ -2078,7 +2078,7 @@ export const brands = [
     slug: 'moroccanoil',
     groupByLine: true,
     short: { en: 'Argan oil hair care', zh: '摩洛哥坚果油护发' },
-    name: { en: 'Moroccanoil (摩洛哥油)', zh: '摩洛哥油 Moroccanoil' },
+    name: { en: 'Moroccanoil', zh: '摩洛哥油 Moroccanoil' },
     tagline: { en: 'Argan oil hair care, wash to finish', zh: '摩洛哥坚果油护发，从清洁到造型' },
     intro: {
       en: 'Moroccanoil is a professional hair-care brand built on argan oil, best known for its signature Moroccanoil Treatment. The hair range covers treatments, shampoos and conditioners, masks and styling, organised by hair need — hydration, repair, smoothing, volume, colour care, curl and more.',

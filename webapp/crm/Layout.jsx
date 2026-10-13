@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { CalendarDays, ExternalLink, LayoutDashboard, Loader2, LogOut, Users, Wallet } from 'lucide-react'
 import { useAuth } from '../auth'
@@ -13,6 +14,11 @@ const nav = [
 export default function CrmLayout() {
   const { user, logout } = useAuth()
   const location = useLocation()
+
+  // The CRM scrolls normally: clear any scroll lock left behind by a menu or dialog on the previous page.
+  useEffect(() => {
+    document.body.style.overflow = ''
+  }, [])
 
   if (user === undefined) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-gold" /></div>

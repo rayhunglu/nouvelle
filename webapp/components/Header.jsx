@@ -127,10 +127,12 @@ export default function Header() {
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
+    // Leaving the site (e.g. the Login link inside the open menu) unmounts the header: always unlock scrolling.
+    return () => { document.body.style.overflow = '' }
   }, [open])
 
   const linkCls = ({ isActive }) =>
-    `text-sm transition hover:text-gold ${isActive ? 'text-ink font-medium' : 'text-muted'}`
+    `text-[0.8125rem] 2xl:text-sm transition hover:text-gold ${isActive ? 'text-ink font-medium' : 'text-muted'}`
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white text-ink shadow-[0_1px_0_rgba(43,36,32,0.08)]">
@@ -139,7 +141,7 @@ export default function Header() {
           <img src="/images/logo.jpg" alt="Nouvelle Anti-Aging" className="h-9 w-auto sm:h-11" />
         </Link>
 
-        <nav className="hidden items-center gap-6 2xl:gap-8 lg:flex">
+        <nav className="hidden items-center gap-4 xl:gap-5 2xl:gap-8 lg:flex">
           <NavLink to="/about" className={linkCls}>{t(ui.nav.about)}</NavLink>
           <ServiceDropdown label={t(ui.nav.medical)} items={medicalItems} linkCls={linkCls} to="/treatments" allTo="/treatments" />
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />
@@ -147,7 +149,7 @@ export default function Header() {
           <NavLink to="/treatments/microblading" className={linkCls}>{t(ui.nav.brow)}</NavLink>
           <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
           <NavLink to="/gallery" className={linkCls}>{t(ui.nav.gallery)}</NavLink>
-          <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} to="/shop" allTo="/shop" allLabel={{ en: 'Select brands', zh: '精选品牌 · 品质生活' }} />
+          <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} to="/shop" allTo="/shop" allLabel={{ en: 'Select Brands · Quality Living', zh: '精选品牌 · 品质生活' }} />
           <NavLink to="/faq" className={linkCls}>{t(ui.nav.faq)}</NavLink>
           <NavLink to="/contact" className={linkCls}>{t(ui.nav.contact)}</NavLink>
         </nav>
@@ -182,7 +184,7 @@ export default function Header() {
             {[['/gallery', ui.nav.gallery]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
-            <MobileGroup label={t(ui.nav.shop)} items={shopItems} homeTo="/shop" homeLabel={t({ en: 'Select brands', zh: '精选品牌 · 品质生活' })} />
+            <MobileGroup label={t(ui.nav.shop)} items={shopItems} homeTo="/shop" homeLabel={t({ en: 'Select Brands · Quality Living', zh: '精选品牌 · 品质生活' })} />
             {[['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
