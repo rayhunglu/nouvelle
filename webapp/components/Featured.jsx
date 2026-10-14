@@ -18,9 +18,9 @@ const BANNERS = {
 }
 // Card title, tagline and blurb are home-page wording; the image and link come from the treatment.
 const SIGNATURE = [
-  { key: 'injectables-2', image: '/images/treatments/shared/lip-filler-closeup.jpg', title: { en: 'Hyaluronic Acid Filler', zh: '玻尿酸注射填充' }, tag: { en: 'Sculpted · Natural · Harmonious', zh: '雕琢 · 自然 · 和谐' }, blurb: { en: 'Refined work built on your own proportions — soft, dimensional, unmistakably you.', zh: '以面部比例为蓝本的精细设计，立体而柔和，美得自然。' } },
-  { key: 'skin-1', image: '/images/treatments/shared/eye-area-injection-closeup.jpg', title: { en: 'Wrinkle Smoothing & Skin Tightening', zh: '除皱紧致提升' }, tag: { en: 'Firm · Smooth · Youthful', zh: '紧致 · 抚纹 · 年轻态' }, blurb: { en: 'A tailored plan to smooth and firm, restoring a composed, full and youthful presence.', zh: '为肌肤状态量身定制的抚纹紧致方案，重现从容饱满的年轻神采。' } },
-  { key: 'skin-3', image: '/images/treatments/shared/laser-skin-treatment.jpg', title: { en: 'Targeted Pigment Removal & Skin Renewal', zh: '精准祛斑焕肤' }, tag: { en: 'Even · Clear · Luminous', zh: '匀净 · 澄澈 · 透亮' }, blurb: { en: 'Precise light-based care fades spots and evens tone, restoring a clear, refined glow.', zh: '以精准光电淡化色斑、均匀肤色，还原澄澈细腻的光泽。' } },
+  { key: 'injectables-2', image: { zh: '/images/treatments/shared/lip-filler-closeup.jpg', en: '/images/treatments/shared/lip-filler-clinic.jpg' }, title: { en: 'Hyaluronic Acid Filler', zh: '玻尿酸注射填充' }, tag: { en: 'Sculpted · Natural · Harmonious', zh: '雕琢 · 自然 · 和谐' }, blurb: { en: 'Refined work built on your own proportions — soft, dimensional, unmistakably you.', zh: '以面部比例为蓝本的精细设计，立体而柔和，美得自然。' } },
+  { key: 'skin-1', image: { zh: '/images/treatments/shared/eye-area-injection-closeup.jpg', en: '/images/treatments/shared/eye-area-injection-clinic.jpg' }, title: { en: 'Wrinkle Smoothing & Skin Tightening', zh: '除皱紧致提升' }, tag: { en: 'Firm · Smooth · Youthful', zh: '紧致 · 抚纹 · 年轻态' }, blurb: { en: 'A tailored plan to smooth and firm, restoring a composed, full and youthful presence.', zh: '为肌肤状态量身定制的抚纹紧致方案，重现从容饱满的年轻神采。' } },
+  { key: 'skin-3', image: { zh: '/images/treatments/shared/laser-skin-treatment.jpg', en: '/images/treatments/shared/laser-skin-clinic.jpg' }, title: { en: 'Targeted Pigment Removal & Skin Renewal', zh: '精准祛斑焕肤' }, tag: { en: 'Even · Clear · Luminous', zh: '匀净 · 澄澈 · 透亮' }, blurb: { en: 'Precise light-based care fades spots and evens tone, restoring a clear, refined glow.', zh: '以精准光电淡化色斑、均匀肤色，还原澄澈细腻的光泽。' } },
 ]
 
 const find = (key) => {
@@ -72,7 +72,7 @@ export default function Featured() {
               <Link to={to} className="group block h-full overflow-hidden rounded-2xl bg-ivory shadow-sm ring-1 ring-ink/5 transition hover:shadow-md">
                 <div className="overflow-hidden">
                   <img
-                    src={image || t(item.image)}
+                    src={(image && (typeof image === 'string' ? image : t(image))) || t(item.image)}
                     alt=""
                     loading="lazy"
                     className="aspect-[4/3] w-full object-cover transition duration-700 group-hover:scale-105"

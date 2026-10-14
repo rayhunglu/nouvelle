@@ -15,16 +15,41 @@ function lastVisitOf(customerId, appointments, payments) {
 const fmtLast = (iso) => (iso ? fmtDateTime(iso) : '尚未到访')
 
 function CustomerForm({ customer, onClose }) {
-  const { save, appointments, payments } = useCrm()
+  const { save, appointments, payments, serviceById } = useCrm()
   const [f, setF] = useState({
-    name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '',
-    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '',
+    name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
+    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', member: !!customer?.member,
   })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   const history = customer ? appointments.filter((a) => a.customerId === customer.id).sort((a, b) => b.start.localeCompare(a.start)) : []
+  // Services this customer has received, grouped by name: completed appointments plus walk-in charges (payments not
+  // tied to an appointment). What was paid counts toward each service; a charge covering several services is split evenly.
+  const served = (() => {
+    if (!customer) return []
+    const mine = payments.filter((p) => p.customerId === customer.id)
+    const paidFor = (appointmentId) => mine.filter((p) => p.appointmentId === appointmentId).reduce((t, p) => t + p.amount + (p.tipAmount || 0), 0)
+    const done = history.filter((a) => a.status === 'completed')
+    const doneIds = new Set(done.map((a) => a.id))
+    const rows = done.map((a) => ({ service: a.service, when: a.start, paid: paidFor(a.id), staff: a.staff }))
+    for (const p of mine.filter((p) => !p.appointmentId || !doneIds.has(p.appointmentId))) {
+      const names = p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean)
+      if (p.appointmentId && !names.length) continue
+      const list = names.length ? names : ['消费']
+      for (const n of list) rows.push({ service: n, when: p.datetime, paid: (p.amount + (p.tipAmount || 0)) / list.length, staff: p.staff })
+    }
+    const m = {}
+    for (const r of rows) {
+      const e = m[r.service] || (m[r.service] = { service: r.service, count: 0, last: r.when, paid: 0, staff: new Set() })
+      e.count += 1
+      e.paid += r.paid
+      if (r.staff) e.staff.add(r.staff)
+      if (r.when > e.last) e.last = r.when
+    }
+    return Object.values(m).sort((x, y) => y.last.localeCompare(x.last))
+  })()
   const lastVisit = customer ? lastVisitOf(customer.id, appointments, payments) : null
   const spent = customer ? payments.filter((p) => p.customerId === customer.id).reduce((s, p) => s + p.amount, 0) : 0
 
@@ -44,12 +69,14 @@ function CustomerForm({ customer, onClose }) {
   return (
     <Modal title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer}>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="姓名 *"><input className={inputCls} value={f.name} onChange={set('name')} required autoFocus /></Field>
+        <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="电话"><input className={inputCls} value={f.phone} onChange={set('phone')} type="tel" /></Field>
-          <Field label="微信号"><input className={inputCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" /></Field>
+          <Field label="微信名"><input className={inputCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" /></Field>
+          <Field label="微信号"><input className={inputCls} value={f.wechatNo} onChange={set('wechatNo')} autoComplete="off" /></Field>
         </div>
         <Field label="邮箱"><input className={inputCls} value={f.email} onChange={set('email')} type="email" /></Field>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.member} onChange={(e) => setF({ ...f, member: e.target.checked })} className="h-4 w-4 accent-gold" />会员（预约时自动按会员价）</label>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
@@ -61,6 +88,17 @@ function CustomerForm({ customer, onClose }) {
 
       {customer && (
         <div className="mt-8 border-t border-ink/10 pt-5">
+          <h3 className="mb-3 text-sm font-medium">服务过的项目（{served.length}）</h3>
+          {served.length === 0 ? <p className="mb-6 text-sm text-muted">暂无服务记录（预约标记为「已完成」或有收费记录后会出现在这里）</p> : (
+            <ul className="mb-6 divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
+              {served.map((e) => (
+                <li key={e.service} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <div className="min-w-0"><p className="truncate font-medium">{e.service}</p>{e.staff.size > 0 && <p className="truncate text-xs text-muted">服务人员 {[...e.staff].join('、')}</p>}</div>
+                  <p className="shrink-0 text-right text-xs text-muted">{e.count} 次 · 最近 {fmtDateTime(e.last)}{e.paid > 0 && <> · 收费 <b className="text-ink">{money(e.paid)}</b></>}</p>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-sm font-medium">预约记录（{history.length}）</h3>
             <p className="text-sm text-muted">上次到访 <b className="text-ink">{fmtLast(lastVisit)}</b> · 累计 <b className="text-ink">{money(spent)}</b></p>
@@ -90,7 +128,7 @@ export default function Customers() {
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return customers
-      .filter((c) => !needle || `${c.name} ${c.phone} ${c.email} ${c.wechatId || ''} ${(c.tags || []).join(' ')}`.toLowerCase().includes(needle))
+      .filter((c) => !needle || `${c.name} ${c.phone} ${c.email} ${c.wechatId || ''} ${c.wechatNo || ''} ${(c.tags || []).join(' ')}`.toLowerCase().includes(needle))
       .sort((a, b) => a.name.localeCompare(b.name, 'zh'))
   }, [customers, q])
 
@@ -128,10 +166,10 @@ export default function Customers() {
                   <button onClick={() => setEditing(c)} className="flex min-w-0 flex-1 basis-56 items-center gap-4 text-left">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand font-display text-lg text-gold">{c.name.slice(0, 1)}</span>
                     <span className="min-w-0">
-                      <span className="block truncate font-medium">{c.name}</span>
+                      <span className="flex items-center gap-2 truncate font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}</span>
                       <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted">
                         {c.phone && <span className="flex items-center gap-1"><Phone size={12} />{c.phone}</span>}
-                        {c.wechatId && <span className="flex items-center gap-1"><MessageCircle size={12} />{c.wechatId}</span>}
+                        {(c.wechatId || c.wechatNo) && <span className="flex items-center gap-1"><MessageCircle size={12} />{[c.wechatId, c.wechatNo].filter(Boolean).join(' · ')}</span>}
                         {c.email && <span className="flex items-center gap-1"><Mail size={12} />{c.email}</span>}
                       </span>
                     </span>

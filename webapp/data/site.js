@@ -1111,7 +1111,7 @@ const baseCategories = [
         },
         packages: [
           {
-            name: { en: "Traditional Jade Glow · Meridian Revival · 60 min", zh: "古法玉颜·经络焕活 60 分钟" },
+            name: { en: "Traditional Gua Sha · Meridian Revival · 60 min", zh: "古法刮痧·经络焕活 60 分钟" },
             price: "$158",
             was: "$188",
             tag: { en: "First-visit offer", zh: "初次体验" },
@@ -1141,7 +1141,7 @@ const baseCategories = [
             }
           },
           {
-            name: { en: "Traditional Jade Glow · Face & Neck Deep Revival · 90 min", zh: "古法玉颜·面颈焕活 90 分钟" },
+            name: { en: "Traditional Gua Sha · Face & Neck Deep Revival · 90 min", zh: "古法刮痧·面颈焕活 90 分钟" },
             price: "$198",
             was: "$248",
             tag: { en: "First-visit offer", zh: "初次体验" },
@@ -1872,16 +1872,16 @@ const TREATMENT_PHOTOS = {
   'wellness-2': { zh: '/images/treatments/shared/wellness-2.jpg', en: '/images/treatments/shared/wellness-2.jpg' },
   'hormone-stem-cell-1': { zh: '/images/treatments/shared/hormone-stem-cell-1.jpg', en: '/images/treatments/shared/hormone-stem-cell-1.jpg' },
   'tirzepatide': { zh: '/images/treatments/shared/tirzepatide.jpg', en: '/images/treatments/shared/tirzepatide.jpg' },
-  'iv-therapy-1': { zh: '/images/treatments/shared/iv-therapy-1.jpg', en: '/images/treatments/shared/iv-therapy-1.jpg' },
-  'iv-therapy-2': { zh: '/images/treatments/shared/iv-therapy-2.jpg', en: '/images/treatments/shared/iv-therapy-2.jpg' },
-  'hormone-stem-cell-2': { zh: '/images/treatments/zh/hormone-stem-cell-2.jpg', en: '/images/treatments/en/hormone-stem-cell-2.jpg' },
-  'skin-1': { zh: '/images/treatments/zh/skin-1.jpg', en: '/images/treatments/en/skin-1.jpg' },
-  'skin-3': { zh: '/images/treatments/zh/skin-3.jpg', en: '/images/treatments/en/skin-3.jpg' },
-  'skin-4': { zh: '/images/treatments/zh/skin-4.jpg', en: '/images/treatments/en/skin-4.jpg' },
-  'skin-5': { zh: '/images/treatments/zh/skin-5.jpg', en: '/images/treatments/en/skin-5.jpg' },
+  'iv-therapy-1': { zh: '/images/treatments/shared/iv-therapy-1.jpg', en: '/images/treatments/en/nad-iv.jpg' },
+  'iv-therapy-2': { zh: '/images/treatments/shared/iv-therapy-2.jpg', en: '/images/treatments/en/brightening-iv.jpg' },
+  'hormone-stem-cell-2': { zh: '/images/treatments/zh/hormone-stem-cell-2.jpg', en: '/images/treatments/en/vitality-iv.jpg' },
+  'skin-1': { zh: '/images/treatments/zh/skin-1.jpg', en: '/images/treatments/en/thermage-flx.jpg' },
+  'skin-3': { zh: '/images/treatments/zh/skin-3.jpg', en: '/images/treatments/en/stellar-m22.jpg' },
+  'skin-4': { zh: '/images/treatments/zh/skin-4.jpg', en: '/images/treatments/en/discovery-pico.jpg' },
+  'skin-5': { zh: '/images/treatments/zh/skin-5.jpg', en: '/images/treatments/en/co2-fractional.jpg' },
   'skin-6': { zh: '/images/treatments/zh/skin-6.jpg', en: '/images/treatments/en/skin-6.jpg' },
-  'skin-7': { zh: '/images/treatments/zh/skin-7.jpg', en: '/images/treatments/en/skin-7.jpg' },
-  'skin-8': { zh: '/images/treatments/shared/skin-8.jpg', en: '/images/treatments/shared/skin-8.jpg' },
+  'skin-7': { zh: '/images/treatments/zh/skin-7.jpg', en: '/images/treatments/en/legend-microneedling.jpg' },
+  'skin-8': { zh: '/images/treatments/shared/skin-8.jpg', en: '/images/treatments/en/viveve.jpg' },
   'skin-9': { zh: '/images/treatments/zh/skin-9.jpg', en: '/images/treatments/en/skin-9.jpg' },
   'skin-10': { zh: '/images/treatments/zh/skin-10.jpg', en: '/images/treatments/en/skin-10.jpg' },
   'hair-1': { zh: '/images/treatments/zh/hair-1.jpg', en: '/images/treatments/en/hair-1.jpg' },
@@ -1898,7 +1898,7 @@ const TREATMENT_PHOTOS = {
   'body-spa': { zh: '/images/treatments/shared/body-spa.jpg', en: '/images/treatments/shared/body-spa.jpg' },
   'head-spa': { zh: '/images/treatments/zh/head-spa.jpg', en: '/images/treatments/en/head-spa.jpg' },
   'microblading-cover': { zh: '/images/treatments/zh/microblading-cover.jpg', en: '/images/treatments/en/microblading-cover.jpg' },
-  'wellness-1': { zh: '/images/treatments/zh/oxyair.jpg', en: '/images/treatments/zh/oxyair.jpg' },
+  'wellness-1': { zh: '/images/treatments/zh/oxyair.jpg', en: '/images/treatments/en/oxyair.jpg' },
 }
 
 // Photos are { zh, en } pairs: Asian faces for the Chinese site, Western faces for the English one
@@ -2050,7 +2050,7 @@ devices.treatments.filter((x) => x.key !== 'wellness-1').forEach((x, i) => {
 // 02 Photorejuvenation: renamed and given its own photo.
 const m22 = devices.treatments.find((x) => x.key === 'skin-3')
 m22.name = { ...m22.name, zh: 'M22光子嫩肤' }
-m22.image = { ...m22.image, zh: '/images/treatments/zh/m22-ipl.jpg' }
+m22.image = { ...m22.image, zh: '/images/treatments/zh/m22-ipl-clinic.jpg' }
 Object.assign(m22, {
   compact: true,
   subtitle: { en: '', zh: 'STELLAR M22 IPL PHOTOREJUVENATION' },
@@ -2334,7 +2334,7 @@ Object.assign(emsculpt, {
   compact: true,
   name: { en: 'BTL EMSculpt Body Contouring', zh: 'BTL 磁波塑肌燃脂' },
   subtitle: { en: '', zh: 'BTL EMSCULPT BODY CONTOURING' },
-  image: { ...devices.treatments.find((x) => x.key === 'body-1').image, zh: '/images/treatments/zh/emsculpt-neo.jpg' },
+  image: { ...devices.treatments.find((x) => x.key === 'body-1').image, zh: '/images/treatments/zh/emsculpt-neo.jpg', en: '/images/treatments/en/emsculpt-abdomen.jpg' },
   body: {
     en: 'BTL high-intensity focused electromagnetic technology (HIFEM) stimulates intense muscle contractions to help build muscle strength and improve body lines, for a firm, shapely silhouette.',
     zh: '采用 BTL 高强度聚焦电磁技术（HIFEM），刺激肌肉产生高强度收缩，帮助增强肌肉力量、改善身体线条，打造紧致有型的理想曲线。',
@@ -2391,7 +2391,7 @@ Object.assign(scalp, {
   compact: true,
   name: { en: 'Legend Pro Stem Cell-Derived Scalp Revitalising', zh: 'Legend Pro 干细胞科技头皮焕活' },
   subtitle: { en: '', zh: 'LEGEND PRO STEM CELL–DERIVED SCALP CARE' },
-  image: { ...scalp.image, zh: '/images/treatments/zh/legend-scalp.jpg' },
+  image: { ...scalp.image, zh: '/images/treatments/zh/legend-scalp.jpg', en: '/images/treatments/en/legend-scalp.jpg' },
   body: {
     en: 'Combining Legend Pro radiofrequency technology with stem cell-derived essence care, a personalised scalp revitalising treatment for scalp aging, dryness and hair-root health — helping maintain a healthy scalp environment and opening a refined scalp anti-aging routine.',
     zh: '融合 Legend Pro 射频科技与干细胞来源精华养护理念，针对头皮老化、干燥及发根健康需求，打造个性化头皮焕活护理，帮助维持健康头皮环境，开启精致头皮抗衰管理。',
@@ -2448,7 +2448,7 @@ Object.assign(led, {
   compact: true,
   name: { en: 'Red & Blue LED Light Therapy', zh: '红蓝光 LED 光疗' },
   subtitle: { en: '', zh: 'RED & BLUE LED LIGHT THERAPY' },
-  image: { zh: '/images/treatments/zh/led-light.jpg', en: '/images/treatments/shared/skin-8.jpg' },
+  image: { zh: '/images/treatments/zh/led-light.jpg', en: '/images/treatments/en/led-light.jpg' },
   body: {
     en: 'Professional LED red and blue light uses different wavelengths on the skin to help improve acne, redness and skin-quality concerns and support skin repair, revealing a naturally healthy, radiant glow.',
     zh: '采用专业 LED 红蓝光技术，通过不同波长的光能作用于肌肤，帮助改善痘痘、泛红及肤质问题，促进肌肤修护，焕现健康透亮的自然光采。',
@@ -2769,7 +2769,7 @@ ivDrips.treatments.push({
   name: { en: 'Stem Cell Therapy', zh: '干细胞治疗' },
   compact: true,
   subtitle: { en: '', zh: 'STEM CELL THERAPY' },
-  image: { zh: '/images/treatments/zh/stem-cell-luxury.jpg', en: '/images/treatments/en/hormone-stem-cell-2.jpg' },
+  image: { zh: '/images/treatments/zh/stem-cell-luxury.jpg', en: '/images/treatments/en/stem-cell-iv.jpg' },
   body: {
     en: 'Explore the potential of stem cells in tissue repair and regenerative medicine — a personalised regenerative-medicine consultation built on professional medical assessment.',
     zh: '探索干细胞在组织修复与再生医学领域的应用潜力，结合专业医疗评估，提供个性化的再生医学咨询方案。',

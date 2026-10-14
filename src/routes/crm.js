@@ -15,10 +15,20 @@ const num = (v) => (v === '' || v === null || v === undefined ? NaN : Number(v))
 // ---- validators: return { error } or { data } with only whitelisted fields ----
 
 function customerInput(b) {
-  const name = str(b.name, 120);
-  if (!name) return { error: 'name is required' };
+  const firstName = str(b.firstName, 60);
+  const lastName = str(b.lastName, 60);
+  // A name is optional: without one the customer is listed under their WeChat name / number, phone or email,
+  // so at least one of those must be given.
+  const name = str(b.name, 120) || [firstName, lastName].filter(Boolean).join(' ')
+    || str(b.wechatId, 60) || str(b.wechatNo, 60) || str(b.phone, 40) || str(b.email, 160);
+  if (!name) return { error: 'name, WeChat, phone or email is required' };
   const tags = Array.isArray(b.tags) ? b.tags.map((t) => str(t, 30)).filter(Boolean).slice(0, 10) : [];
-  return { data: { name, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), notes: str(b.notes, 2000), tags } };
+  // First / last name are stored only when sent, so editing a customer elsewhere never wipes them.
+  const split = 'firstName' in b || 'lastName' in b ? { firstName, lastName } : {};
+  const gender = ['female', 'male', 'other'].includes(b.gender) ? b.gender : '';
+  const genderField = 'gender' in b ? { gender } : {};
+  const memberField = 'member' in b ? { member: b.member === true } : {};
+  return { data: { name, ...split, ...genderField, ...memberField, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), wechatNo: str(b.wechatNo, 60), notes: str(b.notes, 2000), tags } };
 }
 
 async function appointmentInput(b) {
@@ -41,18 +51,20 @@ async function appointmentInput(b) {
   };
 }
 
-// A room can't host two active appointments at the same time.
+// A room can't host more active appointments at the same time than it has beds (double rooms have two).
 const ACTIVE = ['scheduled', 'completed'];
+const BEDS = { room2: 2, room4: 2 };
 async function roomConflict(data, selfId) {
   if (!data.room || !ACTIVE.includes(data.status)) return null;
   const s = new Date(data.start).getTime();
   const e = s + data.durationMin * 60000;
-  const clash = (await store.list('appointments')).find((a) => {
+  const overlapping = (await store.list('appointments')).filter((a) => {
     if (a.id === selfId || a.room !== data.room || !ACTIVE.includes(a.status)) return false;
     const as = new Date(a.start).getTime();
     return s < as + (a.durationMin || 60) * 60000 && as < e;
   });
-  if (!clash) return null;
+  if (overlapping.length < (BEDS[data.room] || 1)) return null;
+  const clash = overlapping[0];
   const who = await store.get('customers', clash.customerId);
   const t = new Date(clash.start).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
   return `该房间在 ${t} 已有预约（${who ? who.name : '未知客户'} · ${clash.service}），时间冲突`;

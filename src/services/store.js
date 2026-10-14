@@ -36,10 +36,10 @@ function seed() {
   const c2 = { id: id(), name: '示例客户 B', phone: '(425) 555-0102', email: 'b@example.com', notes: '', tags: ['新客'], createdAt: day(-10, 10) };
   const c3 = { id: id(), name: '示例客户 C', phone: '(206) 555-0103', email: '', notes: '对玻尿酸有兴趣', tags: [], createdAt: day(-30, 10) };
 
-  const a1 = { id: id(), customerId: c1.id, service: '日式小颜 60 分钟', start: day(0, 14), durationMin: 60, status: 'scheduled', price: 158, room: 'room1', staff: '示例员工 A', notes: '', createdAt: day(-2, 9) };
-  const a2 = { id: id(), customerId: c2.id, service: 'Botox 肉毒素', start: day(1, 11), durationMin: 30, status: 'scheduled', price: 300, room: 'room2', staff: '示例员工 B', notes: '', createdAt: day(-1, 9) };
-  const a3 = { id: id(), customerId: c1.id, service: 'HydraFacial', start: day(-7, 15), durationMin: 60, status: 'completed', price: 180, room: 'room3', staff: '示例员工 A', notes: '', createdAt: day(-9, 9) };
-  const a4 = { id: id(), customerId: c3.id, service: '咨询', start: day(3, 10), durationMin: 30, status: 'scheduled', price: 0, room: 'room4', staff: '示例员工 B', notes: '', createdAt: day(0, 9) };
+  const a1 = { id: id(), customerId: c1.id, service: '日式小颜 60 分钟', start: day(0, 14), durationMin: 60, status: 'scheduled', price: 158, room: 'room1', staff: '', notes: '', createdAt: day(-2, 9) };
+  const a2 = { id: id(), customerId: c2.id, service: 'Botox 肉毒素', start: day(1, 11), durationMin: 30, status: 'scheduled', price: 300, room: 'room2', staff: '', notes: '', createdAt: day(-1, 9) };
+  const a3 = { id: id(), customerId: c1.id, service: 'HydraFacial', start: day(-7, 15), durationMin: 60, status: 'completed', price: 180, room: 'room3', staff: '', notes: '', createdAt: day(-9, 9) };
+  const a4 = { id: id(), customerId: c3.id, service: '咨询', start: day(3, 10), durationMin: 30, status: 'scheduled', price: 0, room: 'room4', staff: '', notes: '', createdAt: day(0, 9) };
 
   const services = DEFAULT_SERVICES.map(newService);
   const sid = (name) => services.find((x) => x.name === name).id;
@@ -53,9 +53,9 @@ function seed() {
     appointments: [a1, a2, a3, a4],
     services,
     payments: [
-      pay(-7, c1.id, ['HydraFacial'], 180, 30, 'credit_card', '示例员工 A', '', a3.id),
-      pay(-20, c2.id, ['日式小颜 60 分钟'], 158, 20, 'cash', '示例员工 B', '示例介绍人'),
-      pay(-2, c3.id, ['产品销售'], 95, 0, 'transfer', '示例员工 A'),
+      pay(-7, c1.id, ['HydraFacial'], 180, 30, 'credit_card', '', '', a3.id),
+      pay(-20, c2.id, ['日式小颜 60 分钟'], 158, 20, 'cash', '', '示例介绍人'),
+      pay(-2, c3.id, ['产品销售'], 95, 0, 'transfer', ''),
     ],
   };
 }

@@ -7,7 +7,9 @@ export default function Login() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const next = location.state?.from || '/crm'
+  // After signing in the CRM opens on Appointments, unless the visitor was sent here from a specific CRM page.
+  const from = location.state?.from
+  const next = from && from !== '/crm' ? from : '/crm/appointments'
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')

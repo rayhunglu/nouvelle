@@ -64,8 +64,8 @@ function Panel({ title, photo, items, lang, aspect }) {
             />
             <Link
               to={it.to}
-              className="absolute -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-medium sm:px-3 sm:py-1.5 sm:text-sm lg:text-base text-ink shadow transition hover:bg-gold hover:text-ivory sm:text-sm"
-              style={{ [it.side === 'l' ? 'right' : 'left']: `${it.side === 'l' ? 100 - it.label[0] : it.label[0]}%`, top: `${it.label[1]}%` }}
+              className={`absolute -translate-y-1/2 bg-white/95 ${lang === 'en' ? 'w-max rounded-2xl px-2 py-0.5 text-center text-[10px] leading-tight sm:py-1 sm:text-[10.5px] lg:text-[11px]' : 'whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base'} font-medium text-ink shadow transition hover:bg-gold hover:text-ivory sm:text-sm`}
+              style={{ [it.side === 'l' ? 'right' : 'left']: `${it.side === 'l' ? 100 - it.label[0] : it.label[0]}%`, top: `${it.label[1]}%`, ...(lang === 'en' ? { maxWidth: `${it.side === 'l' ? it.label[0] : 100 - it.label[0]}%` } : {}) }}
             >
               {lang === 'zh' ? it.zh : it.en}
             </Link>
@@ -87,8 +87,8 @@ export default function ConcernSearch() {
         </h2>
       </Reveal>
       <div className="mt-12 grid gap-8 md:grid-cols-2 lg:gap-12">
-        <Reveal><Panel title={t({ en: 'Face', zh: '面部' })} photo="/images/concern-face.jpg" items={face} lang={lang} aspect="3/4" /></Reveal>
-        <Reveal delay={100}><Panel title={t({ en: 'Body', zh: '身体' })} photo="/images/concern-body.jpg" items={body} lang={lang} aspect="3/4" /></Reveal>
+        <Reveal><Panel title={t({ en: 'Face', zh: '面部' })} photo={lang === 'en' ? '/images/concern-face-en.jpg' : '/images/concern-face.jpg'} items={face} lang={lang} aspect="3/4" /></Reveal>
+        <Reveal delay={100}><Panel title={t({ en: 'Body', zh: '身体' })} photo={lang === 'en' ? '/images/concern-body-en.jpg' : '/images/concern-body.jpg'} items={body} lang={lang} aspect="3/4" /></Reveal>
       </div>
       <div className="mt-10 text-center">
         <Link to="/treatments" className="btn-ghost">{t({ en: 'View all treatments', zh: '查看全部项目' })} <ArrowRight size={16} /></Link>

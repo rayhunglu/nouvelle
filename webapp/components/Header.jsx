@@ -57,7 +57,7 @@ function ServiceDropdown({ label, items, linkCls, to, allTo, allLabel }) {
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false) }}
     >
       {to ? (
-        <Link to={to} onClick={close} className={`${linkCls({ isActive: false })} flex items-center gap-1`}>
+        <Link to={to} onClick={() => setOpen(true)} className={`${linkCls({ isActive: false })} flex items-center gap-1`}>
           {label} <ChevronDown size={14} className={`transition ${open ? 'rotate-180' : ''}`} />
         </Link>
       ) : (
@@ -156,7 +156,7 @@ export default function Header() {
 
         <div className="hidden items-center gap-4 lg:flex">
           <LangToggle />
-          <Link to={user ? '/crm' : '/login'} className="btn-ghost !py-2.5">
+          <Link to={user ? '/crm/appointments' : '/login'} className="btn-ghost !py-2.5">
             {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
           </Link>
           <a href={business.phoneHref} className="btn-primary hidden !py-2.5 xl:inline-flex">
@@ -188,7 +188,7 @@ export default function Header() {
             {[['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
-            <Link to={user ? '/crm' : '/login'} className="btn-ghost mt-8">
+            <Link to={user ? '/crm/appointments' : '/login'} className="btn-ghost mt-8">
               {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
             </Link>
             <a href={business.phoneHref} className="btn-primary mt-3"><Phone size={15} /> {business.phone}</a>

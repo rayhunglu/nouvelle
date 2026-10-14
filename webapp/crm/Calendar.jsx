@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card } from './ui'
 import { dayKey, fmtTime } from './format'
 import { NO_ROOM, ROOMS, roomOf } from './rooms'
+import { withStaff } from './staff'
 
-const HOUR_PX = 56
+const HOUR_PX = 80 // 20px per 15-minute row
+const SHADE_END_HOUR = 9 // 00:00-09:00 is drawn shaded
+const SHADE_START_HOUR = 20 // and so is 20:00-24:00
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'] // week starts on Monday
 
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
@@ -19,7 +22,7 @@ const tip = (a, name) =>
   `${fmtTime(a.start)} ${name} · ${a.service}${a.staff ? ` · ${a.staff}` : ''} · ${roomOf(a.room).name}`
 
 // Assign side-by-side lanes to overlapping appointments within one column.
-function layoutDay(items) {
+function layoutDay(items, minLanes = 1) {
   const sorted = [...items].sort((a, b) => a.start.localeCompare(b.start))
   const out = []
   let cluster = []
@@ -33,7 +36,7 @@ function layoutDay(items) {
       lanesEnd[lane] = s + (a.durationMin || 60) * 60000
       return { a, lane }
     })
-    placed.forEach((p) => out.push({ ...p, lanes: lanesEnd.length }))
+    placed.forEach((p) => out.push({ ...p, lanes: Math.max(lanesEnd.length, minLanes) }))
     cluster = []
   }
   for (const a of sorted) {
@@ -98,61 +101,160 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
   )
 }
 
-// Generic time grid. Each column is a day (week view) or a room (day view).
-function TimeGrid({ columns, customerById, onEdit, onCreate }) {
+// Generic time grid, 00:00-24:00 on a 24-hour clock. Each column is a day (week view) or a room (day view).
+// It scrolls inside its own frame (the column heads stay put) and, whenever the shown day changes, jumps so the
+// red "now" pointer is in view; days other than today open at the first booking, or 09:00.
+const pad2 = (n) => String(n).padStart(2, '0')
+
+function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
   const [now, setNow] = useState(() => new Date())
-  useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t) }, [])
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 20000); return () => clearInterval(t) }, [])
+  const scroller = useRef(null)
+  const [hover, setHover] = useState(null) // the one 15-minute cell under the pointer: { col, q }
+  const [drag, setDrag] = useState(null) // a drag in progress: { col, a, b } (quarter-hour cells, a = where it began)
+  const lastPointer = useRef('mouse')
+  // Safety net: if the button is released outside a column (or the window loses focus) the drag must not stay stuck.
+  const dragging = drag !== null
+  useEffect(() => {
+    if (!dragging) return undefined
+    const end = () => setDrag(null)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('blur', end)
+    return () => { window.removeEventListener('pointerup', end); window.removeEventListener('blur', end) }
+  }, [dragging])
 
-  const { startHour, endHour } = useMemo(() => {
-    let lo = 8, hi = 21
-    for (const c of columns) for (const a of c.items) {
-      const s = new Date(a.start)
-      lo = Math.min(lo, s.getHours())
-      hi = Math.max(hi, Math.ceil(s.getHours() + s.getMinutes() / 60 + (a.durationMin || 60) / 60))
+  const gridH = 24 * HOUR_PX
+  const cols = `var(--gut) repeat(${columns.length}, minmax(0, 1fr))`
+  const nowTop = (now.getHours() + now.getMinutes() / 60) * HOUR_PX
+  const hasToday = columns.some((c) => c.today)
+
+  // Jump to the pointer (today) or to the day's first booking / 09:00 whenever the shown day changes.
+  useEffect(() => {
+    const el = scroller.current
+    if (!el) return
+    let target = 9 * HOUR_PX
+    if (hasToday) target = nowTop
+    else {
+      const starts = columns.flatMap((c) => c.items.map((a) => { const d = new Date(a.start); return d.getHours() + d.getMinutes() / 60 }))
+      if (starts.length) target = Math.min(...starts) * HOUR_PX
     }
-    return { startHour: lo, endHour: Math.min(24, hi) }
-  }, [columns])
-  const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
-  const gridH = hours.length * HOUR_PX
-  const cols = `3.5rem repeat(${columns.length}, minmax(0, 1fr))`
-  const nowTop = ((now.getHours() + now.getMinutes() / 60) - startHour) * HOUR_PX
+    el.scrollTop = Math.max(0, target - el.clientHeight / 3)
+    // Only when the shown day changes: later minute ticks and filter clicks must not move the view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollKey])
 
+  const quarterAt = (e) => Math.max(0, Math.min(95, Math.floor((e.clientY - e.currentTarget.getBoundingClientRect().top) / (HOUR_PX / 4))))
+  const startOf = (c, q) => { const s = new Date(c.date); s.setHours(Math.floor(q / 4), (q % 4) * 15, 0, 0); return s }
+  const cellTime = (q) => `${pad2(Math.floor(q / 4))}:${pad2((q % 4) * 15)}`
+
+  // Finger taps keep the old behaviour (one tap opens a new booking); a mouse can also drag out a longer slot.
   const clickSlot = (e, c) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const mins = Math.round(((e.clientY - rect.top) / HOUR_PX) * 2) * 30
+    const y = e.clientY - rect.top
+    const mins = Math.min(45, Math.floor((y % HOUR_PX) / (HOUR_PX / 4)) * 15)
     const s = new Date(c.date)
-    s.setHours(startHour, 0, 0, 0)
-    s.setMinutes(mins)
+    s.setHours(Math.floor(y / HOUR_PX), mins, 0, 0)
     onCreate(s.toISOString(), c.room)
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div style={{ minWidth: `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
-        <div className="grid border-b border-ink/10 text-center text-xs" style={{ gridTemplateColumns: cols }}>
+    <div ref={scroller} className="max-h-[calc(100svh-19rem)] min-h-[22rem] overflow-auto overscroll-contain">
+      <div className="[--gut:2.75rem] sm:[--gut:3.5rem] sm:min-w-[var(--mw)]" style={{ '--mw': `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
+        <div className="sticky top-0 z-30 grid border-b border-ink/10 bg-white text-center text-xs" style={{ gridTemplateColumns: cols }}>
           <div />
           {columns.map((c) => (
-            <div key={c.key} className="py-2.5">{c.header}</div>
+            <div key={c.key} className="border-l border-ink/30 py-2.5 last:border-r">{c.header}</div>
           ))}
         </div>
         <div className="relative grid" style={{ height: gridH, gridTemplateColumns: cols }}>
           <div className="relative">
-            {hours.map((h, i) => (
-              <span key={h} className="absolute right-2 -translate-y-1/2 text-[0.7rem] text-muted" style={{ top: i * HOUR_PX }}>{i === 0 ? '' : `${String(h).padStart(2, '0')}:00`}</span>
-            ))}
+            <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: SHADE_END_HOUR * HOUR_PX }} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: (24 - SHADE_START_HOUR) * HOUR_PX }} />
+            {Array.from({ length: 96 }, (_, q) => {
+              const h = Math.floor(q / 4)
+              const m = (q % 4) * 15
+              const onHour = m === 0
+              return (
+                <span key={q} className={`absolute right-1 tabular-nums sm:right-2 ${onHour ? 'text-[0.72rem] font-medium text-ink/80' : 'text-[0.62rem] text-muted/70'} ${q === 0 ? 'translate-y-0.5' : '-translate-y-1/2'}`} style={{ top: (q * HOUR_PX) / 4 }}>
+                  {`${pad2(h)}:${pad2(m)}`}
+                </span>
+              )
+            })}
+            {hasToday && (
+              <span className="absolute right-0 z-20 -translate-y-1/2 rounded-l-full bg-rose-600 px-2 py-0.5 text-[0.7rem] font-semibold tabular-nums text-white shadow" style={{ top: nowTop }}>
+                {`${pad2(now.getHours())}:${pad2(now.getMinutes())}`}
+              </span>
+            )}
           </div>
           {columns.map((c) => (
-            <div key={c.key} onClick={(e) => clickSlot(e, c)} className="relative cursor-pointer border-l border-ink/5 hover:bg-sand/40"
-              style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX - 1}px, rgba(43,36,32,0.06) ${HOUR_PX - 1}px, rgba(43,36,32,0.06) ${HOUR_PX}px)` }}>
-              {layoutDay(c.items).map(({ a, lane, lanes }) => {
+            <div
+              key={c.key}
+              onClick={(e) => { if (lastPointer.current === 'touch') clickSlot(e, c) }}
+              onPointerDown={(e) => {
+                lastPointer.current = e.pointerType
+                if (e.pointerType === 'touch' || e.button !== 0) return
+                const q = quarterAt(e)
+                try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
+                setHover(null)
+                setDrag({ col: c.key, a: q, b: q })
+              }}
+              onPointerMove={(e) => {
+                if (e.pointerType === 'touch') return
+                const q = quarterAt(e)
+                if (drag && drag.col === c.key) {
+                  setDrag((d) => (d.b === q ? d : { ...d, b: q }))
+                  // Keep the frame scrolling while the pointer is dragged past its top or bottom edge.
+                  const fr = scroller.current?.getBoundingClientRect()
+                  if (fr && e.clientY > fr.bottom - 36) scroller.current.scrollTop += 18
+                  else if (fr && e.clientY < fr.top + 60) scroller.current.scrollTop -= 18
+                } else if (!drag) {
+                  setHover((h) => (h && h.col === c.key && h.q === q ? h : { col: c.key, q }))
+                }
+              }}
+              onPointerUp={(e) => {
+                if (!drag || drag.col !== c.key) return
+                const lo = Math.min(drag.a, drag.b)
+                const hi = Math.max(drag.a, drag.b)
+                setDrag(null)
+                try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+                // A plain click keeps the default length; a drag books exactly the cells it covered.
+                onCreate(startOf(c, lo).toISOString(), c.room, hi > lo ? (hi - lo + 1) * 15 : undefined)
+              }}
+              onPointerCancel={() => setDrag(null)}
+              onPointerLeave={(e) => { if (!drag && e.pointerType !== 'touch') setHover(null) }}
+              className="relative cursor-pointer select-none border-l border-ink/30 last:border-r"
+              style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX - 1}px, rgba(43,36,32,0.16) ${HOUR_PX - 1}px, rgba(43,36,32,0.16) ${HOUR_PX}px), repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX / 4 - 1}px, rgba(43,36,32,0.06) ${HOUR_PX / 4 - 1}px, rgba(43,36,32,0.06) ${HOUR_PX / 4}px)` }}>
+              {/* 00:00-09:00 and 20:00-24:00 are shaded: outside the working day. */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: SHADE_END_HOUR * HOUR_PX }} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: (24 - SHADE_START_HOUR) * HOUR_PX }} />
+              {drag && drag.col === c.key && (() => {
+                const lo = Math.min(drag.a, drag.b)
+                const hi = Math.max(drag.a, drag.b)
+                return (
+                  <div className="pointer-events-none absolute inset-x-0 z-10 rounded-sm bg-gold/35 ring-1 ring-gold" style={{ top: (lo * HOUR_PX) / 4, height: ((hi - lo + 1) * HOUR_PX) / 4 }}>
+                    <span className="block px-1.5 pt-0.5 text-[0.62rem] font-semibold leading-tight tabular-nums text-plum-deep">{`${cellTime(lo)}–${cellTime(hi + 1)}`}</span>
+                    {hi > lo && <span className="block px-1.5 text-[0.6rem] leading-tight text-plum-deep/80">{(hi - lo + 1) * 15} 分钟</span>}
+                  </div>
+                )
+              })()}
+              {!drag && hover && hover.col === c.key && (
+                <div className="pointer-events-none absolute inset-x-0 rounded-sm bg-gold/20 ring-1 ring-gold/50" style={{ top: (hover.q * HOUR_PX) / 4, height: HOUR_PX / 4 }}>
+                  <span className="pl-1.5 text-[0.62rem] font-medium leading-5 tabular-nums text-gold">{`${pad2(Math.floor(hover.q / 4))}:${pad2((hover.q % 4) * 15)}`}</span>
+                </div>
+              )}
+              {c.beds > 1 && <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] border-l border-dashed border-ink/10" />}
+              {layoutDay(c.items, c.beds || 1).map(({ a, lane, lanes }) => {
                 const s = new Date(a.start)
-                const top = ((s.getHours() + s.getMinutes() / 60) - startHour) * HOUR_PX
+                const top = (s.getHours() + s.getMinutes() / 60) * HOUR_PX
                 const height = Math.max(24, ((a.durationMin || 60) / 60) * HOUR_PX - 2)
                 const name = customerById[a.customerId]?.name || '—'
                 return (
                   <button
                     key={a.id}
                     onClick={(e) => { e.stopPropagation(); onEdit(a) }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerMove={(e) => e.stopPropagation()}
+                    onPointerEnter={() => setHover(null)}
                     className={`absolute overflow-hidden rounded-lg px-1.5 py-1 text-left text-[0.7rem] leading-tight transition ${chipCls(a)}`}
                     style={{ top, height, left: `calc(${(lane / lanes) * 100}% + 2px)`, width: `calc(${100 / lanes}% - 4px)` }}
                     title={tip(a, name)}
@@ -163,9 +265,9 @@ function TimeGrid({ columns, customerById, onEdit, onCreate }) {
                   </button>
                 )
               })}
-              {c.today && nowTop >= 0 && nowTop <= gridH && (
-                <div className="pointer-events-none absolute inset-x-0 z-10 flex items-center" style={{ top: nowTop }}>
-                  <i className="-ml-1 h-2 w-2 rounded-full bg-rose-500" /><i className="h-px flex-1 bg-rose-500" />
+              {c.today && (
+                <div className="pointer-events-none absolute inset-x-0 z-20 flex items-center" style={{ top: nowTop }}>
+                  <i className="-ml-1 h-2.5 w-2.5 shrink-0 rounded-full bg-rose-600 ring-2 ring-white" /><i className="h-0.5 flex-1 bg-rose-600" />
                 </div>
               )}
             </div>
@@ -209,12 +311,13 @@ function DayAgenda({ days, byDay, customerById, onEdit, onCreate, emptyHint }) {
   )
 }
 
-export default function CalendarView({ appointments, customerById, onEdit, onCreate }) {
+// `modes` picks which views this instance offers (the Appointments page shows 'day' on its own and 'week'/'month' under Calendar).
+export default function CalendarView({ appointments, customerById, onEdit, onCreate, modes = ['day', 'week', 'month'] }) {
   const [mode, setMode] = useState(() => {
     try {
       const m = localStorage.getItem('crm.calMode')
-      return ['day', 'week', 'month'].includes(m) ? m : 'month'
-    } catch { return 'month' }
+      return modes.includes(m) ? m : modes.includes('month') ? 'month' : modes[0]
+    } catch { return modes.includes('month') ? 'month' : modes[0] }
   })
   const [cursor, setCursor] = useState(() => new Date())
   const [selected, setSelected] = useState(() => keyOf(new Date()))
@@ -231,7 +334,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
     return next
   })
 
-  const staffNames = useMemo(() => [...new Set(appointments.map((a) => a.staff).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh')), [appointments])
+  const staffNames = useMemo(() => withStaff(appointments.map((a) => a.staff)), [appointments])
   const roomCounts = useMemo(() => {
     const m = {}
     for (const a of appointments) m[a.room || ''] = (m[a.room || ''] || 0) + 1
@@ -278,11 +381,11 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const roomColumns = [...ROOMS, NO_ROOM]
     .filter((r) => r.id !== '' ? !hiddenRooms.has(r.id) : dayItems.some((a) => !a.room))
     .map((r) => ({
-      key: r.id || 'none', date: cursor, room: r.id, today: keyOf(cursor) === today,
+      key: r.id || 'none', date: cursor, room: r.id, beds: r.beds || 1, today: keyOf(cursor) === today,
       items: dayItems.filter((a) => (a.room || '') === r.id),
       header: (
-        <p className="flex items-center justify-center gap-1.5 font-medium">
-          <i className={`h-2.5 w-2.5 rounded-full ${r.dot}`} /> {r.name}
+        <p className="flex flex-col items-center justify-center gap-0.5 px-0.5 text-[0.65rem] font-medium leading-tight sm:flex-row sm:gap-1.5 sm:px-0 sm:text-xs">
+          <i className={`h-2.5 w-2.5 shrink-0 rounded-full ${r.dot}`} /> <span>{r.name}</span>
         </p>
       ),
     }))
@@ -297,11 +400,11 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
         </div>
         <div className="flex items-center gap-2">
           <button onClick={goToday} className="rounded-full border border-ink/15 px-3.5 py-1.5 text-sm hover:bg-sand">今天</button>
-          <div className="flex rounded-full bg-sand p-0.5 text-sm" role="group" aria-label="日历视图">
-            {[['day', '日'], ['week', '周'], ['month', '月']].map(([v, l]) => (
+          {modes.length > 1 && <div className="flex rounded-full bg-sand p-0.5 text-sm" role="group" aria-label="日历视图">
+            {[['day', '日'], ['week', '周'], ['month', '月']].filter(([v]) => modes.includes(v)).map(([v, l]) => (
               <button key={v} onClick={() => changeMode(v)} aria-pressed={mode === v} className={`rounded-full px-4 py-1.5 transition ${mode === v ? 'bg-white shadow-sm' : 'text-muted'}`}>{l}</button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -331,11 +434,11 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
           </div>
         </>
       )}
-      {mode === 'day' && <TimeGrid columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} />}
+      {mode === 'day' && <TimeGrid columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} scrollKey={`day-${keyOf(cursor)}`} />}
       {mode === 'week' && (
         <>
           <div className="hidden md:block">
-            <TimeGrid columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} />
+            <TimeGrid columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} scrollKey={`week-${keyOf(weekStart)}`} />
           </div>
           <div className="md:hidden">
             <DayAgenda days={weekDays} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} emptyHint="没有预约" />

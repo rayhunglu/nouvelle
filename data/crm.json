@@ -4,12 +4,13 @@
       "id": "31344c25-27f4-4ac2-9fb6-78f91b202580",
       "name": "示例客户 A",
       "phone": "(425) 555-0101",
-      "email": "a@example.com",
-      "notes": "偏好下午预约",
-      "tags": [
-        "VIP"
-      ],
-      "createdAt": "2026-08-06T17:00:00.000Z"
+      "email": "",
+      "notes": "",
+      "tags": [],
+      "createdAt": "2026-08-06T17:00:00.000Z",
+      "member": false,
+      "wechatId": "",
+      "updatedAt": "2026-10-14T06:03:59.649Z"
     },
     {
       "id": "e3f0a483-0519-4d8b-a61a-46e305a21055",
@@ -30,6 +31,18 @@
       "notes": "对玻尿酸有兴趣",
       "tags": [],
       "createdAt": "2026-09-05T17:00:00.000Z"
+    },
+    {
+      "name": "抑扬顿挫",
+      "member": false,
+      "phone": "",
+      "email": "",
+      "wechatId": "抑扬顿挫",
+      "wechatNo": "",
+      "notes": "",
+      "tags": [],
+      "id": "0aafb167-92d6-45b6-94c6-f919ae8376c3",
+      "createdAt": "2026-10-14T06:29:37.709Z"
     }
   ],
   "appointments": [
@@ -45,7 +58,7 @@
       "createdAt": "2026-10-03T16:00:00.000Z",
       "updatedAt": "2026-10-05T20:59:48.815Z",
       "room": "room1",
-      "staff": "示例员工 A"
+      "staff": ""
     },
     {
       "id": "1f69cb6a-e012-4a95-8336-f25b1715b6e0",
@@ -59,7 +72,7 @@
       "createdAt": "2026-10-04T16:00:00.000Z",
       "updatedAt": "2026-10-06T06:17:01.769Z",
       "room": "room4",
-      "staff": "示例员工 B"
+      "staff": ""
     },
     {
       "id": "6c870424-5bbb-4aa1-a86e-f6482ee1d6c7",
@@ -72,7 +85,7 @@
       "notes": "",
       "createdAt": "2026-09-26T16:00:00.000Z",
       "room": "room3",
-      "staff": "示例员工 A"
+      "staff": ""
     },
     {
       "id": "e6e42138-3d3e-4b3f-9935-db0e972f5a41",
@@ -86,7 +99,7 @@
       "createdAt": "2026-10-05T16:00:00.000Z",
       "updatedAt": "2026-10-05T20:59:50.555Z",
       "room": "room4",
-      "staff": "示例员工 B"
+      "staff": ""
     },
     {
       "customerId": "31344c25-27f4-4ac2-9fb6-78f91b202580",
@@ -96,7 +109,7 @@
       "price": 0,
       "status": "completed",
       "room": "room1",
-      "staff": "示例员工 A",
+      "staff": "",
       "notes": "",
       "id": "faa5f5b4-8df0-4985-a2e4-94fcc5cf1523",
       "createdAt": "2026-10-06T05:26:17.754Z",
@@ -334,7 +347,7 @@
       "tipAmount": 20,
       "paymentMethod": "credit_card",
       "referralSource": "",
-      "staff": "示例员工 A",
+      "staff": "",
       "id": "95c33194-91b1-45e6-930a-8d9e86f8ba67",
       "createdAt": "2026-10-06T05:32:32.317Z"
     },
@@ -349,7 +362,7 @@
       "tipAmount": 20,
       "paymentMethod": "credit_card",
       "referralSource": "",
-      "staff": "示例员工 B",
+      "staff": "",
       "id": "f6988441-0639-440f-abff-41bafbea2b03",
       "createdAt": "2026-10-06T06:16:34.607Z"
     }

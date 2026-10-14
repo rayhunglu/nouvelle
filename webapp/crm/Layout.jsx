@@ -5,9 +5,9 @@ import { useAuth } from '../auth'
 import { CrmProvider } from './data'
 
 const nav = [
-  { to: '/crm', label: '总览', icon: LayoutDashboard, end: true },
-  { to: '/crm/customers', label: '客户', icon: Users },
   { to: '/crm/appointments', label: '预约', icon: CalendarDays },
+  { to: '/crm/customers', label: '客户', icon: Users },
+  { to: '/crm', label: '总览', icon: LayoutDashboard, end: true },
   { to: '/crm/finance', label: '账目', icon: Wallet },
 ]
 
