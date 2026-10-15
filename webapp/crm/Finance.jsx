@@ -5,7 +5,7 @@ import { useAuth } from '../auth'
 import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
-import { dayKey, downloadCsv, fmtDateTime, giftLabel, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
+import { dayKey, downloadCsv, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 
 export default function Finance() {
   const { payments, appointments, customerById, serviceById, remove } = useCrm()
@@ -40,13 +40,16 @@ export default function Finance() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [payments, month, staffFilter],
   )
-  const revenue = rows.reduce((s, p) => s + paidAmount(p), 0)
-  const tips = rows.reduce((s, p) => s + paidTip(p), 0)
+  const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
+  const counted = (p) => countsForPerformance(p, apptById) // unsettled, or tied to an appointment that is not completed: not counted
+  const countedRows = rows.filter(counted)
+  const revenue = countedRows.reduce((s, p) => s + paidAmount(p), 0)
+  const tips = countedRows.reduce((s, p) => s + paidTip(p), 0)
   const owed = rows.filter((p) => p.paymentMethod === 'unsettled').reduce((s, p) => s + p.amount, 0) // checked out but not paid yet
 
   const byStaff = useMemo(() => {
     const m = new Map()
-    for (const p of payments.filter(inMonth)) {
+    for (const p of payments.filter((x) => inMonth(x) && counted(x))) {
       const k = p.staff || '未指定'
       const cur = m.get(k) || { name: k, count: 0, revenue: 0, tips: 0 }
       if (p.paymentMethod !== 'unsettled') cur.count += 1; cur.revenue += performanceOf(p, payments); cur.tips += paidTip(p)
@@ -54,7 +57,7 @@ export default function Finance() {
     }
     return [...m.values()].sort((a, b) => b.revenue - a.revenue)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payments, month])
+  }, [payments, month, apptById])
 
   // What was settled: the appointment's service when the payment came from one, otherwise the services picked on the payment.
   const serviceNames = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean).join('、')
@@ -67,14 +70,14 @@ export default function Finance() {
   }
 
   const exportCsv = () => {
-    const total = rows.reduce((n, p) => n + performanceOf(p, payments), 0)
-    const tipTotal = rows.reduce((n, p) => n + paidTip(p), 0)
-    const tipNoCash = rows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
+    const total = countedRows.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const tipTotal = countedRows.reduce((n, p) => n + paidTip(p), 0)
+    const tipNoCash = countedRows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
     const days = new Set(rows.map((p) => dayKey(p.datetime))).size
     const r2 = (n) => Math.round(n * 100) / 100
     downloadCsv(`nouvelle-payments-${month || 'all'}-${(staffFilter || '全员').replace(/[\\/:*?"<>|\s]+/g, '_')}.csv`, [
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
-      ...rows.map((p) => [
+      ...countedRows.map((p) => [
         fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p),
         methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), p.referralSource, p.staff,
       ]),
@@ -88,61 +91,62 @@ export default function Finance() {
 
   return (
     <>
-      <PageTitle title="账目" sub="记录每一笔收款 · 导出 CSV 后可直接导入 Google 表格">
-        <button onClick={exportCsv} className="btn-ghost !py-2.5" disabled={!rows.length}><Download size={16} /> 导出 CSV</button>
-        <button onClick={() => setEditing('new')} className="btn-primary !py-2.5"><Plus size={16} /> 记一笔</button>
+      <PageTitle compact title="账目" sub="记录每一笔收款 · 导出 CSV 后可直接导入 Google 表格">
+        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2" disabled={!rows.length}><Download size={16} /> 导出 CSV</button>
+        <button onClick={() => setEditing('new')} className="btn-primary !px-4 !py-2"><Plus size={16} /> 记一笔</button>
       </PageTitle>
 
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={`${inputCls} !w-auto`} aria-label="月份" />
-        <button onClick={() => setMonth('')} className={`rounded-full px-4 py-2 text-sm ${!month ? 'bg-ink text-ivory' : 'bg-white text-muted'}`}>全部月份</button>
-        {seeAllStaff && (<select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} aria-label="按员工筛选" className={`${inputCls} !w-auto sm:ml-auto`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={`${inputCls} !w-[8.75rem] !px-2.5 !py-1.5 !text-sm`} aria-label="月份" />
+        <button onClick={() => setMonth('')} className={`rounded-full px-3 py-1.5 text-sm ${!month ? 'bg-ink text-ivory' : 'bg-white text-muted'}`}>全部月份</button>
+        {seeAllStaff && (<select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} aria-label="按员工筛选" className={`${inputCls} !w-auto !px-2.5 !py-1.5 !text-sm sm:ml-auto`}>
           <option value="">全部员工</option>
           {staffNames.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>)}
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
-        <StatCard icon={TrendingUp} label="营收" value={money(revenue)} hint={owed > 0 ? `另有未结算 ${money(owed)}` : undefined} />
-        <StatCard icon={HandCoins} label="小费" value={money(tips)} />
-        <StatCard icon={Receipt} label="笔数" value={rows.length} />
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <StatCard compact icon={TrendingUp} label="营收" value={money(revenue)} hint={owed > 0 ? `另有未结算 ${money(owed)}` : undefined} />
+        <StatCard compact icon={HandCoins} label="小费" value={money(tips)} />
+        <StatCard compact icon={Receipt} label="笔数" value={countedRows.filter((p) => p.paymentMethod !== 'unsettled').length} />
       </div>
 
       {byStaff.length > 0 && (
-        <Card className="mb-6 p-5">
-          <h2 className="mb-3 text-sm font-medium">员工业绩{month ? `（${month}）` : ''}<span className="ml-2 text-xs font-normal text-muted">会员卡付款按实收比例折算（例：充 2000 送 200，业绩 = 金额 × 2000/2200）</span></h2>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="mb-3 px-3 py-2.5">
+          <h2 className="mb-2 text-sm font-medium">员工业绩{month ? `（${month}）` : ''}<span className="ml-2 hidden text-xs font-normal text-muted sm:inline">会员卡付款按实收比例折算（例：充 2000 送 200，业绩 = 金额 × 2000/2200）</span></h2>
+          <ul className="grid grid-cols-3 gap-1.5">
             {byStaff.map((s) => (
-              <li key={s.name} className="flex items-center justify-between rounded-xl bg-sand px-4 py-2.5 text-sm">
-                <span className="font-medium">{s.name}</span>
-                <span className="text-right text-xs text-muted">{s.count} 笔 · <b className="text-ink">{money(s.revenue)}</b> + 小费 {money(s.tips)}</span>
+              <li key={s.name} className="rounded-lg bg-sand px-2.5 py-1.5 text-sm leading-tight">
+                <span className="block truncate font-medium">{s.name}</span>
+                <span className="block text-[0.7rem] text-muted">{s.count} 笔 · <b className="text-ink">{money(s.revenue)}</b></span>
+                <span className="block text-[0.65rem] text-muted">小费 {money(s.tips)}</span>
               </li>
             ))}
           </ul>
         </Card>
       )}
-      {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
+      {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
 
       <Card>
         {rows.length === 0 ? <Empty>这个范围内没有收款记录</Empty> : (
-          <ul className="divide-y divide-ink/10">
+          <ul className="max-h-[max(9rem,calc(100dvh-30rem))] divide-y divide-ink/10 overflow-y-auto lg:max-h-none">
             {rows.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 py-4">
+              <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-0.5 px-4 py-2">
                 <div className="min-w-0 flex-1 basis-56">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{p.referralSource ? ` · 介绍人 ${p.referralSource}` : ''}{p.appointmentId ? '' : ' · 临时消费'}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
+                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{p.referralSource ? ` · 介绍人 ${p.referralSource}` : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
                 </div>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>
-                <p className="w-28 text-right text-sm">
+                <p className="w-24 text-right text-sm leading-tight">
                   <b className={`font-medium ${p.paymentMethod === 'unsettled' ? 'text-amber-600' : 'text-emerald-700'}`}>{money(p.amount)}</b>{p.paymentMethod === 'unsettled' && <span className="block text-xs text-amber-700">未结算 · 应收</span>}
                   {p.paymentMethod !== 'unsettled' && performanceOf(p, payments) !== p.amount && <span className="block text-xs text-muted">业绩 {money(performanceOf(p, payments))}</span>}
                   {p.tipAmount > 0 && <span className="block text-xs text-muted">小费 {money(p.tipAmount)}{p.tipMethod && p.tipMethod !== p.paymentMethod ? `（${methodLabel(p.tipMethod)}）` : ''}</span>}
                 </p>
                 <div className="flex gap-1">
-                  <button onClick={() => setEditing(p)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={16} /></button>
-                  {canDelete && <button onClick={() => setConfirmDel(p)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={16} /></button>}
+                  <button onClick={() => setEditing(p)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={15} /></button>
+                  {canDelete && <button onClick={() => setConfirmDel(p)} className="grid h-8 w-8 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={15} /></button>}
                 </div>
               </li>
             ))}

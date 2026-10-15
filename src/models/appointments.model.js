@@ -61,6 +61,7 @@ async function createAppointment(input) {
       staff: { required: true, type: 'string', max: 60 },
       notes: { required: true, type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
+      source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
     });
     if (error) throw error;
     const query = newRecord(compact({
@@ -74,6 +75,7 @@ async function createAppointment(input) {
       staff: input.staff,
       notes: input.notes,
       fullRoom: input.fullRoom,
+      source: input.source,
     }));
     await dbClient.insertOne(COLLECTION, query);
     return query;
@@ -98,6 +100,7 @@ async function updateAppointment(id, input) {
       staff: { type: 'string', max: 60 },
       notes: { type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
+      source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
       paymentDeleted: { type: 'boolean' },
     });
     if (error) throw error;
@@ -112,6 +115,7 @@ async function updateAppointment(id, input) {
       staff: input.staff,
       notes: input.notes,
       fullRoom: input.fullRoom,
+      source: input.source,
       paymentDeleted: input.paymentDeleted,
     });
     return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...query, id, updatedAt: new Date().toISOString() });

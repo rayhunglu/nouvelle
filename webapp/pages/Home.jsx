@@ -37,20 +37,21 @@ export default function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="relative isolate mt-20 flex min-h-[calc(100svh-5rem)] items-end overflow-hidden lg:items-center">
+      <section className={`relative isolate mt-20 flex min-h-[calc(100svh-5rem)] overflow-hidden lg:items-center ${lang === 'zh' ? 'items-end' : 'items-start'}`}>
         <img
           src={t(heroImage)}
           alt=""
-          className={`absolute left-0 -z-20 object-cover ${
+          className={`absolute -z-20 object-cover ${
             lang === 'zh'
               ? // Phones: a smaller photo across the top, fading into the text below; desktop: full-bleed.
-                'top-0 h-[48%] w-full object-[42%_20%] [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:inset-y-0 lg:h-full lg:object-[30%_center] lg:[mask-image:none]'
+                'left-0 top-0 h-[48%] w-full object-[42%_20%] [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:inset-y-0 lg:h-full lg:object-[30%_center] lg:[mask-image:none]'
               : // Portrait photo: smaller on phones, on the left (fading right) on desktop.
-                'top-0 h-[48%] w-full object-[50%_18%] [mask-image:linear-gradient(to_bottom,black_70%,transparent)] lg:inset-y-0 lg:h-full lg:w-[62%] lg:[mask-image:linear-gradient(to_right,black_72%,transparent)]'
+                'top-0 left-[24%] h-[calc(0.37*(100svh-5rem))] w-[74%] object-[50%_18%] [mask-image:linear-gradient(to_bottom,black_72%,transparent),linear-gradient(to_right,transparent,black_14%,black_86%,transparent)] [mask-composite:intersect] [-webkit-mask-composite:source-in] lg:inset-y-0 lg:left-0 lg:h-full lg:w-[62%] lg:[mask-image:linear-gradient(to_right,black_72%,transparent)]'
           }`}
         />
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ivory/90 via-ivory/30 to-transparent lg:bg-gradient-to-l lg:from-ivory/55 lg:via-transparent lg:to-transparent" />
-        <div className={`container-x pt-24 lg:pb-0 lg:pt-0 ${lang === 'zh' ? 'pb-6' : 'pb-6'}`}>
+        {/* English on phones: the text starts below the photo so it never covers the model's face. */}
+        <div className={`container-x lg:pb-0 lg:pt-0 ${lang === 'zh' ? 'pb-6 pt-24' : 'pb-6 pt-[calc(0.105*(100svh-5rem))]'}`}>
           <Reveal
             className={`lg:ml-auto lg:max-w-xl ${
               lang === 'zh'
@@ -66,7 +67,7 @@ export default function Home() {
                 'Nouvelle 抗衰老中心'
               )}
             </p>
-            <h1 className={`font-display font-light leading-[1.02] tracking-tight sm:text-7xl ${lang === 'zh' ? 'text-4xl' : 'text-5xl'} ${zhRight}`}>
+            <h1 className={`font-display font-light leading-[1.02] tracking-tight sm:text-7xl ${lang === 'zh' ? 'text-4xl' : 'text-[2.6rem]'} ${zhRight}`}>
               {t({ en: 'Prettier,', zh: '塑造' })}
               <br />
               <em className="text-gold">{t({ en: 'younger', zh: '更美丽年轻' })}</em>
@@ -87,13 +88,16 @@ export default function Home() {
                   <span className="whitespace-nowrap">自然美丽</span>
                 </>
               ) : (
-                'Injectables, advanced light- and energy-based treatments, Japanese-style skincare, lash extensions, permanent makeup, body sculpting, scalp-massage spa and whole-body anti-aging, all in one place — thoughtfully tailored, beautifully natural'
+                <>
+                  Aesthetic Injectables · Advanced Skin Treatments · Japanese Skincare · Lashes &amp; Brows · Body Contouring · Spa &amp; Wellness · Anti-Aging
+                  <span className="mt-4 block text-ink">Personalized Care. Natural Beauty.</span>
+                </>
               )}
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row lg:mt-10">
+            <div className={`flex flex-col gap-3 sm:flex-row lg:mt-10 ${lang === 'en' ? 'mt-16' : 'mt-9'}`}>
               <Link to="/treatments" className="btn-ghost">{t({ en: 'All treatments', zh: '全部服务' })}</Link>
               <Link to="/contact" className="btn-primary">{t(ui.book)} <ArrowRight size={16} /></Link>
-              <button type="button" onClick={() => setWechatOpen(true)} className="btn-ghost"><MessageCircle size={16} /> {t({ en: 'WeChat', zh: '微信联系' })}</button>
+              {lang === 'zh' && <button type="button" onClick={() => setWechatOpen(true)} className="btn-ghost"><MessageCircle size={16} /> 微信联系</button>}
             </div>
           </Reveal>
         </div>

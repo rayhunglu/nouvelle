@@ -71,6 +71,18 @@ function CustomerForm({ customer, onClose }) {
 
   return (
     <Modal title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer}>
+      {/* The customer's key details stay pinned at the top while the history below is scrolled. */}
+      {customer && (
+        <div className="sticky -top-6 z-10 -mx-6 -mt-2 mb-4 border-b border-ink/10 bg-ivory/95 px-6 py-2 backdrop-blur">
+          <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">{customer.name}{customer.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}</p>
+          <p className="flex flex-wrap gap-x-3 text-xs text-muted">
+            {customer.phone && <span>{customer.phone}</span>}
+            {(customer.wechatId || customer.wechatNo) && <span>微信 {[customer.wechatId, customer.wechatNo].filter(Boolean).join(' · ')}</span>}
+            <span>累计 <b className="text-ink">{money(spent)}</b></span>
+            {cardBal !== 0 && <span>会员卡余额 <b className="text-ink">{money(cardBal)}</b></span>}
+          </p>
+        </div>
+      )}
       <form onSubmit={submit} className="space-y-4">
         <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -168,29 +180,25 @@ export default function Customers() {
             {rows.map((c) => {
               const s = stats(c.id)
               return (
-                <li key={c.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4">
-                  <button onClick={() => setEditing(c)} className="flex min-w-0 flex-1 basis-56 items-center gap-4 text-left">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand font-display text-lg text-gold">{c.name.slice(0, 1)}</span>
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-2 truncate font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}</span>
-                      <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted">
+                <li key={c.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 min-[480px]:flex-nowrap">
+                  <button onClick={() => setEditing(c)} className="flex min-w-0 flex-1 basis-56 items-center gap-3 text-left min-[480px]:basis-0">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand font-display text-sm text-gold">{c.name.slice(0, 1)}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2 truncate text-sm font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}{(c.tags || []).map((t) => <span key={t} className="rounded-full bg-gold/15 px-2 py-0.5 text-[0.65rem] font-normal text-gold">{t}</span>)}</span>
+                      <span className="flex flex-wrap gap-x-3 text-[0.7rem] leading-snug text-muted min-[480px]:flex-nowrap min-[480px]:overflow-hidden min-[480px]:whitespace-nowrap">
                         {c.phone && <span className="flex items-center gap-1"><Phone size={12} />{c.phone}</span>}
                         {(c.wechatId || c.wechatNo) && <span className="flex items-center gap-1"><MessageCircle size={12} />{[c.wechatId, c.wechatNo].filter(Boolean).join(' · ')}</span>}
-                        {c.email && <span className="flex items-center gap-1"><Mail size={12} />{c.email}</span>}
+                        {c.email && <span className="flex min-w-0 items-center gap-1"><Mail size={12} className="shrink-0" /><span className="truncate">{c.email}</span></span>}
                       </span>
                     </span>
                   </button>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(c.tags || []).map((t) => <span key={t} className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs text-gold">{t}</span>)}
+                  <div className="w-36 shrink-0 text-right text-xs leading-snug">
+                    <p className="font-medium">{money(s.spent)} <span className="font-normal text-muted">· {s.visits} 次</span></p>
+                    <p className="text-[0.7rem] text-muted">上次：{s.last ? fmtDateTime(s.last) : '尚未到访'}</p>
                   </div>
-                  <div className="w-40 text-right text-sm">
-                    <p className="font-medium">{money(s.spent)}</p>
-                    <p className="text-xs text-muted">{s.visits} 次到访</p>
-                    <p className="text-xs text-muted">上次：{s.last ? fmtDateTime(s.last) : '尚未到访'}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => setEditing(c)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={16} /></button>
-                    {!noDelete && <button onClick={() => setConfirmDel(c)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={16} /></button>}
+                  <div className="flex shrink-0 gap-1">
+                    <button onClick={() => setEditing(c)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={15} /></button>
+                    {!noDelete && <button onClick={() => setConfirmDel(c)} className="grid h-8 w-8 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={15} /></button>}
                   </div>
                 </li>
               )

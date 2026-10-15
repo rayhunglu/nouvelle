@@ -45,6 +45,7 @@ export default function CrmLayout() {
                 key={to}
                 to={to}
                 end={end}
+                state={to === '/crm/appointments' ? { day: true } : undefined}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? 'bg-ivory/10 text-ivory' : 'text-ivory/60 hover:bg-ivory/5 hover:text-ivory'}`
                 }
@@ -75,7 +76,7 @@ export default function CrmLayout() {
           {/* Mobile bottom tabs */}
           <nav className={`fixed inset-x-0 bottom-0 z-30 grid ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'} border-t border-ink/10 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden`}>
             {items.map(({ to, label, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex flex-col items-center gap-1 py-2.5 text-[0.7rem] ${isActive ? 'text-ink' : 'text-muted'}`}>
+              <NavLink key={to} to={to} end={end} state={to === '/crm/appointments' ? { day: true } : undefined} className={({ isActive }) => `flex flex-col items-center gap-1 py-2.5 text-[0.7rem] ${isActive ? 'text-ink' : 'text-muted'}`}>
                 <Icon size={20} /> {label}
               </NavLink>
             ))}

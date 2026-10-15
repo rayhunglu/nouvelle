@@ -18,7 +18,18 @@ export function Card({ className = '', children }) {
   return <div className={`rounded-2xl border border-ink/10 bg-white ${className}`}>{children}</div>
 }
 
-export function StatCard({ icon: Icon, label, value, tone = 'text-ink', hint }) {
+export function StatCard({ icon: Icon, label, value, tone = 'text-ink', hint, compact = false }) {
+  if (compact) {
+    return (
+      <Card className="px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-xs text-muted">{label}</p>
+          {Icon && <Icon size={14} className="shrink-0 text-gold" />}
+        </div>
+        <p className={`font-display text-xl leading-tight ${tone}`}>{value}{hint && <span className="ml-1.5 font-sans text-[0.65rem] text-muted">{hint}</span>}</p>
+      </Card>
+    )
+  }
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between">
@@ -37,7 +48,7 @@ export function StatusBadge({ status }) {
 }
 
 export function Empty({ children }) {
-  return <p className="px-6 py-12 text-center text-sm text-muted">{children}</p>
+  return <p className="px-6 py-8 text-center text-sm text-muted">{children}</p>
 }
 
 export function PageTitle({ title, sub, children, compact = false }) {
@@ -70,7 +81,7 @@ export function Modal({ title, onClose, children, wide = false }) {
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-ivory p-6 shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
+        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-ivory p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-display text-2xl">{title}</h2>

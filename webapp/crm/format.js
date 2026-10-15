@@ -112,6 +112,9 @@ export const cardRatio = (payments, p) => {
   const loaded = mine.reduce((n, x) => n + cardLoaded(x), 0)
   return loaded > 0 ? paid / loaded : 1
 }
+// A payment counts toward revenue and staff performance only when it is settled (see paidAmount) and, if it belongs to an
+// appointment, that appointment is completed (checked in and out). apptById maps appointment id -> appointment.
+export const countsForPerformance = (p, apptById) => !p.appointmentId || apptById[p.appointmentId]?.status === 'completed'
 export const paidAmount = (p) => (p.paymentMethod === 'unsettled' ? 0 : p.amount) // what has actually been collected
 export const paidTip = (p) => ((p.tipMethod || p.paymentMethod) === 'unsettled' ? 0 : p.tipAmount || 0)
 export const performanceOf = (p, payments) => (p.paymentMethod === 'unsettled' ? 0 : p.paymentMethod === 'member_card' ? Math.round(p.amount * cardRatio(payments, p) * 100) / 100 : p.amount)

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, CalendarPlus, Check, Clock, HandCoins, LayoutList, Pencil, Plus, Trash2 } from 'lucide-react'
 import { business, categories } from '../data/site'
 import { api } from '../api'
@@ -10,6 +10,8 @@ import PaymentForm from './PaymentForm'
 import TimeAxis from './TimeAxis'
 import { durationFor } from './durations'
 import { withStaff } from './staff'
+
+const SOURCES = ['Yingna', 'Rina', 'Dayu', '其他'] // 客户来源 choices
 import { defaultOpenStart, findClash, dayAppointments, hhmm, minutesOfDay } from './timeline'
 import { ROOMS, roomOf } from './rooms'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
@@ -293,6 +295,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
     // New bookings start with the first listed staff member (Rina); existing ones keep what was saved.
     staff: lockStaff && user?.staffName ? user.staffName : appt ? appt.staff || '' : ROOM_DEFAULT_STAFF[appt?.room || draftRoom || ''] || '',
     notes: appt?.notes || '',
+    source: appt?.source || '', // 客户来源
   })
   const [nc, setNc] = useState({ firstName: '', lastName: '', gender: 'female', wechatId: '', wechatNo: '', phone: '', email: '' }) // the customer being added
   const setNew = (k) => (e) => setNc({ ...nc, [k]: e.target.value })
@@ -508,6 +511,12 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
             </select>
           </Field>
         </div>
+        <Field label="客户来源">
+          <select className={inputCls} value={f.source} onChange={set('source')}>
+            <option value="">未选择</option>
+            {SOURCES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </Field>
         <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={set('notes')} /></Field>
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
@@ -547,6 +556,9 @@ export default function Appointments() {
     setView(v)
     try { localStorage.setItem('crm.apptView2', v) } catch { /* storage unavailable */ }
   }
+  // Tapping 预约 in the menu (even while already on this page) lands on today's timeline.
+  const location = useLocation()
+  useEffect(() => { if (location.state?.day) changeView('day') }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const [filter, setFilter] = useState('upcoming')
   const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows only their appointments, in every view
   const [editing, setEditing] = useState(null)
@@ -700,6 +712,7 @@ export default function Appointments() {
                               {a.room ? roomOf(a.room).name : ''}{a.room && a.staff ? ' · ' : ''}{a.staff}
                             </p>
                           )}
+                          {a.source && <p className="mt-0.5 truncate text-xs text-muted">客户来源：{a.source}</p>}
                           </div>
                           <StatusBadge status={a.status} />
                           {a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}

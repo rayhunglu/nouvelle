@@ -54,7 +54,7 @@ export default function StaffAccounts() {
       <PageTitle title="员工管理" sub="先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤" />
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
 
-      <Card className="mb-6 p-5">
+      <Card className="mb-6 p-4 sm:p-5">
         <form onSubmit={add} className="flex max-w-md gap-2">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="新员工的名字" maxLength={60} required />
           <button className="btn-primary !py-2.5 shrink-0" disabled={busy}><Plus size={16} /> 添加员工</button>
@@ -213,7 +213,7 @@ function ProfileManager({ only }) {
   if (!data) return null
   const label = (v) => (v === 'sent' ? '已发送' : v === 'dry-run' ? '演练（未真发）' : String(v).replace('skipped: ', '未发：').replace('failed: ', '失败：'))
   return (
-    <Card className="mb-6 p-5">
+    <Card className="mb-6 p-4 sm:p-5">
       <div className="mb-1 flex items-center gap-2"><Bell size={16} className="text-gold" /><h2 className="text-sm font-medium">员工资料与新预约提醒</h2></div>
       <p className="mb-3 text-xs text-muted">给员工填手机号和邮箱后，有预约安排给 TA（新建，或从别人名下转给 TA）时，系统会自动发短信和邮件提醒。TA 自己建的预约不会提醒 TA。</p>
       {!data.mailConfigured && <p className="mb-3 rounded-xl bg-amber-100 px-4 py-2 text-xs text-amber-900">服务器还没有设置发件邮箱（GMAIL_EMAIL / GMAIL_APP_PASSWORD），所以现在提醒发不出去；资料可以先填好保存。</p>}
@@ -223,8 +223,8 @@ function ProfileManager({ only }) {
           if (!d) return null
           const m = msg[name]
           return (
-            <li key={name} className="rounded-2xl border border-ink/10 bg-white p-4">
-              <p className="mb-3 font-medium">{name}</p>
+            <li key={name} className={only ? '' : 'rounded-2xl border border-ink/10 bg-white p-4'}>
+              {!only && <p className="mb-3 font-medium">{name}</p>}
               <div className="space-y-2.5">
                 <Field label="手机号"><input className={inputCls} type="tel" inputMode="tel" value={d.phone} onChange={(e) => set(name, 'phone', e.target.value)} placeholder="例如 425 555 0100" autoComplete="off" /></Field>
                 <Field label="手机运营商（短信用）">
@@ -333,7 +333,7 @@ function ScheduleManager({ only }) {
   const today = ymd(new Date())
 
   return (
-    <Card className="mb-2 p-5">
+    <Card className="mb-2 p-4 sm:p-5">
       <div className="mb-1 flex items-center gap-2"><CalendarOff size={16} className="text-gold" /><h2 className="text-sm font-medium">出勤与休息</h2></div>
       <p className="mb-4 text-xs text-muted">点星期几设置每周固定出勤（深色 = 上班）。某天临时休息或加班，在下面添加特殊日期。休息的员工不能被安排预约。</p>
       {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-4 py-2 text-sm text-rose-800">{error}</p>}
@@ -342,8 +342,8 @@ function ScheduleManager({ only }) {
           const s = get(name)
           const dr = draft[name] || { date: '', kind: 'off' }
           return (
-            <li key={name} className="rounded-2xl border border-ink/10 bg-white p-4">
-              <p className="mb-3 font-medium">{name}</p>
+            <li key={name} className={only ? '' : 'rounded-2xl border border-ink/10 bg-white p-4'}>
+              {!only && <p className="mb-3 font-medium">{name}</p>}
               <div className="grid grid-cols-7 gap-1" role="group" aria-label={`${name} 每周出勤`}>
                 {WEEK.map((w, i) => {
                   const on = s.weekdays.includes(i)
@@ -500,7 +500,7 @@ function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm
         </div>
         <div className="flex rounded-full bg-sand p-0.5" role="group" aria-label="标记类型">
           {[['off', '休息'], ['on', '加班']].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => onKind(k)} aria-pressed={kind === k} className={`rounded-full px-2.5 py-0.5 ${kind === k ? 'bg-white font-medium shadow-sm' : 'text-muted'}`}>{l}</button>
+            <button key={k} type="button" onClick={() => onKind(k)} aria-pressed={kind === k} className={`whitespace-nowrap rounded-full px-2.5 py-0.5 ${kind === k ? 'bg-white font-medium shadow-sm' : 'text-muted'}`}>{l}</button>
           ))}
         </div>
       </div>
@@ -593,8 +593,8 @@ function AccountForm({ user, staffName, onClose, onSaved }) {
         {!user && <Field label="登录名 *"><input className={inputCls} value={f.username} onChange={set('username')} autoComplete="off" required autoFocus placeholder="例如 rina" /></Field>}
         <Field label="角色">
           <select className={inputCls} value={f.role} onChange={set('role')}>
-            <option value="staff">员工（按下面的权限）</option>
-            <option value="admin">管理员（店长，全部权限，可管理员工账号）</option>
+            <option value="staff">员工（按权限）</option>
+            <option value="admin">管理员（全部权限）</option>
           </select>
         </Field>
         <div className="grid gap-4 sm:grid-cols-3">

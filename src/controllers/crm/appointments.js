@@ -1,5 +1,5 @@
 const store = require('../../services/store');
-const { STATUSES, ROOM_NAMES, str, num } = require('./common');
+const { SOURCES, STATUSES, ROOM_NAMES, str, num } = require('./common');
 const { makeCrud } = require('./crud');
 const { hoursRow } = require('./settings');
 const { notifyStaff } = require('./staffProfile');
@@ -23,6 +23,8 @@ async function appointmentInput(b) {
       room: str(b.room, 30), staff: str(b.staff, 60), notes: str(b.notes, 2000),
       // A booking can take a whole double room (both beds); stored only when sent so other edits never reset it.
       ...('fullRoom' in b ? { fullRoom: b.fullRoom === true } : {}),
+      // Where the customer came from; stored only when sent, so other edits never clear it.
+      ...('source' in b ? { source: SOURCES.includes(b.source) ? b.source : '' } : {}),
     },
   };
 }
