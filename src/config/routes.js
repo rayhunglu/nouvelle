@@ -13,7 +13,7 @@ const { getSummary } = require('../controllers/crm/summary');
 const { getSettings, putSettings } = require('../controllers/crm/settings');
 const { getRoster, addStaff, removeStaff } = require('../controllers/crm/roster');
 const { getSchedule, putSchedule } = require('../controllers/crm/schedule');
-const { getStaffProfile, putStaffProfile, testStaffProfile } = require('../controllers/crm/staffProfile');
+const { getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar } = require('../controllers/crm/staffProfile');
 const mongo = require('../services/mongo');
 const { rateLimit } = require('../middleware/security');
 
@@ -83,6 +83,7 @@ function crmRouter() {
   r.get('/staff-profile', adminOnly, getStaffProfile);
   r.put('/staff-profile', adminOnly, putStaffProfile);
   r.post('/staff-profile/test', adminOnly, testStaffProfile);
+  r.post('/staff-profile/calendar-check', adminOnly, checkCalendar);
 
   // Staff accounts
   r.get('/users', adminOnly, users.list);

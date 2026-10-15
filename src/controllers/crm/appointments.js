@@ -1,6 +1,7 @@
 const store = require('../../services/store');
 const { SOURCES, STATUSES, ROOM_NAMES, str, num } = require('./common');
 const { makeCrud } = require('./crud');
+const calendar = require('../../services/googleCalendar');
 const { hoursRow } = require('./settings');
 const { notifyStaff } = require('./staffProfile');
 const { scheduleRow, clinicDay, laMinutes, hhmmOf, hoursOnDay, worksOn, roomByStaff } = require('./schedule');
@@ -109,9 +110,36 @@ async function dropPaymentsOf(appointmentId) {
   }
 }
 
+// Keeps the Google Calendar in step with the appointment (CRM -> Google, see services/googleCalendar.js). Each staff member's
+// bookings go to their own calendar when one is set on their page, otherwise to the default calendar. A cancelled or no-show
+// booking has its event removed, and an event moves when the booking is handed to someone with a different calendar.
+// A failed sync is only logged: the appointment itself is already saved.
+async function syncCalendar(row) {
+  if (!calendar.enabled()) return;
+  const oldCal = row.googleCalendarId || calendar.defaultCalendarId();
+  if (row.status === 'cancelled' || row.status === 'no-show') {
+    if (row.googleEventId) {
+      const r = await calendar.remove(row.googleEventId, oldCal);
+      if (!r.error) await store.update('appointments', row.id, { googleEventId: '', googleCalendarId: '' });
+    }
+    return;
+  }
+  const target = await calendar.calendarFor(row.staff);
+  if (!target) return;
+  let appt = row;
+  if (row.googleEventId && oldCal !== target) { // handed over to a staff member with another calendar: move the event
+    await calendar.remove(row.googleEventId, oldCal);
+    appt = { ...row, googleEventId: '' };
+  }
+  const customer = await store.get('customers', row.customerId);
+  const r = await calendar.upsert(appt, customer && customer.name, target);
+  if (r.id && (r.id !== row.googleEventId || target !== row.googleCalendarId)) await store.update('appointments', row.id, { googleEventId: r.id, googleCalendarId: target });
+}
+
 module.exports = makeCrud('appointments', appointmentInput, {
   conflict: roomConflict,
   async afterWrite(row, isNew, req, prev) {
+    await syncCalendar(row);
     if (row.status === 'cancelled' || row.status === 'no-show') { await dropPaymentsOf(row.id); return; } // cancelling or a no-show takes its payments back
     // A new booking (or one handed over to someone else) is announced to the staff member it belongs to, unless they made it themselves.
     const handedOver = !isNew && prev && (prev.staff || '') !== (row.staff || '');
@@ -119,6 +147,11 @@ module.exports = makeCrud('appointments', appointmentInput, {
       notifyStaff(row).catch((err) => console.error('staff notice failed:', err.message)); // in the background: the booking is already saved
     }
   },
-  async beforeDelete(id) { await dropPaymentsOf(id); return null; }, // so does deleting
+  async beforeDelete(id) {
+    const a = await store.get('appointments', id);
+    if (a && a.googleEventId) await calendar.remove(a.googleEventId, a.googleCalendarId || calendar.defaultCalendarId()); // the calendar event goes too
+    await dropPaymentsOf(id); // so does deleting
+    return null;
+  },
 });
 

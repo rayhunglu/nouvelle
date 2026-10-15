@@ -1,5 +1,6 @@
 const store = require('../../services/store');
 const mailer = require('../../services/mailer');
+const calendar = require('../../services/googleCalendar');
 const { wrap, str } = require('./common');
 
 // ---- staff contact details and new-booking alerts ----
@@ -16,7 +17,7 @@ async function notifyStaff(appt, kind = 'new') {
   return result;
 }
 
-const getStaffProfile = wrap(async (req, res) => res.json({ staff: ((await profilesRow()) || {}).staff || {}, mailConfigured: mailer.enabled(), log: noticeLog }));
+const getStaffProfile = wrap(async (req, res) => res.json({ staff: ((await profilesRow()) || {}).staff || {}, mailConfigured: mailer.enabled(), log: noticeLog, calendarEmail: calendar.serviceAccountEmail(), defaultCalendar: !!calendar.defaultCalendarId() }));
 
 const putStaffProfile = wrap(async (req, res) => {
   const b = req.body || {};
@@ -27,8 +28,10 @@ const putStaffProfile = wrap(async (req, res) => {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: '邮箱格式不对' });
   if (phone && String(phone).replace(/\D/g, '').length < 10) return res.status(400).json({ error: '手机号至少 10 位' });
   const carrier = ['tmobile', 'att', 'verizon'].includes(b.carrier) ? b.carrier : 'tmobile';
+  const calendarId = str(b.calendarId, 200); // this person's own Google Calendar ('' = the default one)
+  if (calendarId && !/^[^\s@]+@[^\s@]+$/.test(calendarId)) return res.status(400).json({ error: '日历 ID 格式不对（应像 xxxx@group.calendar.google.com）' });
   const row = await profilesRow();
-  const staff = { ...((row && row.staff) || {}), [name]: { email, phone, carrier, notifyEmail: b.notifyEmail !== false, notifySms: b.notifySms !== false } };
+  const staff = { ...((row && row.staff) || {}), [name]: { email, phone, carrier, notifyEmail: b.notifyEmail !== false, notifySms: b.notifySms !== false, calendarId } };
   if (row) await store.update('settings', row.id, { staff });
   else await store.create('settings', { key: 'profiles', staff });
   res.json(staff);
@@ -41,4 +44,10 @@ const testStaffProfile = wrap(async (req, res) => {
   res.json(result || { error: '先保存这位员工的手机号或邮箱' });
 });
 
-module.exports = { notifyStaff, getStaffProfile, putStaffProfile, testStaffProfile };
+// Checks that the service account can reach a calendar id (empty = the default calendar).
+const checkCalendar = wrap(async (req, res) => {
+  const id = str(req.body && req.body.calendarId, 200) || calendar.defaultCalendarId();
+  res.json(await calendar.check(id));
+});
+
+module.exports = { notifyStaff, getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar };

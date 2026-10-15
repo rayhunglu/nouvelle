@@ -62,6 +62,8 @@ async function createAppointment(input) {
       notes: { required: true, type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
       source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
+      googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
+      googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
     });
     if (error) throw error;
     const query = newRecord(compact({
@@ -76,6 +78,8 @@ async function createAppointment(input) {
       notes: input.notes,
       fullRoom: input.fullRoom,
       source: input.source,
+      googleEventId: input.googleEventId,
+      googleCalendarId: input.googleCalendarId,
     }));
     await dbClient.insertOne(COLLECTION, query);
     return query;
@@ -101,6 +105,8 @@ async function updateAppointment(id, input) {
       notes: { type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
       source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
+      googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
+      googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
       paymentDeleted: { type: 'boolean' },
     });
     if (error) throw error;
@@ -116,6 +122,8 @@ async function updateAppointment(id, input) {
       notes: input.notes,
       fullRoom: input.fullRoom,
       source: input.source,
+      googleEventId: input.googleEventId,
+      googleCalendarId: input.googleCalendarId,
       paymentDeleted: input.paymentDeleted,
     });
     return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...query, id, updatedAt: new Date().toISOString() });

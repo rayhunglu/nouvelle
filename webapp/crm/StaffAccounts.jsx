@@ -196,12 +196,18 @@ function ProfileManager({ only }) {
   const [data, setData] = useState(null) // { staff: {name: profile}, mailConfigured, log }
   const [drafts, setDrafts] = useState({})
   const [msg, setMsg] = useState({}) // per staff: last save / test message
-  const load = useCallback(() => api('/crm/staff-profile').then((d) => { setData(d); setDrafts((cur) => Object.fromEntries(roster.map((n) => [n, cur[n] || { phone: d.staff[n]?.phone || '', email: d.staff[n]?.email || '', carrier: d.staff[n]?.carrier || 'tmobile', notifyEmail: d.staff[n]?.notifyEmail !== false, notifySms: d.staff[n]?.notifySms !== false }]))) }).catch(() => {}), [roster])
+  const load = useCallback(() => api('/crm/staff-profile').then((d) => { setData(d); setDrafts((cur) => Object.fromEntries(roster.map((n) => [n, cur[n] || { phone: d.staff[n]?.phone || '', email: d.staff[n]?.email || '', carrier: d.staff[n]?.carrier || 'tmobile', notifyEmail: d.staff[n]?.notifyEmail !== false, notifySms: d.staff[n]?.notifySms !== false, calendarId: d.staff[n]?.calendarId || '' }]))) }).catch(() => {}), [roster])
   useEffect(() => { load() }, [load])
   const set = (name, k, v) => setDrafts((d) => ({ ...d, [name]: { ...d[name], [k]: v } }))
   const flash = (name, text, ok = true) => setMsg((m) => ({ ...m, [name]: { text, ok } }))
   const save = async (name) => {
     try { await api('/crm/staff-profile', { method: 'PUT', body: { staff: name, ...drafts[name] } }); flash(name, '已保存'); load() } catch (e) { flash(name, e.message, false) }
+  }
+  const checkCal = async (name) => {
+    try {
+      const r = await api('/crm/staff-profile/calendar-check', { method: 'POST', body: { calendarId: drafts[name]?.calendarId || '' } })
+      flash(name, r.ok ? `日历可用：${r.name}` : r.error, r.ok)
+    } catch (e) { flash(name, e.message, false) }
   }
   const test = async (name) => {
     try {
@@ -215,6 +221,7 @@ function ProfileManager({ only }) {
   return (
     <Card className="mb-6 p-4 sm:p-5">
       <div className="mb-1 flex items-center gap-2"><Bell size={16} className="text-gold" /><h2 className="text-sm font-medium">员工资料与新预约提醒</h2></div>
+      {data.calendarEmail && <p className="mb-3 text-xs text-muted">要同步到某个 Google 日历：先在那个日历的「设置和共用」里，把 <b className="break-all text-ink">{data.calendarEmail}</b> 加为「变更活动」，再把日历 ID 填在员工资料里。不填则使用默认日历。</p>}
       <p className="mb-3 text-xs text-muted">给员工填手机号和邮箱后，有预约安排给 TA（新建，或从别人名下转给 TA）时，系统会自动发短信和邮件提醒。TA 自己建的预约不会提醒 TA。</p>
       {!data.mailConfigured && <p className="mb-3 rounded-xl bg-amber-100 px-4 py-2 text-xs text-amber-900">服务器还没有设置发件邮箱（GMAIL_EMAIL / GMAIL_APP_PASSWORD），所以现在提醒发不出去；资料可以先填好保存。</p>}
       <ul className={only ? 'grid gap-4' : 'grid gap-4 lg:grid-cols-3'}>
@@ -235,6 +242,12 @@ function ProfileManager({ only }) {
                   </select>
                 </Field>
                 <Field label="邮箱"><input className={inputCls} type="email" value={d.email} onChange={(e) => set(name, 'email', e.target.value)} placeholder="name@example.com" autoComplete="off" /></Field>
+                <Field label="Google 日历 ID（选填，TA 的预约会同步到这个日历）">
+                  <div className="flex gap-2">
+                    <input className={inputCls} value={d.calendarId} onChange={(e) => set(name, 'calendarId', e.target.value)} placeholder={data.defaultCalendar ? '不填则用默认日历' : 'xxxx@group.calendar.google.com'} autoComplete="off" spellCheck={false} />
+                    <button type="button" onClick={() => checkCal(name)} className="shrink-0 rounded-xl border border-ink/15 px-3 text-xs hover:bg-sand">检查</button>
+                  </div>
+                </Field>
                 <div className="flex gap-4 text-xs">
                   <label className="flex items-center gap-1.5"><input type="checkbox" checked={d.notifySms} onChange={(e) => set(name, 'notifySms', e.target.checked)} className="h-3.5 w-3.5 accent-gold" />短信提醒</label>
                   <label className="flex items-center gap-1.5"><input type="checkbox" checked={d.notifyEmail} onChange={(e) => set(name, 'notifyEmail', e.target.checked)} className="h-3.5 w-3.5 accent-gold" />邮件提醒</label>
