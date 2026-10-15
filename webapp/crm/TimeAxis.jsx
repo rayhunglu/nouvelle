@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { dayKey } from './format'
+import { useCrm } from './data'
 import { roomOf } from './rooms'
 import { dayAppointments, hhmm, minutesOfDay, SLOT, ROW } from './timeline'
 
@@ -8,6 +9,8 @@ import { dayAppointments, hhmm, minutesOfDay, SLOT, ROW } from './timeline'
 // existing appointments are drawn as blocks and the chosen slot turns red when it clashes in the same room.
 
 export default function TimeAxis({ date, startMin, durationMin, room, appointments, customerById, selfId, clash, onPick }) {
+  const { hoursFor } = useCrm()
+  const hours = hoursFor(room) // the grey stretches outside this room's business hours
   const scroller = useRef(null)
   const track = useRef(null)
   const lastType = useRef('mouse')
@@ -93,9 +96,9 @@ export default function TimeAxis({ date, startMin, durationMin, room, appointmen
           )
         })}
 
-        {/* 00:00-09:00 and 20:00-24:00 are shaded: outside the working day. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: top(9 * 60) }} />
-        <div className="pointer-events-none absolute inset-x-0 bg-ink/[0.07]" style={{ top: top(20 * 60), height: top(24 * 60) - top(20 * 60) }} />
+        {/* Before opening and after closing time is shaded (the manager sets the hours on the calendar). */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: top(hours.openMin) }} />
+        <div className="pointer-events-none absolute inset-x-0 bg-ink/[0.07]" style={{ top: top(hours.closeMin), height: top(24 * 60) - top(hours.closeMin) }} />
 
         {/* Existing bookings: solid in the chosen room (or when no room is chosen), faint for other rooms. */}
         {list.map((a) => {

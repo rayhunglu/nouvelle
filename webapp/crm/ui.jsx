@@ -40,12 +40,12 @@ export function Empty({ children }) {
   return <p className="px-6 py-12 text-center text-sm text-muted">{children}</p>
 }
 
-export function PageTitle({ title, sub, children }) {
+export function PageTitle({ title, sub, children, compact = false }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className={`flex flex-wrap items-end justify-between ${compact ? 'mb-3 gap-2' : 'mb-6 gap-4'}`}>
       <div>
-        <h1 className="font-display text-3xl">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
+        <h1 className={`font-display ${compact ? 'text-2xl' : 'text-3xl'}`}>{title}</h1>
+        {sub && <p className={`mt-1 text-sm text-muted ${compact ? 'hidden sm:block' : ''}`}>{sub}</p>}
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>

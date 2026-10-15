@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2 } from 'lucide-react'
+import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { fmtDateTime, money } from './format'
+import { cardBalance, fmtDateTime, giftItems, giftLabel, money, paidAmount } from './format'
 
 // Last visit = most recent completed appointment or recorded payment.
 function lastVisitOf(customerId, appointments, payments) {
   const times = [
-    ...appointments.filter((a) => a.customerId === customerId && a.status === 'completed').map((a) => a.start),
+    ...appointments.filter((a) => a.customerId === customerId && a.status === 'completed' && !a.paymentDeleted).map((a) => a.start),
     ...payments.filter((p) => p.customerId === customerId).map((p) => p.datetime),
   ]
   return times.length ? times.reduce((a, b) => (a > b ? a : b)) : null
@@ -31,7 +32,7 @@ function CustomerForm({ customer, onClose }) {
     if (!customer) return []
     const mine = payments.filter((p) => p.customerId === customer.id)
     const paidFor = (appointmentId) => mine.filter((p) => p.appointmentId === appointmentId).reduce((t, p) => t + p.amount + (p.tipAmount || 0), 0)
-    const done = history.filter((a) => a.status === 'completed')
+    const done = history.filter((a) => a.status === 'completed' && !a.paymentDeleted) // a deleted consumption record no longer counts as a service received
     const doneIds = new Set(done.map((a) => a.id))
     const rows = done.map((a) => ({ service: a.service, when: a.start, paid: paidFor(a.id), staff: a.staff }))
     for (const p of mine.filter((p) => !p.appointmentId || !doneIds.has(p.appointmentId))) {
@@ -51,7 +52,9 @@ function CustomerForm({ customer, onClose }) {
     return Object.values(m).sort((x, y) => y.last.localeCompare(x.last))
   })()
   const lastVisit = customer ? lastVisitOf(customer.id, appointments, payments) : null
-  const spent = customer ? payments.filter((p) => p.customerId === customer.id).reduce((s, p) => s + p.amount, 0) : 0
+  const gifts = customer ? giftItems(payments, customer.id) : {}
+  const cardBal = customer ? cardBalance(payments, customer.id) : 0
+  const spent = customer ? payments.filter((p) => p.customerId === customer.id).reduce((s, p) => s + paidAmount(p), 0) : 0
 
   const submit = async (e) => {
     e.preventDefault()
@@ -101,14 +104,15 @@ function CustomerForm({ customer, onClose }) {
           )}
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-sm font-medium">预约记录（{history.length}）</h3>
-            <p className="text-sm text-muted">上次到访 <b className="text-ink">{fmtLast(lastVisit)}</b> · 累计 <b className="text-ink">{money(spent)}</b></p>
+            <p className="text-sm text-muted">上次到访 <b className="text-ink">{fmtLast(lastVisit)}</b> · 累计 <b className="text-ink">{money(spent)}</b>{(cardBal !== 0 || payments.some((p) => p.customerId === customer.id && p.topUp > 0)) && <> · 会员卡余额 <b className="text-ink">{money(cardBal)}</b></>}</p>
           </div>
+            {Object.keys(gifts).length > 0 && <p className="-mt-1.5 mb-3 text-right text-xs text-emerald-700">赠送项目剩余：{Object.entries(gifts).map(([g, n]) => `${giftLabel(g)} ×${n}`).join('、')}</p>}
           {history.length === 0 ? <p className="text-sm text-muted">暂无预约</p> : (
             <ul className="divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
               {history.map((a) => (
                 <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <div className="min-w-0"><p className="truncate font-medium">{a.service}</p><p className="text-xs text-muted">{fmtDateTime(a.start)}</p></div>
-                  <StatusBadge status={a.status} />
+                  <div className={`min-w-0 ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}><p className="truncate font-medium">{a.service}</p><p className="text-xs text-muted">{fmtDateTime(a.start)}</p></div>
+                  <span className="flex items-center gap-2">{a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}<StatusBadge status={a.status} /></span>
                 </li>
               ))}
             </ul>
@@ -121,6 +125,7 @@ function CustomerForm({ customer, onClose }) {
 
 export default function Customers() {
   const { customers, appointments, payments, remove } = useCrm()
+  const noDelete = !useAuth().can('deleteCustomers') // deleting customers needs the manager's permission
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | customer
   const [error, setError] = useState('')
@@ -133,13 +138,14 @@ export default function Customers() {
   }, [customers, q])
 
   const stats = (id) => ({
-    visits: appointments.filter((a) => a.customerId === id && a.status === 'completed').length,
-    spent: payments.filter((p) => p.customerId === id).reduce((s, p) => s + p.amount, 0),
+    visits: appointments.filter((a) => a.customerId === id && a.status === 'completed' && !a.paymentDeleted).length,
+    spent: payments.filter((p) => p.customerId === id).reduce((s, p) => s + paidAmount(p), 0),
     last: lastVisitOf(id, appointments, payments),
   })
 
+  const [confirmDel, setConfirmDel] = useState(null) // customer waiting for the delete confirmation
   const del = async (c) => {
-    if (!window.confirm(`确定删除客户「${c.name}」？`)) return
+    setConfirmDel(null)
     setError('')
     try { await remove('customers', c.id) } catch (err) { setError(err.message) }
   }
@@ -166,7 +172,7 @@ export default function Customers() {
                   <button onClick={() => setEditing(c)} className="flex min-w-0 flex-1 basis-56 items-center gap-4 text-left">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand font-display text-lg text-gold">{c.name.slice(0, 1)}</span>
                     <span className="min-w-0">
-                      <span className="flex items-center gap-2 truncate font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}</span>
+                      <span className="flex items-center gap-2 truncate font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}</span>
                       <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-muted">
                         {c.phone && <span className="flex items-center gap-1"><Phone size={12} />{c.phone}</span>}
                         {(c.wechatId || c.wechatNo) && <span className="flex items-center gap-1"><MessageCircle size={12} />{[c.wechatId, c.wechatNo].filter(Boolean).join(' · ')}</span>}
@@ -184,7 +190,7 @@ export default function Customers() {
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => setEditing(c)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={16} /></button>
-                    <button onClick={() => del(c)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={16} /></button>
+                    {!noDelete && <button onClick={() => setConfirmDel(c)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={16} /></button>}
                   </div>
                 </li>
               )
@@ -193,6 +199,19 @@ export default function Customers() {
         )}
       </Card>
 
+      {confirmDel && (
+        <Modal title="删除客户" onClose={() => setConfirmDel(null)}>
+          <p className="text-sm">确定删除客户「<b>{confirmDel.name}</b>」？</p>
+          <p className="mt-2 text-xs text-muted">
+            同时会删除 TA 的 {appointments.filter((a) => a.customerId === confirmDel.id).length} 个预约和 {payments.filter((p) => p.customerId === confirmDel.id).length} 笔账目（收款）记录
+            {cardBalance(payments, confirmDel.id) > 0 && `，会员卡余额 ${money(cardBalance(payments, confirmDel.id))} 也会一并清除`}，删除后无法恢复。
+          </p>
+          <div className="flex justify-end gap-2 pt-5">
+            <button type="button" onClick={() => setConfirmDel(null)} className="btn-ghost !py-2.5">取消</button>
+            <button type="button" onClick={() => del(confirmDel)} className="rounded-full bg-rose-600 px-5 py-2.5 text-sm text-white hover:bg-rose-700">确定删除</button>
+          </div>
+        </Modal>
+      )}
       {editing && <CustomerForm customer={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </>
   )

@@ -1,23 +1,39 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Ban, Check, ChevronLeft, ChevronRight, LogIn, Play, X } from 'lucide-react'
+import { useAuth } from '../auth'
+import { useCrm } from './data'
 import { Card } from './ui'
 import { dayKey, fmtTime } from './format'
 import { NO_ROOM, ROOMS, roomOf } from './rooms'
 import { withStaff } from './staff'
 
-const HOUR_PX = 80 // 20px per 15-minute row
-const SHADE_END_HOUR = 9 // 00:00-09:00 is drawn shaded
-const SHADE_START_HOUR = 20 // and so is 20:00-24:00
-const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'] // week starts on Monday
+const HOUR_PX = 80 // default: 20px per 15-minute row (the time grid zooms between ZOOM_MIN and ZOOM_MAX)
+const ZOOM_MIN = 18
+const ZOOM_MAX = 240
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] // the week runs Sunday to Saturday, left to right
 
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x }
-const startOfWeek = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x }
+const startOfWeek = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x }
 const startOfMonth = (d) => new Date(d.getFullYear(), d.getMonth(), 1)
 const keyOf = (d) => dayKey(d.toISOString())
+const dayStart = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }
+const dayEnd = (d) => { const x = dayStart(d); x.setDate(x.getDate() + 1); return x }
 
-// Colour comes from the room; status is shown by style so both read at a glance.
-const chipCls = (a) => `${roomOf(a.room).chip} ${a.status === 'cancelled' ? 'line-through opacity-50' : ''}`
-const mark = (a) => (a.status === 'completed' ? '✓ ' : a.status === 'no-show' ? '✗ ' : '')
+// Colour comes from the room only; the status shows as a symbol before the time (see `mark`) and cancelled bookings are struck through.
+const chipCls = (a) => `${roomOf(a.room).chip} ${a.status === 'cancelled' || a.paymentDeleted ? 'line-through opacity-50' : ''}`
+// Status icon in front of the time: a small solid badge, so the status stands out without changing the room colour.
+const BADGE = {
+  'checked-in': { Icon: LogIn, cls: 'bg-lime-500', title: 'Check in' },
+  'in-service': { Icon: Play, cls: 'bg-fuchsia-600', title: 'In service' },
+  completed: { Icon: Check, cls: 'bg-emerald-600', title: 'Check out' },
+  'no-show': { Icon: X, cls: 'bg-rose-600', title: '未到店' },
+  cancelled: { Icon: Ban, cls: 'bg-stone-500', title: '已取消' },
+}
+const mark = (a) => {
+  const b = BADGE[a.status]
+  if (!b) return null
+  return <span title={b.title} className={`mr-1 inline-grid h-4 w-4 place-items-center rounded-full align-[-3px] text-white shadow-sm ring-1 ring-white/70 ${b.cls}`}><b.Icon size={10} strokeWidth={3} /></span>
+}
 const tip = (a, name) =>
   `${fmtTime(a.start)} ${name} · ${a.service}${a.staff ? ` · ${a.staff}` : ''} · ${roomOf(a.room).name}`
 
@@ -61,11 +77,34 @@ function Chip({ a, name, onEdit }) {
   )
 }
 
-function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, setSelected }) {
+function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, setSelected, onOpenDay, onSaveHours }) {
+  const { isClosed } = useCrm()
+  // Drag across days (mouse or trackpad) to pick a range, then open or close rooms for all of those days at once.
+  const [range, setRange] = useState(null) // { a, b }: indexes into the grid's cells
+  const [dragging, setDragging] = useState(false)
+  const justPicked = useRef(false)
   const gridStart = startOfWeek(startOfMonth(cursor))
   const days = Array.from({ length: 42 }, (_, i) => addDays(gridStart, i))
   const rows = days.slice(35).every((d) => d.getMonth() !== cursor.getMonth()) ? 5 : 6
   const today = keyOf(new Date())
+  const shown = days.slice(0, rows * 7)
+  const lo = range ? Math.min(range.a, range.b) : -1
+  const hi = range ? Math.max(range.a, range.b) : -1
+  const picked = range && hi > lo ? shown.slice(lo, hi + 1) : []
+  useEffect(() => {
+    if (!dragging) return undefined
+    const end = () => { setDragging(false) }
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end) }
+  }, [dragging])
+  // With no days picked, the room buttons act on the whole month shown.
+  const monthDays = days.filter((d) => d.getMonth() === cursor.getMonth())
+  const target = picked.length ? picked : monthDays
+  const applyRange = (value, roomIds) => {
+    onSaveHours({ closedBatch: { rooms: roomIds, value, days: target.map((d) => ({ date: keyOf(d), from: dayStart(d).toISOString(), to: dayEnd(d).toISOString() })) } })
+  }
+  const label = (d) => `${d.getMonth() + 1}月${d.getDate()}日`
 
   return (
     <>
@@ -73,19 +112,26 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
         {WEEKDAYS.map((w) => <div key={w} className="py-2.5">{w}</div>)}
       </div>
       <div className="grid grid-cols-7">
-        {days.slice(0, rows * 7).map((d, i) => {
+        {shown.map((d, i) => {
           const k = keyOf(d)
           const items = (byDay.get(k) || []).sort((a, b) => a.start.localeCompare(b.start))
           const inMonth = d.getMonth() === cursor.getMonth()
           return (
             <div
               key={k}
-              onClick={() => { setSelected(k); if (window.matchMedia('(min-width: 640px)').matches) { const s = new Date(d); s.setHours(10, 0, 0, 0); onCreate(s.toISOString()) } }}
-              className={`min-h-[4.5rem] cursor-pointer border-b border-r border-ink/5 p-1 transition hover:bg-sand/60 sm:min-h-[7.5rem] sm:p-1.5 ${i % 7 === 6 ? 'border-r-0' : ''} ${inMonth ? '' : 'bg-ink/[0.03]'} ${selected === k ? 'bg-gold/10' : ''}`}
+              onPointerDown={(e) => { if (!onSaveHours || e.pointerType === 'touch' || e.button !== 0 || e.target.closest('button')) return; justPicked.current = false; setRange({ a: i, b: i }); setDragging(true) }}
+              onPointerEnter={() => { if (dragging) { justPicked.current = true; setRange((r) => (r ? { ...r, b: i } : r)) } }}
+              onClick={() => { if (justPicked.current) { justPicked.current = false; return } setRange(null); setSelected(k); if (onOpenDay) { onOpenDay(d); return } if (window.matchMedia('(min-width: 640px)').matches) { const s = new Date(d); s.setHours(10, 0, 0, 0); onCreate(s.toISOString()) } }}
+              className={`min-h-[4.5rem] cursor-pointer border-b border-r border-ink/5 p-1 transition hover:bg-sand/60 sm:min-h-[7.5rem] sm:p-1.5 ${i % 7 === 6 ? 'border-r-0' : ''} ${inMonth ? '' : 'bg-ink/[0.03]'} ${selected === k ? 'bg-gold/10' : ''} ${i >= lo && i <= hi && hi > lo ? 'bg-gold/25 ring-1 ring-inset ring-gold/60' : ''} ${dragging ? 'select-none' : ''}`}
             >
               <div className="flex justify-center sm:justify-start">
                 <span className={`grid h-6 w-6 place-items-center rounded-full text-xs ${k === today ? 'bg-ink text-ivory' : inMonth ? '' : 'text-muted'}`}>{d.getDate()}</span>
               </div>
+              {ROOMS.some((r) => isClosed(r.id, k)) && (
+                <p className="mt-0.5 flex flex-wrap justify-center gap-0.5 sm:justify-start" title="已关闭的房间">
+                  {ROOMS.filter((r) => isClosed(r.id, k)).map((r) => <span key={r.id} className="rounded bg-stone-300 px-1 text-[0.55rem] leading-4 text-stone-700 sm:text-[0.62rem]">关·{r.name.slice(0, 2)}</span>)}
+                </p>
+              )}
               <div className="mt-1 hidden space-y-1 sm:block">
                 {items.slice(0, 3).map((a) => <Chip key={a.id} a={a} name={customerById[a.customerId]?.name || '—'} onEdit={onEdit} />)}
                 {items.length > 3 && <p className="px-1 text-[0.7rem] text-muted">还有 {items.length - 3} 个</p>}
@@ -97,6 +143,33 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
           )
         })}
       </div>
+      {onSaveHours && !dragging && (
+        <div className="border-t border-ink/10 bg-sand/50 px-4 py-3 text-sm">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p>
+              {picked.length > 0
+                ? <><b>{label(picked[0])} – {label(picked[picked.length - 1])}</b>（共 {picked.length} 天）<span className="ml-2 text-xs text-muted">选房间，把这几天一起设为开放或关闭</span></>
+                : <><b>{cursor.getFullYear()}年{cursor.getMonth() + 1}月 整月</b>（{monthDays.length} 天）<span className="ml-2 text-xs text-muted">直接选房间会设置整个月；想只设几天，先在上面的日历里按住拖选日期</span></>}
+            </p>
+            {picked.length > 0 && <button type="button" onClick={() => setRange(null)} className="rounded-full border border-ink/15 bg-white px-3 py-1 text-xs hover:bg-sand">取消选择</button>}
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            {[...ROOMS, { id: 'all', name: '全部房间', dot: 'bg-ink' }].map((r) => {
+              const ids = r.id === 'all' ? ROOMS.map((x) => x.id) : [r.id]
+              const closedDays = target.filter((d) => ids.every((id) => isClosed(id, keyOf(d)))).length
+              return (
+                <li key={r.id} className="rounded-xl border border-ink/10 bg-white px-3 py-2">
+                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium"><i className={`h-2.5 w-2.5 rounded-full ${r.dot}`} />{r.name}{closedDays > 0 && <span className="ml-auto text-[0.65rem] font-normal text-muted">已关 {closedDays} 天</span>}</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button type="button" onClick={() => applyRange(true, ids)} className="rounded-lg bg-stone-200 py-1 text-xs text-stone-800 hover:bg-stone-300">关闭</button>
+                    <button type="button" onClick={() => applyRange(false, ids)} className="rounded-lg bg-emerald-100 py-1 text-xs text-emerald-900 hover:bg-emerald-200">开放</button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </>
   )
 }
@@ -106,13 +179,150 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
 // red "now" pointer is in view; days other than today open at the first booking, or 09:00.
 const pad2 = (n) => String(n).padStart(2, '0')
 
-function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
+function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount = () => 0, blocks = [], onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, hourPx = 80, onZoom, scrollKey }) {
+  const HOUR_PX = hourPx // this grid's current zoom (px per hour); shadows the default above
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 20000); return () => clearInterval(t) }, [])
   const scroller = useRef(null)
+  // Pinch to zoom the time axis: two fingers moving together shrink it, moving apart enlarge it (trackpad pinch and ctrl + wheel
+  // do the same). The time under the fingers stays put.
+  const anchor = useRef(null) // { min, offset }: the minute under the pointer and where it sits in the frame
+  const pinch = useRef(null) // { dist, px } while two fingers are down
+  const hourRef = useRef(hourPx)
+  hourRef.current = hourPx
+  const [zoomTip, setZoomTip] = useState('')
+  const tipTimer = useRef(null)
+  const applyZoom = (next, clientY) => {
+    const el = scroller.current
+    if (!el || !onZoom) return
+    const clamped = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, next))
+    if (Math.abs(clamped - hourRef.current) < 0.5) return
+    const offset = clientY - el.getBoundingClientRect().top
+    anchor.current = { min: ((el.scrollTop + offset) / hourRef.current) * 60, offset }
+    onZoom(clamped)
+    setZoomTip(`${Math.round((clamped / 80) * 100)}%`)
+    clearTimeout(tipTimer.current)
+    tipTimer.current = setTimeout(() => setZoomTip(''), 900)
+  }
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (!el || !anchor.current) return
+    el.scrollTop = Math.max(0, (anchor.current.min / 60) * hourPx - anchor.current.offset)
+    anchor.current = null
+  }, [hourPx])
+  useEffect(() => {
+    const el = scroller.current
+    if (!el || !onZoom) return undefined
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY)
+    const onWheelZoom = (e) => {
+      if (!e.ctrlKey) return // a pinch on a trackpad arrives as ctrl + wheel
+      e.preventDefault()
+      applyZoom(hourRef.current * Math.exp(-e.deltaY * 0.01), e.clientY)
+    }
+    const start = (e) => { if (e.touches.length === 2) pinch.current = { dist: dist(e.touches), px: hourRef.current } }
+    const move = (e) => {
+      if (e.touches.length !== 2 || !pinch.current) return
+      e.preventDefault()
+      applyZoom(pinch.current.px * (dist(e.touches) / pinch.current.dist), (e.touches[0].clientY + e.touches[1].clientY) / 2)
+    }
+    const end = (e) => { if (e.touches.length < 2) pinch.current = null }
+    el.addEventListener('wheel', onWheelZoom, { passive: false })
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    el.addEventListener('touchcancel', end)
+    return () => {
+      el.removeEventListener('wheel', onWheelZoom)
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+      el.removeEventListener('touchcancel', end)
+    }
+    // applyZoom only reads refs and props that never change identity in a way that matters here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onZoom])
   const [hover, setHover] = useState(null) // the one 15-minute cell under the pointer: { col, q }
   const [drag, setDrag] = useState(null) // a drag in progress: { col, a, b } (quarter-hour cells, a = where it began)
   const lastPointer = useRef('mouse')
+  const colEls = useRef({}) // column elements by key, to find the column under the pointer while moving a booking
+  const clickTimer = useRef(null)
+  const justDragged = useRef(false)
+  const press = useRef(null) // a mouse press on a booking: { a, x, y, grab, active }
+  const [moving, setMoving] = useState(null) // a booking being dragged: { id, col, q, h }
+  const grip = useRef(null) // a resize handle being dragged: { a, kind: 'len' | 'wide', y, x }
+  const [resizing, setResizing] = useState(null) // preview of that drag: { id, dur?, full? }
+  // Business hours: before opening and after closing is grey. The manager drags the boundary lines: the part over one room
+  // changes that room only, the middle knob (and the time column) moves every room together.
+  const { hoursFor, isClosed, roomWindow } = useCrm()
+  // A room is shut for a day when the manager closed it or none of the people looking after it works.
+  const dayOf = (c) => dayKey(c.date.toISOString())
+  const staffShut = (c) => c.beds !== undefined && !!c.room && !!roomWindow(c.room, dayOf(c))?.closed
+  const shut = (c) => c.beds !== undefined && !!c.room && (isClosed(c.room, dayOf(c)) || staffShut(c))
+  const [hdrag, setHdrag] = useState(null) // a boundary being dragged: { scope: 'all' | roomId, key: 'openMin' | 'closeMin', value }
+  const gridEl = useRef(null)
+  const dayMode = columns.some((c) => c.beds !== undefined) // day view: one column per room (week view: one per day)
+  const liveHours = (roomId) => {
+    const h = hoursFor(roomId)
+    return hdrag && (hdrag.scope === 'all' || hdrag.scope === roomId) ? { ...h, [hdrag.key]: hdrag.value } : h
+  }
+  const clinic = liveHours('__all') // the clinic-wide hours: the time column and the week view
+  const openPx = (clinic.openMin / 60) * HOUR_PX
+  const afterClosePx = ((24 * 60 - clinic.closeMin) / 60) * HOUR_PX
+  const hm = (m) => `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`
+  const startHours = (scope, key) => (e) => {
+    if (e.pointerType === 'touch' || e.button !== 0) return
+    e.stopPropagation()
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
+    setHdrag({ scope, key, value: hoursFor(scope === 'all' ? '__all' : scope)[key] })
+  }
+  const moveHours = (scope, key) => (e) => {
+    if (!hdrag || hdrag.scope !== scope || hdrag.key !== key) return
+    e.stopPropagation()
+    const y = e.clientY - gridEl.current.getBoundingClientRect().top
+    const m = Math.round(((y / HOUR_PX) * 60) / 15) * 15
+    // Every affected room keeps at least an hour open.
+    const ids = scope === 'all' ? ['__all', ...columns.filter((c) => c.beds !== undefined && c.room).map((c) => c.room)] : [scope]
+    const v = key === 'openMin'
+      ? Math.max(0, Math.min(m, Math.min(...ids.map((id) => hoursFor(id).closeMin)) - 60))
+      : Math.min(24 * 60, Math.max(m, Math.max(...ids.map((id) => hoursFor(id).openMin)) + 60))
+    setHdrag((d) => (d && d.value === v ? d : { ...d, value: v }))
+    const fr = scroller.current?.getBoundingClientRect()
+    if (fr && e.clientY > fr.bottom - 36) scroller.current.scrollTop += 18
+    else if (fr && e.clientY < fr.top + 60) scroller.current.scrollTop -= 18
+  }
+  const endHours = (scope, key) => (e) => {
+    e.stopPropagation()
+    const d = hdrag
+    setHdrag(null)
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+    if (!d || d.scope !== scope || d.key !== key || d.value === hoursFor(scope === 'all' ? '__all' : scope)[key]) return
+    onSaveHours(scope === 'all' ? { all: { [key]: d.value } } : { room: scope, [key]: d.value })
+  }
+  // One draggable boundary segment. `inset` positions it inside its column / the time column / across the whole grid.
+  const hoursHandle = (scope, key, min, title, extra = '', chip = '') => {
+    const active = hdrag && hdrag.scope === scope && hdrag.key === key
+    return (
+      <div
+        key={`${scope}-${key}`}
+        onPointerDown={startHours(scope, key)}
+        onPointerMove={moveHours(scope, key)}
+        onPointerUp={endHours(scope, key)}
+        onPointerCancel={() => setHdrag(null)}
+        title={title}
+        className={`group absolute z-[28] flex cursor-ns-resize items-center ${extra || 'inset-x-0'}`}
+        style={{ top: (min / 60) * HOUR_PX - 5, height: 10 }}
+      >
+        <span className={`pointer-events-none h-0.5 w-full border-t-2 border-dashed ${active ? 'border-gold' : 'border-transparent group-hover:border-gold/70'}`} />
+        <span className={`pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-2 py-0.5 text-[0.62rem] font-semibold tabular-nums text-white ${active ? '' : 'opacity-0 group-hover:opacity-100'}`}>{chip}{hm(min)}</span>
+      </div>
+    )
+  }
+  const bpress = useRef(null) // a press on a blocked-time box: { k, kind: 'move' | 'top' | 'len', x, y, grab, active }
+  const justDraggedBlock = useRef(false)
+  const [bmenu, setBmenu] = useState(null) // double-click / right-click options of a blocked-time box: { k, x, y, ask }
+  const bclick = useRef(null)
+  const [bdrag, setBdrag] = useState(null) // preview while moving / resizing a block: { id, col?, q?, startMin?, dur? }
+  const [menu, setMenu] = useState(null) // double-click options for a booking: { a, x, y, ask }; ask = confirming the delete
   // Safety net: if the button is released outside a column (or the window loses focus) the drag must not stay stuck.
   const dragging = drag !== null
   useEffect(() => {
@@ -158,22 +368,101 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
   }
 
   return (
-    <div ref={scroller} className="max-h-[calc(100svh-19rem)] min-h-[22rem] overflow-auto overscroll-contain">
-      <div className="[--gut:2.75rem] sm:[--gut:3.5rem] sm:min-w-[var(--mw)]" style={{ '--mw': `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
+    <>
+    {bmenu && (
+      <div className="fixed inset-0 z-50" onPointerDown={() => setBmenu(null)} onContextMenu={(e) => { e.preventDefault(); setBmenu(null) }}>
+        <div role="menu" onPointerDown={(e) => e.stopPropagation()} className="absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl"
+          style={{ left: Math.min(bmenu.x, window.innerWidth - 216), top: Math.max(8, Math.min(bmenu.y, window.innerHeight - 200)) }}>
+          <p className="truncate border-b border-ink/10 px-3 py-2 text-xs text-muted">不接受预约 · {fmtTime(bmenu.k.start)} 起 {bmenu.k.durationMin} 分钟{bmenu.k.reason ? ` · ${bmenu.k.reason}` : ''}</p>
+          <button role="menuitem" onClick={() => { const k = bmenu.k; setBmenu(null); onEditBlock && onEditBlock(k) }} className="block w-full px-3 py-2 text-left hover:bg-sand/70">编辑屏蔽时间</button>
+          {bmenu.ask ? (
+            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs text-rose-800">确定删除这段屏蔽？删除后这段时间又可以接受预约。</p>
+              <div className="flex gap-2">
+                <button role="menuitem" onClick={() => { const k = bmenu.k; setBmenu(null); onDeleteBlock(k) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">确定删除</button>
+                <button role="menuitem" onClick={() => setBmenu({ ...bmenu, ask: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">不删除</button>
+              </div>
+            </div>
+          ) : (
+            <button role="menuitem" onClick={() => setBmenu({ ...bmenu, ask: true })} className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50">删除屏蔽预约</button>
+          )}
+          <button role="menuitem" onClick={() => setBmenu(null)} className="block w-full border-t border-ink/10 px-3 py-2 text-left text-muted hover:bg-sand/70">关闭菜单</button>
+        </div>
+      </div>
+    )}
+    {menu && (
+      <div className="fixed inset-0 z-50" onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
+        <div
+          role="menu"
+          onPointerDown={(e) => e.stopPropagation()}
+          className="absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl"
+          style={{ left: Math.min(menu.x, window.innerWidth - 216), top: Math.max(8, Math.min(menu.y, window.innerHeight - 380)) }}
+        >
+          <p className="truncate border-b border-ink/10 px-3 py-2 text-xs text-muted">{fmtTime(menu.a.start)} {customerById[menu.a.customerId]?.name || ''} · {menu.a.service}</p>
+          <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onEdit(a) }} className="block w-full px-3 py-2 text-left hover:bg-sand/70">编辑预约</button>
+          {[['checked-in', 'Check in'], ['in-service', 'In service'], ['completed', 'Check out'], ['no-show', '未到店'], ['cancelled', '取消预约']].map(([st, label]) => (
+            <button key={st} role="menuitem" onClick={() => { const a = menu.a; if ((st === 'cancelled' || st === 'no-show') && paidCount(a) > 0) { setMenu({ ...menu, askCancel: st }); return } setMenu(null); if (a.status !== st || st === 'completed') onStatus(a, st) }}
+              className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-sand/70 ${menu.a.status === st ? 'bg-sand font-medium' : ''}`}>
+              {label}{menu.a.status === st && <span className="text-xs text-gold">当前</span>}
+            </button>
+          ))}
+          {menu.askCancel && (
+            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs text-rose-800">这个预约已有 {paidCount(menu.a)} 笔账目，标记为{menu.askCancel === 'no-show' ? '未到店' : '取消'}后账目里的项目和金额会一并删除。确定{menu.askCancel === 'no-show' ? '标记未到店' : '取消'}？</p>
+              <div className="flex gap-2">
+                <button role="menuitem" onClick={() => { const a = menu.a; const st = menu.askCancel; setMenu(null); onStatus(a, st) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">{menu.askCancel === 'no-show' ? '确定' : '确定取消'}</button>
+                <button role="menuitem" onClick={() => setMenu({ ...menu, askCancel: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">{menu.askCancel === 'no-show' ? '不改' : '不取消'}</button>
+              </div>
+            </div>
+          )}
+          {onDelete && (menu.ask ? (
+            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs text-rose-800">确定删除这个预约？删除后无法恢复。{paidCount(menu.a) > 0 && `账目里它的 ${paidCount(menu.a)} 笔记录也会一并删除。`}</p>
+              <div className="flex gap-2">
+                <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onDelete(a) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">确定删除</button>
+                <button role="menuitem" onClick={() => setMenu({ ...menu, ask: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">不删除</button>
+              </div>
+            </div>
+          ) : (
+            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50">删除预约</button>
+          ))}
+          <button role="menuitem" onClick={() => setMenu(null)} className="block w-full border-t border-ink/10 px-3 py-2 text-left text-muted hover:bg-sand/70">关闭菜单</button>
+        </div>
+      </div>
+    )}
+    <div ref={scroller} className="relative max-h-[calc(100svh-14rem)] min-h-[22rem] overflow-auto overscroll-contain" style={{ touchAction: onZoom ? 'pan-x pan-y' : undefined }}>
+      {zoomTip && <span className="pointer-events-none sticky left-1/2 top-2 z-[40] float-right mr-3 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white">{zoomTip}</span>}
+      <div className={`[--gut:2.75rem] sm:[--gut:3.5rem] ${columns.some((c) => c.beds !== undefined) ? 'sm:min-w-[var(--mw)]' : 'md:min-w-[var(--mw)]'}`} style={{ '--mw': `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
         <div className="sticky top-0 z-30 grid border-b border-ink/10 bg-white text-center text-xs" style={{ gridTemplateColumns: cols }}>
           <div />
           {columns.map((c) => (
-            <div key={c.key} className="border-l border-ink/30 py-2.5 last:border-r">{c.header}</div>
+            <div key={c.key} className="border-l border-ink/30 py-2.5 last:border-r">
+              {c.header}
+              {onSaveHours && c.beds !== undefined && c.room && (
+                <button type="button" onClick={() => onSaveHours({ closed: { room: c.room, date: dayKey(c.date.toISOString()), from: dayStart(c.date).toISOString(), to: dayEnd(c.date).toISOString(), value: !isClosed(c.room, dayKey(c.date.toISOString())) } })}
+                  title={isClosed(c.room, dayKey(c.date.toISOString())) ? '点击重新开放这个房间（仅这一天）' : '点击关闭这个房间（仅这一天，暂不接受预约）'} aria-pressed={!isClosed(c.room, dayKey(c.date.toISOString()))}
+                  className={`mx-auto mt-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.62rem] font-medium transition ${isClosed(c.room, dayKey(c.date.toISOString())) ? 'bg-stone-300 text-stone-700' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'}`}>
+                  <i className={`h-1.5 w-1.5 rounded-full ${isClosed(c.room, dayKey(c.date.toISOString())) ? 'bg-stone-500' : 'bg-emerald-600'}`} />{isClosed(c.room, dayKey(c.date.toISOString())) ? '已关闭' : '开放中'}
+                </button>
+              )}
+              {staffShut(c) && !isClosed(c.room, dayOf(c)) && <p className="mx-auto mt-1 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[0.62rem] font-medium text-amber-800" title={`${(roomWindow(c.room, dayOf(c))?.names || []).join('、')} 休息，房间随之关闭`}>无人出勤</p>}
+              {!onSaveHours && c.beds !== undefined && c.room && isClosed(c.room, dayKey(c.date.toISOString())) && <p className="mx-auto mt-1 w-fit rounded-full bg-stone-300 px-2 py-0.5 text-[0.62rem] font-medium text-stone-700">已关闭</p>}
+            </div>
           ))}
         </div>
-        <div className="relative grid" style={{ height: gridH, gridTemplateColumns: cols }}>
+        <div ref={gridEl} className="relative grid" style={{ height: gridH, gridTemplateColumns: cols }}>
+          {onSaveHours && !dayMode && [['openMin', '营业开始'], ['closeMin', '营业结束']].map(([key, label]) => hoursHandle('all', key, clinic[key], `${label} ${hm(clinic[key])}（上下拖动调整营业时间）`, '', `${label} `))}
+          {onSaveHours && dayMode && [['openMin', '营业开始'], ['closeMin', '营业结束']].map(([key, label]) => hoursHandle('all', key, clinic[key], `${label} ${hm(clinic[key])}：拖动，所有房间一起调整`, 'left-[calc(var(--gut)+(100%-var(--gut))/2-2.75rem)] z-[29] w-[5.5rem] rounded-full', '全部房间 '))}
           <div className="relative">
-            <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: SHADE_END_HOUR * HOUR_PX }} />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: (24 - SHADE_START_HOUR) * HOUR_PX }} />
+            {onSaveHours && dayMode && [['openMin', '营业开始'], ['closeMin', '营业结束']].map(([key, label]) => hoursHandle('all', key, clinic[key], `${label} ${hm(clinic[key])}：拖动，所有房间一起调整`, 'inset-x-0'))}
+            <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: openPx }} />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: afterClosePx }} />
             {Array.from({ length: 96 }, (_, q) => {
               const h = Math.floor(q / 4)
               const m = (q % 4) * 15
               const onHour = m === 0
+              // Zoomed out, the time labels thin out so they never overlap: quarter hours need room, then half hours, then odd hours.
+              if (m === 15 || m === 45 ? HOUR_PX < 64 : m === 30 ? HOUR_PX < 40 : HOUR_PX < 28 && h % 2 === 1) return null
               return (
                 <span key={q} className={`absolute right-1 tabular-nums sm:right-2 ${onHour ? 'text-[0.72rem] font-medium text-ink/80' : 'text-[0.62rem] text-muted/70'} ${q === 0 ? 'translate-y-0.5' : '-translate-y-1/2'}`} style={{ top: (q * HOUR_PX) / 4 }}>
                   {`${pad2(h)}:${pad2(m)}`}
@@ -189,10 +478,12 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
           {columns.map((c) => (
             <div
               key={c.key}
-              onClick={(e) => { if (lastPointer.current === 'touch') clickSlot(e, c) }}
+              ref={(el) => { colEls.current[c.key] = el }}
+              onClick={(e) => { if (lastPointer.current === 'touch' && !shut(c)) clickSlot(e, c) }}
               onPointerDown={(e) => {
                 lastPointer.current = e.pointerType
                 if (e.pointerType === 'touch' || e.button !== 0) return
+                if (shut(c)) return // a closed room takes no new bookings
                 const q = quarterAt(e)
                 try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
                 setHover(null)
@@ -225,8 +516,9 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
               className="relative cursor-pointer select-none border-l border-ink/30 last:border-r"
               style={{ backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX - 1}px, rgba(43,36,32,0.16) ${HOUR_PX - 1}px, rgba(43,36,32,0.16) ${HOUR_PX}px), repeating-linear-gradient(to bottom, transparent 0, transparent ${HOUR_PX / 4 - 1}px, rgba(43,36,32,0.06) ${HOUR_PX / 4 - 1}px, rgba(43,36,32,0.06) ${HOUR_PX / 4}px)` }}>
               {/* 00:00-09:00 and 20:00-24:00 are shaded: outside the working day. */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: SHADE_END_HOUR * HOUR_PX }} />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: (24 - SHADE_START_HOUR) * HOUR_PX }} />
+              <div className="pointer-events-none absolute inset-x-0 top-0 bg-ink/[0.07]" style={{ height: (Math.max((dayMode ? liveHours(c.room) : clinic).openMin, (dayMode && c.room && roomWindow(c.room, dayOf(c))?.startMin) || 0) / 60) * HOUR_PX }} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/[0.07]" style={{ height: ((24 * 60 - Math.min((dayMode ? liveHours(c.room) : clinic).closeMin, (dayMode && c.room && roomWindow(c.room, dayOf(c))?.endMin) || 24 * 60)) / 60) * HOUR_PX }} />
+              {onSaveHours && dayMode && c.room && [['openMin', '营业开始'], ['closeMin', '营业结束']].map(([key, label]) => hoursHandle(c.room, key, liveHours(c.room)[key], `${roomOf(c.room).name} ${label} ${hm(liveHours(c.room)[key])}：拖动只调整这个房间`, 'inset-x-0', ''))}
               {drag && drag.col === c.key && (() => {
                 const lo = Math.min(drag.a, drag.b)
                 const hi = Math.max(drag.a, drag.b)
@@ -242,26 +534,263 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
                   <span className="pl-1.5 text-[0.62rem] font-medium leading-5 tabular-nums text-gold">{`${pad2(Math.floor(hover.q / 4))}:${pad2((hover.q % 4) * 15)}`}</span>
                 </div>
               )}
+              {moving && moving.col === c.key && (
+                <div className="pointer-events-none absolute inset-x-0.5 z-20 rounded-lg bg-gold/40 ring-2 ring-gold" style={{ top: (moving.q * HOUR_PX) / 4, height: moving.h }}>
+                  <span className="block px-1.5 pt-0.5 text-[0.66rem] font-semibold leading-tight tabular-nums text-plum-deep">{cellTime(moving.q)}</span>
+                </div>
+              )}
+              {/* Blocked time ("有事，不接受预约"): hatched, in its room's column (every column when it covers all rooms). */}
+              {blocks.filter((k) => dayKey(k.start) === dayKey(c.date.toISOString()) && (c.beds !== undefined ? k.room === '' || k.room === c.room : k.room === '')).map((k) => {
+                const ks = new Date(k.start)
+                const kStart = ks.getHours() * 60 + ks.getMinutes()
+                const live = bdrag?.id === k.id ? bdrag : null
+                const startMin = live?.startMin ?? kStart
+                const dur = live?.dur ?? k.durationMin
+                const lifted = live?.col !== undefined
+                const editable = !!onSaveBlock
+                const colAt = (e) => columns.find((cc) => { const r = colEls.current[cc.key]?.getBoundingClientRect(); return r && e.clientX >= r.left && e.clientX < r.right }) || c
+                const grab = (kind) => (e) => {
+                  e.stopPropagation()
+                  lastPointer.current = e.pointerType
+                  justDraggedBlock.current = false
+                  if (!editable || e.pointerType === 'touch' || e.button !== 0) return
+                  const r = e.currentTarget.closest('[data-block]').getBoundingClientRect()
+                  bpress.current = { k, kind, x: e.clientX, y: e.clientY, grab: Math.max(0, Math.floor((e.clientY - r.top) / (HOUR_PX / 4))), active: kind !== 'move' }
+                  try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
+                }
+                const drag = (e) => {
+                  const pr = bpress.current
+                  if (!pr || pr.k.id !== k.id) return
+                  e.stopPropagation()
+                  if (pr.kind === 'move') {
+                    if (!pr.active && Math.hypot(e.clientX - pr.x, e.clientY - pr.y) < 5) return
+                    pr.active = true
+                    justDraggedBlock.current = true
+                    setHover(null)
+                    const hit = colAt(e)
+                    const top0 = colEls.current[hit.key].getBoundingClientRect().top
+                    const span = Math.max(1, Math.ceil(k.durationMin / 15))
+                    const q = Math.max(0, Math.min(96 - span, Math.floor((e.clientY - top0) / (HOUR_PX / 4)) - pr.grab))
+                    setBdrag((d) => (d && d.id === k.id && d.col === hit.key && d.q === q ? d : { id: k.id, col: hit.key, q, dur: k.durationMin }))
+                  } else if (pr.kind === 'top') {
+                    const end = kStart + k.durationMin
+                    const sm = Math.max(0, Math.min(end - 15, Math.round((kStart + ((e.clientY - pr.y) * 60) / HOUR_PX) / 15) * 15))
+                    setBdrag((d) => (d && d.id === k.id && d.startMin === sm ? d : { id: k.id, startMin: sm, dur: end - sm }))
+                  } else {
+                    const d2 = Math.max(15, Math.min(24 * 60 - kStart, Math.round((k.durationMin + ((e.clientY - pr.y) * 60) / HOUR_PX) / 15) * 15))
+                    setBdrag((d) => (d && d.id === k.id && d.dur === d2 ? d : { id: k.id, startMin: kStart, dur: d2 }))
+                  }
+                  const fr = scroller.current?.getBoundingClientRect()
+                  if (fr && e.clientY > fr.bottom - 36) scroller.current.scrollTop += 18
+                  else if (fr && e.clientY < fr.top + 60) scroller.current.scrollTop -= 18
+                }
+                const drop = (e) => {
+                  e.stopPropagation()
+                  const pr = bpress.current
+                  bpress.current = null
+                  const d = bdrag
+                  setBdrag(null)
+                  try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+                  if (!pr || !pr.active || !d || d.id !== k.id) return
+                  if (pr.kind === 'move') {
+                    const to = columns.find((cc) => cc.key === d.col)
+                    if (!to) return
+                    const next = startOf(to, d.q)
+                    const room = k.room === '' ? '' : 'beds' in to ? to.room : k.room // an all-room block only changes time
+                    if (next.getTime() !== ks.getTime() || room !== k.room) onSaveBlock(k, { start: next.toISOString(), room })
+                  } else if (d.startMin !== undefined && (d.startMin !== kStart || d.dur !== k.durationMin)) {
+                    const st = new Date(k.start); st.setHours(Math.floor(d.startMin / 60), d.startMin % 60, 0, 0)
+                    onSaveBlock(k, { start: st.toISOString(), durationMin: d.dur })
+                  }
+                }
+                const cancel = () => { bpress.current = null; setBdrag(null) }
+                return (
+                  <div
+                    key={k.id}
+                    data-block
+                    onPointerDown={grab('move')}
+                    onPointerMove={drag}
+                    onPointerUp={drop}
+                    onPointerCancel={cancel}
+                    onPointerEnter={() => setHover(null)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (justDraggedBlock.current) { justDraggedBlock.current = false; return }
+                      if (!onEditBlock) return
+                      clearTimeout(bclick.current)
+                      bclick.current = setTimeout(() => onEditBlock(k), 260) // a double click opens the menu instead
+                    }}
+                    onDoubleClick={(e) => { e.stopPropagation(); clearTimeout(bclick.current); if (onDeleteBlock) setBmenu({ k, x: e.clientX, y: e.clientY, ask: false }) }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); clearTimeout(bclick.current); if (onDeleteBlock) setBmenu({ k, x: e.clientX, y: e.clientY, ask: false }) }}
+                    title={`${fmtTime(k.start)} 起 ${k.durationMin} 分钟 · 不接受预约${k.reason ? ` · ${k.reason}` : ''}${editable ? '（可拖动）' : ''}`}
+                    className={`group absolute inset-x-0 select-none overflow-hidden border-y border-dashed border-ink/30 px-1.5 py-1 text-left text-[0.68rem] font-medium leading-tight text-ink/70 ${editable ? 'cursor-grab' : 'cursor-not-allowed'} ${lifted ? 'opacity-40' : ''}`}
+                    style={{ top: (startMin / 60) * HOUR_PX, height: Math.max(20, (dur / 60) * HOUR_PX), backgroundImage: 'repeating-linear-gradient(135deg, rgba(43,36,32,0.13) 0, rgba(43,36,32,0.13) 6px, rgba(43,36,32,0.04) 6px, rgba(43,36,32,0.04) 12px)' }}
+                  >
+                    不接受预约{k.room === '' && c.beds !== undefined ? '（全部房间）' : ''}
+                    {k.reason && <span className="block truncate font-normal">{k.reason}</span>}
+                    {live && !lifted && <span className="absolute bottom-1 right-1.5 rounded bg-ink/70 px-1.5 py-0.5 text-[0.62rem] font-semibold text-white">{`${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)} · ${dur} 分钟`}</span>}
+                    {editable && (
+                      <>
+                        <span onPointerDown={grab('top')} onPointerMove={drag} onPointerUp={drop} onPointerCancel={cancel} onClick={(e) => e.stopPropagation()}
+                          className="absolute inset-x-0 top-0 grid h-3 cursor-ns-resize place-items-center opacity-0 transition group-hover:opacity-100" title="拖动调整开始时间" aria-hidden="true"><i className="h-1 w-8 rounded-full bg-ink/45" /></span>
+                        <span onPointerDown={grab('len')} onPointerMove={drag} onPointerUp={drop} onPointerCancel={cancel} onClick={(e) => e.stopPropagation()}
+                          className="absolute inset-x-0 bottom-0 grid h-3 cursor-ns-resize place-items-center opacity-0 transition group-hover:opacity-100" title="拖动调整结束时间" aria-hidden="true"><i className="h-1 w-8 rounded-full bg-ink/45" /></span>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+              {bdrag && bdrag.col === c.key && (
+                <div className="pointer-events-none absolute inset-x-0.5 z-20 rounded-lg border-2 border-dashed border-ink/50 bg-ink/15" style={{ top: (bdrag.q * HOUR_PX) / 4, height: Math.max(20, (bdrag.dur / 60) * HOUR_PX) }}>
+                  <span className="block px-1.5 pt-0.5 text-[0.66rem] font-semibold leading-tight tabular-nums text-ink">{cellTime(bdrag.q)} · 不接受预约</span>
+                </div>
+              )}
+              {shut(c) && (
+                <div className="pointer-events-none absolute inset-0 z-[26] grid place-items-start justify-items-center pt-24 text-xs font-medium text-ink/60"
+                  style={{ backgroundImage: 'repeating-linear-gradient(135deg, rgba(43,36,32,0.10) 0, rgba(43,36,32,0.10) 8px, rgba(43,36,32,0.03) 8px, rgba(43,36,32,0.03) 16px)' }}>
+                  <span className="sticky top-24 rounded-full bg-white/85 px-3 py-1 shadow-sm">{isClosed(c.room, dayOf(c)) ? '房间已关闭' : '当天无人出勤'}</span>
+                </div>
+              )}
               {c.beds > 1 && <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] border-l border-dashed border-ink/10" />}
               {layoutDay(c.items, c.beds || 1).map(({ a, lane, lanes }) => {
                 const s = new Date(a.start)
-                const top = (s.getHours() + s.getMinutes() / 60) * HOUR_PX
-                const height = Math.max(24, ((a.durationMin || 60) / 60) * HOUR_PX - 2)
+                const rs = resizing?.id === a.id ? resizing : null
+                const top = ((rs?.startMin ?? s.getHours() * 60 + s.getMinutes()) / 60) * HOUR_PX
+                const height = Math.max(24, ((rs?.dur ?? (a.durationMin || 60)) / 60) * HOUR_PX - 2)
                 const name = customerById[a.customerId]?.name || '—'
+                const lifted = moving?.id === a.id
+                // A booking can take the whole double room: it then spans both beds.
+                const wide = c.beds > 1 && (rs?.full ?? !!a.fullRoom)
+                const wasWide = c.beds > 1 && !!a.fullRoom // handles follow the saved state so a handle never disappears under the pointer mid-drag
+                const grabBottom = (e) => { e.stopPropagation(); lastPointer.current = e.pointerType; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ } grip.current = { a, kind: 'len', y: e.clientY } }
+                const grabTop = (e) => { e.stopPropagation(); lastPointer.current = e.pointerType; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ } grip.current = { a, kind: 'top', y: e.clientY } }
+                // sign: +1 for the right edge, -1 for the left one (dragging outwards takes the whole room, inwards gives it up)
+                const grabSide = (sign) => (e) => { e.stopPropagation(); lastPointer.current = e.pointerType; try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ } grip.current = { a, kind: 'wide', x: e.clientX, sign } }
+                const moveGrip = (e) => {
+                  const g = grip.current
+                  if (!g) return
+                  e.stopPropagation()
+                  if (g.kind === 'len') {
+                    const start = s.getHours() * 60 + s.getMinutes()
+                    const dur = Math.max(15, Math.min(24 * 60 - start, Math.round(((a.durationMin || 60) + ((e.clientY - g.y) * 60) / HOUR_PX) / 15) * 15))
+                    setResizing((r) => (r && r.id === a.id && r.dur === dur ? r : { id: a.id, dur }))
+                    const fr = scroller.current?.getBoundingClientRect()
+                    if (fr && e.clientY > fr.bottom - 36) scroller.current.scrollTop += 18
+                  } else if (g.kind === 'top') {
+                    // The top edge moves the start; the end stays where it was.
+                    const startOld = s.getHours() * 60 + s.getMinutes()
+                    const end = startOld + (a.durationMin || 60)
+                    const startMin = Math.max(0, Math.min(end - 15, Math.round((startOld + ((e.clientY - g.y) * 60) / HOUR_PX) / 15) * 15))
+                    setResizing((r) => (r && r.id === a.id && r.startMin === startMin ? r : { id: a.id, startMin, dur: end - startMin }))
+                    const fr = scroller.current?.getBoundingClientRect()
+                    if (fr && e.clientY < fr.top + 60) scroller.current.scrollTop -= 18
+                  } else {
+                    const dx = (e.clientX - g.x) * g.sign
+                    const full = dx > 14 ? true : dx < -14 ? false : !!a.fullRoom
+                    setResizing((r) => (r && r.id === a.id && r.full === full ? r : { id: a.id, full }))
+                  }
+                }
+                const dropGrip = (e) => {
+                  e.stopPropagation()
+                  const g = grip.current
+                  grip.current = null
+                  const r = resizing
+                  setResizing(null)
+                  try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+                  if (!g || !r || r.id !== a.id) return
+                  if (g.kind === 'len' && r.dur !== (a.durationMin || 60)) onResize(a, { durationMin: r.dur })
+                  if (g.kind === 'top' && r.dur !== (a.durationMin || 60)) { const st = new Date(a.start); st.setHours(Math.floor(r.startMin / 60), r.startMin % 60, 0, 0); onResize(a, { start: st.toISOString(), durationMin: r.dur }) }
+                  if (g.kind === 'wide' && r.full !== !!a.fullRoom) onResize(a, { fullRoom: r.full })
+                }
+                const stop = (e) => e.stopPropagation()
                 return (
                   <button
                     key={a.id}
-                    onClick={(e) => { e.stopPropagation(); onEdit(a) }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onPointerMove={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (justDragged.current) { justDragged.current = false; return } // the click that ends a drag is not a click
+                      if (e.detail === 0 || lastPointer.current === 'touch') { onEdit(a); return }
+                      // A single mouse click opens the full editor; waiting a moment lets a double click open the menu instead.
+                      clearTimeout(clickTimer.current)
+                      clickTimer.current = setTimeout(() => onEdit(a), 260)
+                    }}
+                    onDoubleClick={(e) => { e.stopPropagation(); clearTimeout(clickTimer.current); setMenu({ a, x: e.clientX, y: e.clientY }) }}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); clearTimeout(clickTimer.current); setMenu({ a, x: e.clientX, y: e.clientY }) }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation()
+                      lastPointer.current = e.pointerType
+                      justDragged.current = false
+                      if (e.pointerType === 'touch' || e.button !== 0) return
+                      const r = e.currentTarget.getBoundingClientRect()
+                      press.current = { a, x: e.clientX, y: e.clientY, grab: Math.max(0, Math.floor((e.clientY - r.top) / (HOUR_PX / 4))), active: false, h: height }
+                      try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
+                    }}
+                    onPointerMove={(e) => {
+                      e.stopPropagation()
+                      const pr = press.current
+                      if (!pr || pr.a.id !== a.id) return
+                      if (!pr.active && Math.hypot(e.clientX - pr.x, e.clientY - pr.y) < 5) return
+                      pr.active = true
+                      justDragged.current = true
+                      setHover(null)
+                      // The column under the pointer decides the room (day view) or the day (week view).
+                      const hit = columns.find((cc) => { const r = colEls.current[cc.key]?.getBoundingClientRect(); return r && e.clientX >= r.left && e.clientX < r.right }) || columns.find((cc) => cc.key === (moving?.col ?? c.key)) || c
+                      const top0 = colEls.current[hit.key].getBoundingClientRect().top
+                      const span = Math.max(1, Math.ceil((a.durationMin || 60) / 15))
+                      const q = Math.max(0, Math.min(96 - span, Math.floor((e.clientY - top0) / (HOUR_PX / 4)) - pr.grab))
+                      setMoving((m) => (m && m.id === a.id && m.col === hit.key && m.q === q ? m : { id: a.id, col: hit.key, q, h: pr.h }))
+                      const fr = scroller.current?.getBoundingClientRect()
+                      if (fr && e.clientY > fr.bottom - 36) scroller.current.scrollTop += 18
+                      else if (fr && e.clientY < fr.top + 60) scroller.current.scrollTop -= 18
+                    }}
+                    onPointerUp={(e) => {
+                      e.stopPropagation()
+                      const pr = press.current
+                      press.current = null
+                      try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* already released */ }
+                      if (!pr || !pr.active) return
+                      const m = moving
+                      setMoving(null)
+                      const to = m && columns.find((cc) => cc.key === m.col)
+                      if (!to) return
+                      const next = startOf(to, m.q)
+                      const room = 'beds' in to ? to.room : a.room
+                      if (next.getTime() === new Date(a.start).getTime() && (room || '') === (a.room || '')) return
+                      onMove(a, { start: next.toISOString(), room })
+                    }}
+                    onPointerCancel={() => { press.current = null; setMoving(null) }}
                     onPointerEnter={() => setHover(null)}
-                    className={`absolute overflow-hidden rounded-lg px-1.5 py-1 text-left text-[0.7rem] leading-tight transition ${chipCls(a)}`}
-                    style={{ top, height, left: `calc(${(lane / lanes) * 100}% + 2px)`, width: `calc(${100 / lanes}% - 4px)` }}
+                    className={`group absolute overflow-hidden rounded-lg px-1.5 py-1 text-left text-[0.7rem] leading-tight transition ${!dayMode ? 'max-md:rounded-md max-md:px-0.5 max-md:py-0.5 max-md:text-[0.52rem] max-md:leading-[1.1]' : ''} ${chipCls(a)} ${lifted ? 'opacity-40' : 'cursor-grab'} ${wide ? 'z-[2]' : ''}`}
+                    style={{ top, height, left: wide ? '2px' : `calc(${(lane / lanes) * 100}% + 2px)`, width: wide ? 'calc(100% - 4px)' : `calc(${100 / lanes}% - 4px)` }}
                     title={tip(a, name)}
                   >
                     {mark(a)}<b>{fmtTime(a.start)}</b> {name}
                     <span className="block truncate opacity-80">{a.service}</span>
                     {a.staff && <span className="block truncate font-medium">{a.staff}</span>}
+                    {a.paymentDeleted && <span className="block truncate text-[0.62rem] font-semibold not-italic">付款：未结算</span>}
+                    {rs?.dur && <span className="absolute bottom-2 right-2 rounded bg-ink/70 px-1.5 py-0.5 text-[0.62rem] font-semibold text-white">{rs.startMin !== undefined ? `${pad2(Math.floor(rs.startMin / 60))}:${pad2(rs.startMin % 60)} · ` : ''}{rs.dur} 分钟</span>}
+                    {/* Drag the top edge to start earlier or later (the end stays), the bottom edge to change the end; hidden until the pointer is over the booking. */}
+                    <span
+                      onPointerDown={grabTop} onPointerMove={moveGrip} onPointerUp={dropGrip} onPointerCancel={dropGrip} onClick={stop} onDoubleClick={stop}
+                      className="absolute inset-x-0 top-0 grid h-3 cursor-ns-resize place-items-center opacity-0 transition group-hover:opacity-100" title="拖动调整开始时间" aria-hidden="true"
+                    ><i className="h-1 w-8 rounded-full bg-ink/45" /></span>
+                    <span
+                      onPointerDown={grabBottom} onPointerMove={moveGrip} onPointerUp={dropGrip} onPointerCancel={dropGrip} onClick={stop} onDoubleClick={stop}
+                      className="absolute inset-x-0 bottom-0 grid h-3 cursor-ns-resize place-items-center opacity-0 transition group-hover:opacity-100" title="拖动调整时长" aria-hidden="true"
+                    ><i className="h-1 w-8 rounded-full bg-ink/45" /></span>
+                    {/* Double rooms: drag the right edge to take both beds (drag back to give one up). */}
+                    {c.beds > 1 && (wasWide || lane < lanes - 1) && (
+                      <span
+                        onPointerDown={grabSide(1)} onPointerMove={moveGrip} onPointerUp={dropGrip} onPointerCancel={dropGrip} onClick={stop} onDoubleClick={stop}
+                        className="absolute inset-y-3 right-0 grid w-3 cursor-ew-resize place-items-center opacity-0 transition group-hover:opacity-100" title={wasWide ? '向左拖回一个床位' : '向右拖占用整间'} aria-hidden="true"
+                      ><i className="h-8 w-1 rounded-full bg-ink/45" /></span>
+                    )}
+                    {c.beds > 1 && (wasWide || lane > 0) && (
+                      <span
+                        onPointerDown={grabSide(-1)} onPointerMove={moveGrip} onPointerUp={dropGrip} onPointerCancel={dropGrip} onClick={stop} onDoubleClick={stop}
+                        className="absolute inset-y-3 left-0 grid w-3 cursor-ew-resize place-items-center opacity-0 transition group-hover:opacity-100" title={wasWide ? '向右拖回一个床位' : '向左拖占用整间'} aria-hidden="true"
+                      ><i className="h-8 w-1 rounded-full bg-ink/45" /></span>
+                    )}
                   </button>
                 )
               })}
@@ -275,6 +804,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, scrollKey }) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
@@ -292,7 +822,7 @@ function DayAgenda({ days, byDay, customerById, onEdit, onCreate, emptyHint }) {
               onClick={() => { const s = new Date(d); s.setHours(10, 0, 0, 0); onCreate(s.toISOString()) }}
               className="w-12 shrink-0 text-center" aria-label="在这天新增预约"
             >
-              <p className="text-xs text-muted">周{WEEKDAYS[(d.getDay() + 6) % 7]}</p>
+              <p className="text-xs text-muted">周{WEEKDAYS[d.getDay()]}</p>
               <p className={`mx-auto mt-0.5 grid h-8 w-8 place-items-center rounded-full text-sm ${k === today ? 'bg-ink text-ivory' : ''}`}>{d.getDate()}</p>
             </button>
             <div className="min-w-0 flex-1 space-y-1.5">
@@ -312,17 +842,21 @@ function DayAgenda({ days, byDay, customerById, onEdit, onCreate, emptyHint }) {
 }
 
 // `modes` picks which views this instance offers (the Appointments page shows 'day' on its own and 'week'/'month' under Calendar).
-export default function CalendarView({ appointments, customerById, onEdit, onCreate, modes = ['day', 'week', 'month'] }) {
+export default function CalendarView({ appointments, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount, blocks, onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, initialDate, onOpenDay, staff: staffProp, onStaff, modes = ['day', 'week', 'month'] }) {
   const [mode, setMode] = useState(() => {
     try {
       const m = localStorage.getItem('crm.calMode')
       return modes.includes(m) ? m : modes.includes('month') ? 'month' : modes[0]
     } catch { return modes.includes('month') ? 'month' : modes[0] }
   })
-  const [cursor, setCursor] = useState(() => new Date())
+  const [cursor, setCursor] = useState(() => (initialDate ? new Date(initialDate) : new Date()))
   const [selected, setSelected] = useState(() => keyOf(new Date()))
   const [hiddenRooms, setHiddenRooms] = useState(() => new Set())
-  const [staff, setStaff] = useState('')
+  // The staff filter is shared with the list view when the page passes it in; otherwise it is local to this calendar.
+  const [staffLocal, setStaffLocal] = useState('')
+  const staff = staffProp !== undefined ? staffProp : staffLocal
+  const setStaff = onStaff || setStaffLocal
+  const noStaffFilter = !useAuth().can('viewAllAppointments') // without that permission only their own bookings are visible, so a staff filter is pointless
 
   const changeMode = (m) => {
     setMode(m)
@@ -334,7 +868,8 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
     return next
   })
 
-  const staffNames = useMemo(() => withStaff(appointments.map((a) => a.staff)), [appointments])
+  const { worksOn, staffHours, roster } = useCrm() // who is on duty / resting on the shown day
+  const staffNames = useMemo(() => withStaff(appointments.map((a) => a.staff), roster), [appointments, roster])
   const roomCounts = useMemo(() => {
     const m = {}
     for (const a of appointments) m[a.room || ''] = (m[a.room || ''] || 0) + 1
@@ -355,8 +890,31 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
     return map
   }, [visible])
 
-  const step = (dir) => setCursor((c) => (mode === 'month' ? new Date(c.getFullYear(), c.getMonth() + dir, 1) : addDays(c, dir * (mode === 'week' ? 7 : 1))))
-  const goToday = () => { setCursor(new Date()); setSelected(keyOf(new Date())) }
+  const [slide, setSlide] = useState(0) // which way the last step went: 1 = later, -1 = earlier (drives the slide-in)
+  const swipe = useRef({ x: 0, y: 0, last: 0, multi: false })
+  const [hourPx, setHourPx] = useState(() => { try { const v = Number(localStorage.getItem('crm.hourPx')); return v >= ZOOM_MIN && v <= ZOOM_MAX ? v : HOUR_PX } catch { return HOUR_PX } })
+  const zoomTo = (v) => { setHourPx(v); try { localStorage.setItem('crm.hourPx', String(Math.round(v))) } catch { /* storage unavailable */ } }
+  const step = (dir) => { setSlide(dir); setCursor((c) => (mode === 'month' ? new Date(c.getFullYear(), c.getMonth() + dir, 1) : addDays(c, dir * (mode === 'week' ? 7 : 1)))) }
+  // In the week / month calendar, 当日 jumps to today's day timeline; in the day view it just returns to today.
+  const goToday = () => {
+    if (mode !== 'day' && onOpenDay) { onOpenDay(new Date()); return }
+    setSlide(0); setCursor(new Date()); setSelected(keyOf(new Date()))
+  }
+  // Day, week and month: swipe left for the next one, right for the previous (touch), or a sideways trackpad scroll.
+  const paged = true
+  const onTouchStart = (e) => { if (e.touches.length > 1) swipe.current.multi = true; swipe.current.x = e.touches[0].clientX; swipe.current.y = e.touches[0].clientY }
+  const onTouchEnd = (e) => {
+    if (swipe.current.multi) { if (e.touches.length === 0) swipe.current.multi = false; return } // a pinch is not a page swipe
+    if (!paged) return
+    const dx = e.changedTouches[0].clientX - swipe.current.x
+    const dy = e.changedTouches[0].clientY - swipe.current.y
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) step(dx < 0 ? 1 : -1)
+  }
+  const onWheel = (e) => {
+    if (!paged || Math.abs(e.deltaX) < 30 || Math.abs(e.deltaX) < Math.abs(e.deltaY) || Date.now() - swipe.current.last < 600) return
+    swipe.current.last = Date.now()
+    step(e.deltaX > 0 ? 1 : -1)
+  }
 
   const today = keyOf(new Date())
   const weekStart = startOfWeek(cursor)
@@ -364,7 +922,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const label = mode === 'month'
     ? `${cursor.getFullYear()}年${cursor.getMonth() + 1}月`
     : mode === 'day'
-      ? `${cursor.getMonth() + 1}月${cursor.getDate()}日 周${WEEKDAYS[(cursor.getDay() + 6) % 7]}`
+      ? `${cursor.getMonth() + 1}月${cursor.getDate()}日 周${WEEKDAYS[cursor.getDay()]}`
       : `${weekStart.getMonth() + 1}月${weekStart.getDate()}日 – ${addDays(weekStart, 6).getMonth() + 1}月${addDays(weekStart, 6).getDate()}日`
 
   // Week view: one column per day. Day view: one column per room.
@@ -390,16 +948,40 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
       ),
     }))
 
+  // The room names (they also hide / show a room) and the staff filter: in the day view the room names sit to the right of the
+  // date and the staff filter to the right of the 出勤 line; in the week / month views they share one row of their own.
+  const roomChips = (
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+      {[...ROOMS, ...(roomCounts[''] ? [NO_ROOM] : [])].map((r) => {
+        const off = hiddenRooms.has(r.id)
+        return (
+          <button key={r.id || 'none'} onClick={() => toggleRoom(r.id)} aria-pressed={!off}
+            className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.7rem] transition sm:text-xs ${off ? 'border-ink/10 text-muted line-through' : 'border-ink/15'}`}>
+            <i className={`h-2.5 w-2.5 rounded-full ${off ? 'bg-stone-300' : r.dot}`} /> {r.name.slice(0, 2)}<span className="hidden sm:inline">{r.name.slice(2)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+  const staffSelect = !noStaffFilter && (
+    <select value={staff} onChange={(e) => setStaff(e.target.value)} aria-label="按员工筛选"
+      className="shrink-0 rounded-full border border-ink/15 bg-white px-3 py-1 text-xs outline-none focus:border-gold">
+      <option value="">全部员工</option>
+      {staffNames.map((n) => <option key={n} value={n}>{n}</option>)}
+    </select>
+  )
+
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink/10 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button onClick={() => step(-1)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="上一页"><ChevronLeft size={18} /></button>
-          <button onClick={() => step(1)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="下一页"><ChevronRight size={18} /></button>
-          <h2 className="ml-1 font-display text-xl">{label}</h2>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-ink/10 px-1.5 py-1.5 sm:px-4">
+        <div className="flex shrink-0 items-center">
+          <button onClick={() => step(-1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="上一页"><ChevronLeft size={15} /></button>
+          <button onClick={() => step(1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="下一页"><ChevronRight size={16} /></button>
+          <h2 className="font-display text-[0.95rem] sm:text-lg">{label}</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={goToday} className="rounded-full border border-ink/15 px-3.5 py-1.5 text-sm hover:bg-sand">今天</button>
+        {mode === 'day' && roomChips}
+        <div className="ml-auto flex items-center gap-2">
+          {mode !== 'day' && <button onClick={goToday} className="rounded-full border border-ink/15 px-3.5 py-1.5 text-sm hover:bg-sand">当日</button>}
           {modes.length > 1 && <div className="flex rounded-full bg-sand p-0.5 text-sm" role="group" aria-label="日历视图">
             {[['day', '日'], ['week', '周'], ['month', '月']].filter(([v]) => modes.includes(v)).map(([v, l]) => (
               <button key={v} onClick={() => changeMode(v)} aria-pressed={mode === v} className={`rounded-full px-4 py-1.5 transition ${mode === v ? 'bg-white shadow-sm' : 'text-muted'}`}>{l}</button>
@@ -408,43 +990,39 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
         </div>
       </div>
 
-      {/* Room legend doubles as a filter; staff filter on the right */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-ink/10 px-4 py-2.5">
-        {[...ROOMS, ...(roomCounts[''] ? [NO_ROOM] : [])].map((r) => {
-          const off = hiddenRooms.has(r.id)
-          return (
-            <button key={r.id || 'none'} onClick={() => toggleRoom(r.id)} aria-pressed={!off}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition ${off ? 'border-ink/10 text-muted line-through' : 'border-ink/15'}`}>
-              <i className={`h-2.5 w-2.5 rounded-full ${off ? 'bg-stone-300' : r.dot}`} /> {r.name}
-            </button>
-          )
-        })}
-        <select value={staff} onChange={(e) => setStaff(e.target.value)} aria-label="按员工筛选"
-          className="ml-auto rounded-full border border-ink/15 bg-white px-3 py-1 text-xs outline-none focus:border-gold">
-          <option value="">全部员工</option>
-          {staffNames.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
-      </div>
+      {mode !== 'day' && (
+        <div className="flex items-center gap-2 border-b border-ink/10 px-3 py-1.5 sm:px-4">
+          {roomChips}
+          {staffSelect}
+        </div>
+      )}
 
+      {mode === 'day' && (
+        <div className="flex items-center justify-between gap-2 border-b border-ink/10 px-3 py-1.5 sm:px-4">
+          <p className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-0.5 text-xs">
+<span><span className="text-muted">出勤：</span><b className="font-medium">{roster.filter((n) => worksOn(n, keyOf(cursor))).map((n) => { const h = staffHours(n, keyOf(cursor)); return h ? `${n} ${pad2(Math.floor(h.startMin / 60))}:${pad2(h.startMin % 60)}–${pad2(Math.floor(h.endMin / 60) % 24)}:${pad2(h.endMin % 60)}` : n }).join('、') || '无'}</b></span>
+          {roster.some((n) => !worksOn(n, keyOf(cursor))) && <span className="text-rose-700"><span className="opacity-70">休息：</span><b className="font-medium">{roster.filter((n) => !worksOn(n, keyOf(cursor))).join('、')}</b></span>}
+          </p>
+          {staffSelect}
+        </div>
+      )}
+      <div key={`${mode}-${keyOf(cursor)}`} className={slide > 0 ? 'cal-in-next' : slide < 0 ? 'cal-in-prev' : ''} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {mode === 'month' && (
         <>
-          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} selected={selected} setSelected={setSelected} />
+          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} selected={selected} setSelected={setSelected} onOpenDay={onOpenDay} onSaveHours={onSaveHours} />
           <div className="border-t border-ink/10 sm:hidden">
             <DayAgenda days={[new Date(`${selected}T12:00:00`)]} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} emptyHint="这天没有预约，点日期新增" />
           </div>
         </>
       )}
-      {mode === 'day' && <TimeGrid columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} scrollKey={`day-${keyOf(cursor)}`} />}
+      {mode === 'day' && <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`day-${keyOf(cursor)}`} />}
       {mode === 'week' && (
         <>
-          <div className="hidden md:block">
-            <TimeGrid columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} scrollKey={`week-${keyOf(weekStart)}`} />
-          </div>
-          <div className="md:hidden">
-            <DayAgenda days={weekDays} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} emptyHint="没有预约" />
-          </div>
+          {/* One column per day, Sunday to Saturday, at every width (on a phone the grid scrolls sideways). */}
+          <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`week-${keyOf(weekStart)}`} />
         </>
       )}
+      </div>
     </Card>
   )
 }

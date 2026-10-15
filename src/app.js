@@ -3,58 +3,38 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var session = require('express-session');
-var crypto = require('crypto');
-var mongo = require('./services/mongo');
+var dbClient = require('./lib/dbClient');
+var expressSanitizer = require('./lib/expressSanitizer');
+var { sessionInit, filterApis } = require('./lib/expressSession');
 var { securityHeaders } = require('./middleware/security');
 
 module.exports.createServer = () => {
   const app = express();
 
   app.disable('x-powered-by');
-  app.use(securityHeaders);
+  app.set('trust proxy', 1); // one proxy in front (Vercel / a load balancer): req.ip, req.protocol and secure cookies read it
+  app.use(securityHeaders); // Cache-Control, X-Frame-Options, X-Content-Type-Options, Strict-Transport-Security, CORS, CSP
   app.use(logger('dev'));
-  // Job applications carry the resume as base64, so that route gets a larger body limit (Vercel caps requests at ~4.5MB).
-  app.use('/api/careers', express.json({ limit: '5mb' }));
-  app.use(express.json());
+
+  // Request bodies. Job applications carry the resume as base64, so that route gets a bigger limit (Vercel caps requests at
+  // about 4.5MB); it is mounted first, which makes the parser below skip the body it already read. Everything else stays small.
+  const jsonOptions = (limit) => ({ limit, strict: false, type: ['application/json'] });
+  app.use('/api/careers', express.json(jsonOptions('5mb')));
+  app.use(express.json(jsonOptions('1mb')));
   app.use(express.urlencoded({ extended: false }));
+  app.use(expressSanitizer); // XSS: cleans the body and the query string, refuses a URL that carries markup
   app.use(cookieParser());
 
-  // Session auth (CRM login). MemoryStore is fine for a single-process prototype;
-  // use a persistent store (e.g. connect-redis) for production.
-  const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
-  if (!process.env.SESSION_SECRET) {
-    console.warn('[session] SESSION_SECRET not set; using a random secret (sessions reset on restart).');
-    if (process.env.VERCEL) console.warn('[session] On Vercel every instance would get its own secret: set SESSION_SECRET in the project settings.');
-  }
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd) app.set('trust proxy', 1);
-  // With MONGODB_URI the sessions live in MongoDB, so logins survive restarts and are shared
-  // between serverless instances. Without it, express-session's MemoryStore is used (local dev only).
-  const sessionOptions = {
-    name: 'nouvelle.sid',
-    secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: 'lax', secure: isProd, maxAge: 1000 * 60 * 60 * 8 },
-  };
-  if (mongo.enabled()) {
-    const { MongoStore } = require('connect-mongo');
-    sessionOptions.store = MongoStore.create({
-      clientPromise: mongo.getClient(),
-      dbName: mongo.dbName(),
-      collectionName: 'sessions',
-      ttl: 60 * 60 * 8,
-    });
-  }
-  app.use(session(sessionOptions));
+  // Sessions for everything except /api/health.
+  sessionInit();
+  app.use(filterApis);
 
   require('./config/routes')(app);
 
-  // UI: serve the Vite build output
-  app.use(express.static(path.join(__dirname, '..', 'dist')));
+  // UI: serve the Vite build output (no-cache is set above, so express does not add its own Cache-Control)
+  app.use(express.static(path.join(__dirname, '..', 'dist'), { cacheControl: false }));
   app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'), { cacheControl: false });
   });
 
   // catch 404 and forward to error handler
@@ -91,4 +71,13 @@ function normalizePort(val) {
   return false;
 }
 
-module.exports.default = async () => Promise.resolve().then(this.createServer);
+// The entry points (src/index.js, api/index.js) call this: connect to MongoDB first, then build the app.
+module.exports.default = async () => {
+  try {
+    if (await dbClient.init()) await dbClient.connection(); // without MONGO_URL the app keeps using its local JSON file
+    return this.createServer();
+  } catch (err) {
+    console.error('[app] startup failed:', err.message);
+    throw err;
+  }
+};

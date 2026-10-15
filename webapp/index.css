@@ -34,3 +34,10 @@ body {
   .reveal, .reveal.pending { opacity: 1; transform: none; transition: none; }
   html { scroll-behavior: auto; }
 }
+
+/* CRM calendar: the new week / month slides in from the side it was swiped or stepped toward. */
+@keyframes cal-in-next { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+@keyframes cal-in-prev { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+.cal-in-next { animation: cal-in-next 0.22s ease-out; }
+.cal-in-prev { animation: cal-in-prev 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .cal-in-next, .cal-in-prev { animation: none; } }

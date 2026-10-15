@@ -33,6 +33,8 @@ export const defaultStart = () => {
 
 export const STATUS = {
   scheduled: { label: '已预约', cls: 'bg-sky-100 text-sky-800' },
+  'checked-in': { label: 'Check in', cls: 'bg-lime-200 text-lime-900' },
+  'in-service': { label: 'In service', cls: 'bg-fuchsia-100 text-fuchsia-800' },
   completed: { label: '已完成', cls: 'bg-emerald-100 text-emerald-800' },
   cancelled: { label: '已取消', cls: 'bg-stone-200 text-stone-600' },
   'no-show': { label: '未到', cls: 'bg-rose-100 text-rose-800' },
@@ -66,9 +68,54 @@ export function downloadCsv(filename, rows) {
 }
 
 export const METHODS = [
-  { id: 'cash', label: '现金' },
-  { id: 'transfer', label: '转账' },
-  { id: 'credit_card', label: '信用卡' },
+  { id: 'credit_card', label: 'Credit card' },
+  { id: 'cash', label: 'Cash' },
+  { id: 'zelle', label: 'Zelle' },
+  { id: 'venmo', label: 'Venmo' },
+  { id: 'member_card', label: '会员卡' },
   { id: 'other', label: '其他' },
+  { id: 'unsettled', label: '未结算' }, // checked out, money not collected yet: owed, not counted as revenue
 ]
-export const methodLabel = (id) => METHODS.find((m) => m.id === id)?.label || '—'
+// Older records may still carry this one; it is not offered for new payments.
+const LEGACY_METHODS = [{ id: 'transfer', label: '转账' }]
+// Member card balance: everything loaded onto the card minus everything paid with it. The amount and the tip can each be
+// paid by a different method (`tipMethod`, same as `paymentMethod` when absent).
+export const cardSpent = (p) => (p.paymentMethod === 'member_card' ? p.amount : 0) + ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0)
+// Top-up gifts: $200 card credit, or a free 光子嫩肤 / 热拉提 session.
+export const GIFT_OPTIONS = [
+  { id: 'cash200', label: '赠送 $200 余额' },
+  { id: 'photofacial', label: '赠送光子嫩肤' },
+  { id: 'thermage', label: '赠送热拉提' },
+]
+export const giftLabel = (id) => GIFT_OPTIONS.find((g) => g.id === id)?.label.replace('赠送', '').trim() || id
+export const TOPUP_AMOUNTS = [1000, 2000, 3000]
+export const giftsAllowed = (topUp) => (topUp >= 3000 ? 2 : topUp >= 2000 ? 1 : 0)
+export const cardLoaded = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length
+// Free sessions earned from top-ups (光子嫩肤 / 热拉提) minus the ones already used, as { id: count } (zero counts left out).
+export const giftItems = (payments, customerId, exceptId) => {
+  const m = {}
+  for (const p of payments) {
+    if (p.customerId !== customerId || p.id === exceptId) continue
+    for (const g of p.topUpGifts || []) if (g !== 'cash200') m[g] = (m[g] || 0) + 1
+    if (p.giftUsed) m[p.giftUsed] = (m[p.giftUsed] || 0) - 1
+  }
+  return Object.fromEntries(Object.entries(m).filter(([, n]) => n > 0))
+}
+// Which gift a service redeems: services whose name contains the gift's project.
+export const GIFT_SERVICE = { photofacial: /光子嫩肤/, thermage: /热拉提/ }
+export const giftForService = (name) => Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || ''
+// Staff performance of a payment. A service paid from the member card only counts for the share of the card that was real
+// money: with a $2,000 top-up that came with a $200 gift, a $198 service counts as 198 × 2000 / 2200 (about $180).
+export const cardRatio = (payments, p) => {
+  const mine = payments.filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime)
+  const paid = mine.reduce((n, x) => n + (x.topUp || 0), 0)
+  const loaded = mine.reduce((n, x) => n + cardLoaded(x), 0)
+  return loaded > 0 ? paid / loaded : 1
+}
+export const paidAmount = (p) => (p.paymentMethod === 'unsettled' ? 0 : p.amount) // what has actually been collected
+export const paidTip = (p) => ((p.tipMethod || p.paymentMethod) === 'unsettled' ? 0 : p.tipAmount || 0)
+export const performanceOf = (p, payments) => (p.paymentMethod === 'unsettled' ? 0 : p.paymentMethod === 'member_card' ? Math.round(p.amount * cardRatio(payments, p) * 100) / 100 : p.amount)
+export const cardBalance = (payments, customerId, exceptId) => payments
+  .filter((p) => p.customerId === customerId && p.id !== exceptId)
+  .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0)
+export const methodLabel = (id) => [...METHODS, ...LEGACY_METHODS].find((m) => m.id === id)?.label || '—'

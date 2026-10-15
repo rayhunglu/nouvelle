@@ -20,17 +20,30 @@ const CSP = [
   "frame-ancestors 'self'",
 ].join('; ');
 
+// Cross-origin reads: only this site itself, plus any origins listed in CORS_ORIGIN (comma-separated). The header is sent
+// only when the request's Origin is one of those, so other sites cannot read the responses.
+const extraOrigins = () => (process.env.CORS_ORIGIN || '').split(',').map((x) => x.trim()).filter(Boolean);
+
 function securityHeaders(req, res, next) {
   res.setHeader(process.env.CSP_REPORT_ONLY ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy', CSP);
+  res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.removeHeader('X-Powered-By');
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+
+  const origin = req.headers.origin;
+  res.vary('Origin');
+  if (origin && (origin === `${req.protocol}://${req.get('host')}` || extraOrigins().includes(origin))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
   }
-  next();
+  return next();
 }
 
 // rateLimit({ windowMs, max }): at most `max` POSTs per IP per window, then 429.

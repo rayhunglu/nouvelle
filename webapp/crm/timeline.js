@@ -14,15 +14,16 @@ export const minutesOfDay = (iso) => {
   return d.getHours() * 60 + d.getMinutes()
 }
 
-const ACTIVE = ['scheduled', 'completed']
+const ACTIVE = ['scheduled', 'checked-in', 'in-service', 'completed']
 
 // Appointments on `date` (YYYY-MM-DD) that still take up a room, without the one being edited.
 export function dayAppointments(appointments, date, selfId) {
   return appointments.filter((a) => a.id !== selfId && ACTIVE.includes(a.status) && dayKey(a.start) === date)
 }
 
-// First appointment in the same room that overlaps [start, start + duration), or null.
-export function findClash(list, room, startMin, durationMin) {
+// First appointment in the same room that overlaps [start, start + duration), or null. A double room only clashes once
+// every bed is taken; a booking that takes the whole room (`full`) uses every bed.
+export function findClash(list, room, startMin, durationMin, full = false) {
   if (!room) return null
   const end = startMin + durationMin
   const beds = ROOMS.find((r) => r.id === room)?.beds || 1
@@ -31,21 +32,23 @@ export function findClash(list, room, startMin, durationMin) {
     const s = minutesOfDay(a.start)
     return startMin < s + (a.durationMin || 60) && s < end
   })
-  // A double room only clashes once every bed is taken.
-  return overlapping.length >= beds ? overlapping[0] : null
+  const used = overlapping.reduce((n, a) => n + (a.fullRoom && beds > 1 ? beds : 1), 0)
+  return used + (full && beds > 1 ? beds : 1) > beds ? overlapping[0] : null
 }
 
 // A "new appointment" default start inside opening hours: the next whole hour today, otherwise 10:00 on the next open day.
-export function defaultOpenStart() {
+export function defaultOpenStart(hours) {
+  const open = hours?.openMin ?? OPEN
+  const close = hours?.closeMin ?? CLOSE
   const d = new Date()
   d.setMinutes(0, 0, 0)
   d.setHours(d.getHours() + 1)
   const min = d.getHours() * 60
-  if (min >= CLOSE) {
+  if (min >= close) {
     d.setDate(d.getDate() + 1)
-    d.setHours(OPEN / 60)
-  } else if (min < OPEN) {
-    d.setHours(OPEN / 60)
+    d.setHours(Math.floor(open / 60), open % 60)
+  } else if (min < open) {
+    d.setHours(Math.floor(open / 60), open % 60)
   }
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

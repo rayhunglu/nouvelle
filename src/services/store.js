@@ -8,7 +8,7 @@ const mongo = require('./mongo');
 const DATA_DIR = process.env.CRM_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'crm.json');
 
-const COLLECTIONS = ['customers', 'appointments', 'payments', 'services', 'messages', 'applications'];
+const COLLECTIONS = ['customers', 'appointments', 'payments', 'services', 'messages', 'applications', 'users', 'blocks', 'settings'];
 
 let db = null;
 
@@ -152,20 +152,21 @@ const fileStore = {
   },
 };
 
-// ---- MongoDB backend (production / Vercel) ----
-// One collection per name; documents keep our own string `id` (the Mongo `_id` is hidden).
+// ---- MongoDB backend (production / Vercel, or locally with MONGO_URL) ----
+// Each collection has its own model (src/models/<collection>.model.js) built on lib/dbClient.js; this just routes to them.
 
-const NO_ID = { projection: { _id: 0 } };
+const models = require('../models');
+const dbClient = require('../lib/dbClient');
+
 let ready = null;
 
 // Index on `id` and the starter service catalogue (only when the catalogue is empty).
 function init() {
   if (!ready) {
     ready = (async () => {
-      const db = await mongo.getDb();
-      await Promise.all(COLLECTIONS.map((c) => db.collection(c).createIndex({ id: 1 }, { unique: true })));
-      if ((await db.collection('services').estimatedDocumentCount()) === 0) {
-        await db.collection('services').insertMany(DEFAULT_SERVICES.map(newService));
+      await Promise.all(COLLECTIONS.map(async (c) => (await dbClient.getCollection(c)).createIndex({ id: 1 }, { unique: true })));
+      if ((await (await dbClient.getCollection('services')).estimatedDocumentCount()) === 0) {
+        for (const name of DEFAULT_SERVICES) await models.services.create({ name });
       }
     })().catch((err) => {
       ready = null; // retry on the next request
@@ -175,37 +176,29 @@ function init() {
   return ready;
 }
 
-async function col(name) {
+const model = async (name) => {
   await init();
-  return (await mongo.getDb()).collection(name);
-}
+  if (!models[name]) throw new Error(`unknown collection: ${name}`);
+  return models[name];
+};
 
 const mongoStore = {
   async list(name) {
-    return (await col(name)).find({}, NO_ID).sort({ createdAt: 1 }).toArray();
+    return (await model(name)).list();
   },
   async get(name, id) {
-    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
-    return (await col(name)).findOne({ id }, NO_ID);
+    return (await model(name)).get(id);
   },
   async create(name, data) {
-    const record = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-    await (await col(name)).insertOne({ ...record }); // insertOne adds _id to what it is given, so pass a copy
-    return record;
+    return (await model(name)).create(data);
   },
   async update(name, id, data) {
-    if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
-    return (await col(name)).findOneAndUpdate(
-      { id },
-      { $set: { ...data, id, updatedAt: new Date().toISOString() } },
-      { returnDocument: 'after', projection: { _id: 0 } },
-    );
+    return (await model(name)).update(id, data);
   },
   async remove(name, id) {
-    if (typeof id !== 'string') return false; // ids are plain strings: rejects query objects such as {"$ne": null}
-    return (await (await col(name)).deleteOne({ id })).deletedCount > 0;
+    return (await model(name)).remove(id);
   },
 };
 
-// Every method is async; the backend is picked once from MONGODB_URI.
+// Every method is async; the backend is picked once from MONGO_URL (MONGODB_URI also works).
 module.exports = mongo.enabled() ? mongoStore : fileStore;

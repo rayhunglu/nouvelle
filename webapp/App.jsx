@@ -13,11 +13,14 @@ import Faq from './pages/Faq'
 import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import CrmLayout from './crm/Layout'
 import Dashboard from './crm/Dashboard'
 import Customers from './crm/Customers'
 import Appointments from './crm/Appointments'
 import Finance from './crm/Finance'
+import StaffAccounts, { StaffDetail } from './crm/StaffAccounts'
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation()
@@ -46,11 +49,15 @@ export default function App() {
       <Routes>
         {/* Staff area: own layout, no marketing header/footer */}
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/crm" element={<CrmLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="customers" element={<Customers />} />
           <Route path="appointments" element={<Appointments />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="staff" element={<StaffAccounts />} />
+          <Route path="staff/:name" element={<StaffDetail />} />
         </Route>
 
         {/* Public website */}

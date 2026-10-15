@@ -54,7 +54,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={CalendarCheck} label="今日预约" value={summary.today.length} />
-        <StatCard icon={Users} label="客户总数" value={summary.customers} />
+        <StatCard icon={Users} label="客户 · 今日预约 / 总数" value={`${summary.todayCustomers} / ${summary.customers}`} hint="今日预约的客户人数 / 客户总数" />
         <StatCard icon={TrendingUp} label="本月营收" value={money(summary.month.revenue)} hint={`${summary.month.count} 笔收款`} />
         <StatCard icon={HandCoins} label="本月小费" value={money(summary.month.tips)} />
       </div>

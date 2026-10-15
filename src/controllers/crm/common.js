@@ -1,0 +1,14 @@
+// Small helpers and constants shared by the CRM controllers.
+
+// Express 4 doesn't catch rejected promises: forward them to the error handler.
+const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
+const STATUSES = ['scheduled', 'checked-in', 'in-service', 'completed', 'cancelled', 'no-show'];
+const METHODS = ['cash', 'transfer', 'credit_card', 'other', 'zelle', 'venmo', 'member_card', 'unsettled']; // 'unsettled' = checked out, money not collected yet
+const ROOM_IDS = ['room1', 'room2', 'room3', 'room4'];
+const ROOM_NAMES = { room1: '美容单人房', room2: '医美双人房', room3: '美睫单人房', room4: '头疗双人房' };
+
+const str = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const num = (v) => (v === '' || v === null || v === undefined ? NaN : Number(v));
+
+module.exports = { wrap, STATUSES, METHODS, ROOM_IDS, ROOM_NAMES, str, num };

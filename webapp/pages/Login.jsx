@@ -59,9 +59,9 @@ export default function Login() {
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             <label className="relative block">
-              <span className="sr-only">账号</span>
+              <span className="sr-only">账号或邮箱</span>
               <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-              <input className={field} placeholder="账号" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoFocus required />
+              <input className={field} placeholder="登录名或邮箱" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoFocus required />
             </label>
             <label className="relative block">
               <span className="sr-only">密码</span>
@@ -72,6 +72,7 @@ export default function Login() {
             <button className="btn-primary w-full" disabled={busy}>
               {busy && <Loader2 size={16} className="animate-spin" />} 登录
             </button>
+            <p className="text-center text-sm"><Link to="/forgot-password" className="text-muted hover:text-ink">忘记密码？</Link></p>
           </form>
         </div>
       </div>
