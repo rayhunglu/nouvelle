@@ -184,7 +184,7 @@ function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, pai
   const phone = window.innerWidth < 640
   return (
 
-      <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end bg-ink/30' : ''}`} onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
+      <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end bg-ink/30' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setMenu(null) }} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
         <div
           role="menu"
           onPointerDown={(e) => e.stopPropagation()}
@@ -418,7 +418,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
   return (
     <>
     {bmenu && (
-      <div className="fixed inset-0 z-50" onPointerDown={() => setBmenu(null)} onContextMenu={(e) => { e.preventDefault(); setBmenu(null) }}>
+      <div className="fixed inset-0 z-50" onClick={(e) => { if (e.target === e.currentTarget) setBmenu(null) }} onContextMenu={(e) => { e.preventDefault(); setBmenu(null) }}>
         <div role="menu" onPointerDown={(e) => e.stopPropagation()} className="absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl"
           style={{ left: Math.min(bmenu.x, window.innerWidth - 216), top: Math.max(8, Math.min(bmenu.y, window.innerHeight - 200)) }}>
           <p className="truncate border-b border-ink/10 px-3 py-2 text-xs text-muted">不接受预约 · {fmtTime(bmenu.k.start)} 起 {bmenu.k.durationMin} 分钟{bmenu.k.reason ? ` · ${bmenu.k.reason}` : ''}</p>

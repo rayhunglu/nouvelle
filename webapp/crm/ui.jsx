@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Loader2, X } from 'lucide-react'
 import { STATUS } from './format'
 
@@ -66,6 +66,9 @@ export function PageTitle({ title, sub, children, compact = false }) {
 // loading: while a save is in progress the whole screen dims and a small white box with a spinner shows on top of the dialog;
 // both go away together with the dialog when the save finishes (or when it fails and the dialog stays open).
 export function Modal({ title, onClose, children, wide = false, loading = false, loadingText = '保存中…' }) {
+  // The dialog closes when the grey backdrop is tapped (press and release both on it). It closes on the click, not on the press: closing
+  // on the press removed the backdrop first, and on a phone the same tap then landed on whatever button was underneath.
+  const pressedBackdrop = useRef(false)
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -77,12 +80,11 @@ export function Modal({ title, onClose, children, wide = false, loading = false,
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onPointerDown={(e) => { pressedBackdrop.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && pressedBackdrop.current) onClose() }}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        onMouseDown={(e) => e.stopPropagation()}
         className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-ivory p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -92,7 +94,7 @@ export function Modal({ title, onClose, children, wide = false, loading = false,
         {children}
       </div>
       {loading && (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-ink/40" onMouseDown={(e) => e.stopPropagation()} role="status" aria-live="polite">
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-ink/40" role="status" aria-live="polite">
           <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 text-sm shadow-xl">
             <Loader2 size={18} className="animate-spin text-gold" />{loadingText}
           </div>
