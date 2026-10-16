@@ -104,13 +104,15 @@ export const giftItems = (payments, customerId, exceptId) => {
 // Which gift a service redeems: services whose name contains the gift's project.
 export const GIFT_SERVICE = { photofacial: /光子嫩肤/, thermage: /热拉提/ }
 export const giftForService = (name) => Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || ''
-// Staff performance of a payment. A service paid from the member card only counts for the share of the card that was real
-// money: with a $2,000 top-up that came with a $200 gift, a $198 service counts as 198 × 2000 / 2200 (about $180).
+// Staff performance of a payment. Only one kind of top-up is discounted: a $2,000 top-up that came with a $200 cash gift. Money
+// spent from such a card counts for 2000 / 2200 of the amount paid (a $198 service counts as 198 × 2000 / 2200, about $180).
+// Every other payment, and member-card payments from any other top-up, counts for the amount actually paid.
 export const cardRatio = (payments, p) => {
-  const mine = payments.filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime)
-  const paid = mine.reduce((n, x) => n + (x.topUp || 0), 0)
-  const loaded = mine.reduce((n, x) => n + cardLoaded(x), 0)
-  return loaded > 0 ? paid / loaded : 1
+  const mine = payments.filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime && (x.topUp || 0) > 0)
+  const paid = mine.reduce((n, x) => n + x.topUp, 0)
+  const cashGifts = (x) => (x.topUpGifts || []).filter((g) => g === 'cash200').length
+  const credited = mine.reduce((n, x) => n + (x.topUp === 2000 && cashGifts(x) === 1 ? 2200 : x.topUp), 0)
+  return credited > 0 ? paid / credited : 1
 }
 // A payment counts toward revenue and staff performance only when it is settled (see paidAmount) and, if it belongs to an
 // appointment, that appointment is completed (checked in and out). apptById maps appointment id -> appointment.
@@ -122,3 +124,15 @@ export const cardBalance = (payments, customerId, exceptId) => payments
   .filter((p) => p.customerId === customerId && p.id !== exceptId)
   .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0)
 export const methodLabel = (id) => [...METHODS, ...LEGACY_METHODS].find((m) => m.id === id)?.label || '—'
+
+// Member categories. `rank` orders them (highest first); `chip` is the badge colour wherever the customer is shown.
+export const MEMBER_TIERS = [
+  { id: 'vip', label: 'VIP 会员', rank: 6, chip: 'bg-ink text-gold-light' },
+  { id: '5000', label: '5000 会员', rank: 5, chip: 'bg-rose-200 text-rose-900' },
+  { id: '3000', label: '3000 会员', rank: 4, chip: 'bg-amber-200 text-amber-900' },
+  { id: '2000', label: '2000 会员', rank: 3, chip: 'bg-emerald-200 text-emerald-900' },
+  { id: '1000', label: '1000 会员', rank: 2, chip: 'bg-sky-200 text-sky-900' },
+  { id: 'member', label: '会员', rank: 1, chip: 'bg-gold text-white' }, // a member without a category (older records)
+]
+// The category of a customer: their chosen one, or the plain "会员" for older records marked only as a member; null = not a member.
+export const tierOf = (c) => MEMBER_TIERS.find((t) => t.id === (c.memberTier || (c.member ? 'member' : ''))) || null

@@ -11,6 +11,7 @@ const services = require('../controllers/crm/services');
 const users = require('../controllers/crm/users');
 const { getSummary } = require('../controllers/crm/summary');
 const { getSettings, putSettings } = require('../controllers/crm/settings');
+const { getAvailability } = require('../controllers/availability');
 const { getRoster, addStaff, removeStaff } = require('../controllers/crm/roster');
 const { getSchedule, putSchedule } = require('../controllers/crm/schedule');
 const { getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar } = require('../controllers/crm/staffProfile');
@@ -101,6 +102,8 @@ module.exports = (app) => {
   // Public website endpoints
   // At most 5 submissions per IP per 10 minutes on each public form.
   const formLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 5 });
+  // Open times for the booking form (read only; at most 60 lookups per IP per minute)
+  app.get(`${REST_PREFIX}/availability`, rateLimit({ windowMs: 60 * 1000, max: 60 }), getAvailability);
   app.post(`${REST_PREFIX}/contact`, formLimit, contact.postMessage);
   app.post(`${REST_PREFIX}/careers`, formLimit, contact.postApplication);
 

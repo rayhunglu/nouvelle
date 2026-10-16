@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
@@ -55,12 +55,14 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
     giftUsed: payment ? payment.giftUsed || '' : startGift,
     tipMethod: payment?.tipMethod && payment.tipMethod !== payment.paymentMethod ? payment.tipMethod : '', // '' = same as the payment method
     referralSource: payment?.referralSource || '',
-    notes: payment?.notes || '',
+    // 备注 follows the customer: a new checkout starts from the booking's notes, else the notes kept for the customer.
+    notes: payment ? payment.notes || '' : appt?.notes || customers.find((c) => c.id === (appt?.customerId || customers[0]?.id))?.notes || '',
     topUp: payment?.topUp || '',
     topUpGifts: payment?.topUpGifts || [],
     topUpMethod: payment?.topUpMethod || 'credit_card',
     staff: payment?.staff || appt?.staff || '',
   }))
+  const notesTouched = useRef(false)
   const [newService, setNewService] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -138,7 +140,10 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
         ...f, ...(unsettled ? { paymentMethod: 'unsettled', tipMethod: 'unsettled' } : {}), appointmentId: f.appointmentId || null, datetime: new Date(f.datetime).toISOString(),
         amount: Number(f.amount || 0), tipAmount: Number(f.tipAmount || 0), topUp: Number(f.topUp || 0), topUpGifts: f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0))), giftUsed: unsettled ? '' : f.giftUsed, serviceName: appt?.service || payment?.serviceName || '', tipMethod: unsettled ? 'unsettled' : f.tipMethod || f.paymentMethod,
       })
-      if (completeAppointment && appt) await save('appointments', appt.id, { ...appt, status: 'completed' })
+      if (completeAppointment && appt) await save('appointments', appt.id, { ...appt, status: 'completed', notes: f.notes }) // the booking keeps what was written at check out
+      // The notes belong to the customer too: save them so the next booking (any date) starts from them.
+      const known = customers.find((c) => c.id === f.customerId)
+      if (known && (notesTouched.current || !payment) && (f.notes || '') !== (known.notes || '')) await save('customers', known.id, { ...known, notes: f.notes })
       onClose()
     } catch (err) {
       setError(err.message)
@@ -167,7 +172,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           <>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="客户 *">
-            <select className={inputCls} value={f.customerId} onChange={(e) => setF({ ...f, customerId: e.target.value, appointmentId: '' })} required>
+            <select className={inputCls} value={f.customerId} onChange={(e) => setF({ ...f, customerId: e.target.value, appointmentId: '', ...(!payment && !notesTouched.current ? { notes: customers.find((c) => c.id === e.target.value)?.notes || '' } : {}) })} required>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ''}</option>)}
             </select>
           </Field>
@@ -344,7 +349,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           </>
         )}
 
-        <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={set('notes')} placeholder={f.paymentMethod === 'other' ? '其他付款方式请在这里说明' : '选填'} /></Field>
+        <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={(e) => { notesTouched.current = true; set('notes')(e) }} placeholder={f.paymentMethod === 'other' ? '其他付款方式请在这里说明' : '选填'} /></Field>
 
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">

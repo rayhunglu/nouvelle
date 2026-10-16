@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, CalendarPlus, Check, Clock, HandCoins, LayoutList, Pencil, Plus, Trash2 } from 'lucide-react'
 import { business, categories } from '../data/site'
@@ -299,6 +299,8 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
     notes: appt?.notes || '',
     source: appt?.source || '', // 客户来源
   })
+  // 备注 follows the customer: choosing a customer fills in the notes kept for them (from their last visit), and saving updates those notes.
+  const notesTouched = useRef(false)
   const [nc, setNc] = useState({ firstName: '', lastName: '', gender: 'female', wechatId: '', wechatNo: '', phone: '', email: '' }) // the customer being added
   const setNew = (k) => (e) => setNc({ ...nc, [k]: e.target.value })
   const [error, setError] = useState('')
@@ -380,7 +382,8 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
     const hit = catalog.find((x) => x.value === f.service)
     setTierPicked(null)
     const web = hit ? priceOfHit(hit, member, customerId, null) : undefined
-    if (web && f.price === autoPrice) { setAutoPrice(String(web)); setF({ ...f, customerId, price: String(web) }) } else setF({ ...f, customerId })
+    const carry = !appt && !notesTouched.current ? { notes: next?.notes || '' } : {} // a new booking starts from the customer's saved notes
+    if (web && f.price === autoPrice) { setAutoPrice(String(web)); setF({ ...f, customerId, price: String(web), ...carry }) } else setF({ ...f, customerId, ...carry })
   }
 
   // Start time is edited as a date plus a slot on the day timeline (15-minute steps).
@@ -401,11 +404,14 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
       if (!customerId) throw new Error('请先搜索并选择客户，或点「＋ 新添客户」')
       if (customerId === NEW_CUSTOMER) {
         // The customer is created first; the appointment then points at the new record.
-        const made = await save('customers', null, { ...nc, name: [nc.firstName.trim(), nc.lastName.trim()].filter(Boolean).join(' ') })
+        const made = await save('customers', null, { ...nc, name: [nc.firstName.trim(), nc.lastName.trim()].filter(Boolean).join(' '), notes: f.notes })
         customerId = made.id
       }
       const body = { ...f, customerId, start: new Date(f.start).toISOString(), durationMin: Number(f.durationMin), price: f.price === '' ? 0 : Number(f.price) }
       await save('appointments', appt?.id, body)
+      // Keep the customer's notes up to date, so the next booking (any date) starts from them.
+      const known = customerById[customerId]
+      if (known && (notesTouched.current || !appt) && (f.notes || '') !== (known.notes || '')) await save('customers', customerId, { ...known, notes: f.notes })
       onClose()
     } catch (err) {
       setError(err.message)
@@ -519,7 +525,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
             {SOURCES.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </Field>
-        <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={set('notes')} /></Field>
+        <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={(e) => { notesTouched.current = true; set('notes')(e) }} /></Field>
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>

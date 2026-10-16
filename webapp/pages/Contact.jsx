@@ -22,7 +22,7 @@ function useApiSubmit(endpoint, onSuccess, transform) {
   const [shownAt] = useState(() => Date.now())
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState(false) // false, or the reason (the server's message) once a send has failed
   const onSubmit = async (e) => {
     e.preventDefault()
     setSending(true)
@@ -47,7 +47,8 @@ function useApiSubmit(endpoint, onSuccess, transform) {
         setSent(true)
         onSuccess?.()
       } else {
-        setFailed(true)
+        const body = await res.json().catch(() => null)
+        setFailed((body && body.error) || true)
       }
     } catch {
       // network/API error — form stays visible so the visitor can retry
@@ -144,11 +145,29 @@ function bookingSummary(key, b, t) {
   ].filter(Boolean).join(' | ')
 }
 
+// The times still open on a day, asked from the server (it knows the room's hours, closures and bookings).
+// status: 'idle' (no date yet) | 'loading' | 'ok' | 'error' (the lookup failed: the form falls back to the plain time list).
+function useOpenTimes(serviceKey, date, minutes) {
+  const [state, setState] = useState({ status: 'idle', slots: [], reason: '' })
+  useEffect(() => {
+    if (!date) { setState({ status: 'idle', slots: [], reason: '' }); return undefined }
+    const ctl = new AbortController()
+    setState((cur) => ({ ...cur, status: 'loading' }))
+    fetch(`/api/availability?${new URLSearchParams({ date, service: serviceKey, minutes: String(minutes) })}`, { signal: ctl.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('lookup failed'))))
+      .then((d) => setState({ status: 'ok', slots: d.slots || [], reason: d.reason || '' }))
+      .catch((err) => { if (err.name !== 'AbortError') setState({ status: 'error', slots: [], reason: '' }) })
+    return () => ctl.abort()
+  }, [serviceKey, date, minutes])
+  return state
+}
+
 function ServiceBooking({ serviceKey, value, onChange }) {
   const { t } = useLang()
   const opts = optionsFor(serviceKey)
   const { opt, index, price } = bookingInfo(serviceKey, value)
-  const slots = slotsFor(opt.minutes)
+  const open = useOpenTimes(serviceKey, value.date, opt.minutes)
+  const slots = open.status === 'error' ? slotsFor(opt.minutes) : open.slots
   const isStyles = BOOKABLE[serviceKey] === 'styles'
   const set = (patch) => onChange({ ...value, ...patch })
   const choose = 'cursor-pointer rounded-2xl border px-4 py-3 text-left transition'
@@ -164,7 +183,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
               type="button"
               key={i}
               aria-pressed={index === i}
-              onClick={() => set({ pkg: i, time: slotsFor(o.minutes).includes(value.time) ? value.time : '' })}
+              onClick={() => set({ pkg: i, time: '' })}
               className={`${choose} ${index === i ? on : off}`}
             >
               <span className="block font-medium">{t(o.name)}</span>
@@ -188,18 +207,43 @@ function ServiceBooking({ serviceKey, value, onChange }) {
       </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
+      <div className="space-y-4">
+        <label className="block sm:max-w-xs">
           <span className="eyebrow mb-2 block">{t({ en: 'Date', zh: '预约日期' })}</span>
-          <input required type="date" min={todayStr()} value={value.date} onChange={(e) => set({ date: e.target.value })} className={field} />
+          <input required type="date" min={todayStr()} value={value.date} onChange={(e) => set({ date: e.target.value, time: '' })} className={field} />
         </label>
-        <label className="block">
-          <span className="eyebrow mb-2 block">{t({ en: 'Time', zh: '预约时间' })}</span>
-          <select required value={value.time} onChange={(e) => set({ time: e.target.value })} className={field}>
-            <option value="">{t({ en: 'Select a time…', zh: '选择时间…' })}</option>
-            {slots.map((x) => <option key={x} value={x}>{x}</option>)}
-          </select>
-        </label>
+        <div className="relative">
+          <span className="eyebrow mb-2 block">{t({ en: 'Available times', zh: '可预约时间' })}</span>
+          {/* A hidden field so the browser still asks for a time before the form is sent. */}
+          <input required readOnly tabIndex={-1} aria-hidden="true" value={value.time} className="pointer-events-none absolute bottom-0 left-1/2 h-0 w-0 opacity-0" />
+          {!value.date ? (
+            <p className="rounded-2xl border border-dashed border-ink/15 px-4 py-3 text-sm text-muted">{t({ en: 'Choose a date to see the times that are open.', zh: '请先选择日期，这里会显示当天可预约的时间。' })}</p>
+          ) : open.status === 'loading' ? (
+            <p className="px-1 py-3 text-sm text-muted" role="status">{t({ en: 'Checking available times…', zh: '正在查询可预约时间…' })}</p>
+          ) : slots.length === 0 ? (
+            <p className="rounded-2xl bg-ivory px-4 py-3 text-sm text-ink" role="status">
+              {open.reason === 'closed'
+                ? t({ en: 'We are closed for this treatment on that day. Please choose another date.', zh: '这一天该项目不开放预约，请选择其他日期。' })
+                : open.reason === 'past' || open.reason === 'far'
+                  ? t({ en: 'Please choose a date within the next three months.', zh: '请选择未来三个月内的日期。' })
+                  : t({ en: 'No times left on that day. Please choose another date.', zh: '这一天已约满，请选择其他日期。' })}
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5" role="group" aria-label={t({ en: 'Available times', zh: '可预约时间' })}>
+              {slots.map((x) => (
+                <button
+                  type="button"
+                  key={x}
+                  aria-pressed={value.time === x}
+                  onClick={() => set({ time: x })}
+                  className={`rounded-xl border px-2 py-2.5 text-sm tabular-nums transition ${value.time === x ? 'border-gold bg-gold text-ivory' : 'border-ink/10 bg-ivory hover:border-gold'}`}
+                >
+                  {x}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="flex flex-wrap items-baseline justify-between gap-2 border-t border-ink/10 pt-4">
@@ -326,7 +370,13 @@ export default function Contact() {
               {bookKey && <ServiceBooking key={bookKey} serviceKey={bookKey} value={booking} onChange={setBooking} />}
               <textarea name="message" rows={5} placeholder={t({ en: 'How can we help?', zh: '请留言…' })} className={`${field} sm:col-span-2`} />
               <button disabled={sending} className="btn-primary sm:col-span-2 sm:justify-self-start disabled:opacity-60">{sending ? t({ en: 'Sending…', zh: '发送中…' }) : t({ en: 'Send message', zh: '发送' })}</button>
-              {failed && <p className="text-sm text-red-700 sm:col-span-2" role="alert">{t({ en: 'Sorry, the message could not be sent. Please try again or call us.', zh: '抱歉，发送失败，请稍后重试或直接致电我们。' })}</p>}
+              {failed && <p className="text-sm text-red-700 sm:col-span-2" role="alert">{failed === 'invalid phone'
+                ? t({ en: 'Please check your phone number (digits only, 7–15 digits; spaces, + - ( ) allowed).', zh: '电话格式不对，请检查（7–15 位数字，可含空格、+ - ( )）。' })
+                : failed === 'invalid email'
+                  ? t({ en: 'Please check your email address.', zh: '邮箱格式不对，请检查。' })
+                  : /too many/i.test(String(failed))
+                    ? t({ en: 'Too many attempts. Please wait a few minutes and try again, or call us.', zh: '尝试次数过多，请几分钟后再试，或直接致电我们。' })
+                    : t({ en: 'Sorry, the message could not be sent. Please try again or call us.', zh: '抱歉，发送失败，请稍后重试或直接致电我们。' })}</p>}
             </form>
           )}
         </Reveal>

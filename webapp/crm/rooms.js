@@ -2,7 +2,7 @@
 // the calendar splits it into two halves and two bookings may overlap there (src/routes/crm.js has the same list).
 export const ROOMS = [
   { id: 'room1', name: '美容单人房', chip: 'bg-[#ead9c6] text-[#4e3220] hover:bg-[#e0c9b0]', dot: 'bg-[#8b5a2b]' },
-  { id: 'room2', beds: 2, name: '医美双人房', chip: 'bg-yellow-100 text-yellow-900 hover:bg-yellow-200', dot: 'bg-yellow-500' },
+  { id: 'room2', beds: 2, name: '医美双人房', chip: 'bg-violet-100 text-violet-900 hover:bg-violet-200', dot: 'bg-violet-500' },
   { id: 'room3', name: '美睫单人房', chip: 'bg-green-700 text-white hover:bg-green-800', dot: 'bg-green-800' },
   { id: 'room4', beds: 2, name: '头疗双人房', chip: 'bg-blue-100 text-blue-900 hover:bg-blue-200', dot: 'bg-blue-500' },
 ]

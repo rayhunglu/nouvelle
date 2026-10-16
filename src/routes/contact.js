@@ -14,9 +14,8 @@ async function postMessage(req, res, next) {
     if (!name || !phone) {
       return res.status(400).json({ error: 'name and phone are required' });
     }
-    if (!validPhone(phone) || !validEmail(email)) {
-      return res.status(400).json({ error: 'invalid phone or email' });
-    }
+    if (!validPhone(phone)) return res.status(400).json({ error: 'invalid phone' });
+    if (!validEmail(email)) return res.status(400).json({ error: 'invalid email' });
     // Bots get the same "ok" as everyone else; the message is just not saved or emailed.
     const spam = checkSpam(req.body, ['name', 'wechat', 'message']);
     if (spam) {

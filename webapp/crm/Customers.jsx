@@ -3,7 +3,12 @@ import { Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2 } from 'lucide
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { cardBalance, fmtDateTime, giftItems, giftLabel, money, paidAmount } from './format'
+import { MEMBER_TIERS, cardBalance, fmtDateTime, giftItems, giftLabel, money, paidAmount, paidTip, tierOf } from './format'
+
+function TierBadge({ c }) {
+  const t = tierOf(c)
+  return t ? <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${t.chip}`}>{t.label}</span> : null
+}
 
 // Last visit = most recent completed appointment or recorded payment.
 function lastVisitOf(customerId, appointments, payments) {
@@ -16,41 +21,16 @@ function lastVisitOf(customerId, appointments, payments) {
 const fmtLast = (iso) => (iso ? fmtDateTime(iso) : '尚未到访')
 
 function CustomerForm({ customer, onClose }) {
-  const { save, appointments, payments, serviceById } = useCrm()
+  const { save, appointments, payments } = useCrm()
   const [f, setF] = useState({
     name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
-    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', member: !!customer?.member,
+    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: tierOf(customer || {})?.id || '',
   })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   const history = customer ? appointments.filter((a) => a.customerId === customer.id).sort((a, b) => b.start.localeCompare(a.start)) : []
-  // Services this customer has received, grouped by name: completed appointments plus walk-in charges (payments not
-  // tied to an appointment). What was paid counts toward each service; a charge covering several services is split evenly.
-  const served = (() => {
-    if (!customer) return []
-    const mine = payments.filter((p) => p.customerId === customer.id)
-    const paidFor = (appointmentId) => mine.filter((p) => p.appointmentId === appointmentId).reduce((t, p) => t + p.amount + (p.tipAmount || 0), 0)
-    const done = history.filter((a) => a.status === 'completed' && !a.paymentDeleted) // a deleted consumption record no longer counts as a service received
-    const doneIds = new Set(done.map((a) => a.id))
-    const rows = done.map((a) => ({ service: a.service, when: a.start, paid: paidFor(a.id), staff: a.staff }))
-    for (const p of mine.filter((p) => !p.appointmentId || !doneIds.has(p.appointmentId))) {
-      const names = p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean)
-      if (p.appointmentId && !names.length) continue
-      const list = names.length ? names : ['消费']
-      for (const n of list) rows.push({ service: n, when: p.datetime, paid: (p.amount + (p.tipAmount || 0)) / list.length, staff: p.staff })
-    }
-    const m = {}
-    for (const r of rows) {
-      const e = m[r.service] || (m[r.service] = { service: r.service, count: 0, last: r.when, paid: 0, staff: new Set() })
-      e.count += 1
-      e.paid += r.paid
-      if (r.staff) e.staff.add(r.staff)
-      if (r.when > e.last) e.last = r.when
-    }
-    return Object.values(m).sort((x, y) => y.last.localeCompare(x.last))
-  })()
   const lastVisit = customer ? lastVisitOf(customer.id, appointments, payments) : null
   const gifts = customer ? giftItems(payments, customer.id) : {}
   const cardBal = customer ? cardBalance(payments, customer.id) : 0
@@ -74,7 +54,7 @@ function CustomerForm({ customer, onClose }) {
       {/* The customer's key details stay pinned at the top while the history below is scrolled. */}
       {customer && (
         <div className="sticky -top-6 z-10 -mx-6 -mt-2 mb-4 border-b border-ink/10 bg-ivory/95 px-6 py-2 backdrop-blur">
-          <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">{customer.name}{customer.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}</p>
+          <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">{customer.name}<TierBadge c={customer} /></p>
           <p className="flex flex-wrap gap-x-3 text-xs text-muted">
             {customer.phone && <span>{customer.phone}</span>}
             {(customer.wechatId || customer.wechatNo) && <span>微信 {[customer.wechatId, customer.wechatNo].filter(Boolean).join(' · ')}</span>}
@@ -91,7 +71,12 @@ function CustomerForm({ customer, onClose }) {
           <Field label="微信号"><input className={inputCls} value={f.wechatNo} onChange={set('wechatNo')} autoComplete="off" /></Field>
         </div>
         <Field label="邮箱"><input className={inputCls} value={f.email} onChange={set('email')} type="email" /></Field>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.member} onChange={(e) => setF({ ...f, member: e.target.checked })} className="h-4 w-4 accent-gold" />会员（预约时自动按会员价）</label>
+        <Field label="会员类别（选了就是会员，预约时自动按会员价）">
+          <select className={inputCls} value={f.memberTier} onChange={set('memberTier')}>
+            <option value="">非会员</option>
+            {[...MEMBER_TIERS].reverse().map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </Field>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
@@ -103,17 +88,6 @@ function CustomerForm({ customer, onClose }) {
 
       {customer && (
         <div className="mt-8 border-t border-ink/10 pt-5">
-          <h3 className="mb-3 text-sm font-medium">服务过的项目（{served.length}）</h3>
-          {served.length === 0 ? <p className="mb-6 text-sm text-muted">暂无服务记录（预约标记为「已完成」或有收费记录后会出现在这里）</p> : (
-            <ul className="mb-6 divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
-              {served.map((e) => (
-                <li key={e.service} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <div className="min-w-0"><p className="truncate font-medium">{e.service}</p>{e.staff.size > 0 && <p className="truncate text-xs text-muted">服务人员 {[...e.staff].join('、')}</p>}</div>
-                  <p className="shrink-0 text-right text-xs text-muted">{e.count} 次 · 最近 {fmtDateTime(e.last)}{e.paid > 0 && <> · 收费 <b className="text-ink">{money(e.paid)}</b></>}</p>
-                </li>
-              ))}
-            </ul>
-          )}
           <div className="mb-3 flex items-baseline justify-between">
             <h3 className="text-sm font-medium">预约记录（{history.length}）</h3>
             <p className="text-sm text-muted">上次到访 <b className="text-ink">{fmtLast(lastVisit)}</b> · 累计 <b className="text-ink">{money(spent)}</b>{(cardBal !== 0 || payments.some((p) => p.customerId === customer.id && p.topUp > 0)) && <> · 会员卡余额 <b className="text-ink">{money(cardBal)}</b></>}</p>
@@ -121,12 +95,30 @@ function CustomerForm({ customer, onClose }) {
             {Object.keys(gifts).length > 0 && <p className="-mt-1.5 mb-3 text-right text-xs text-emerald-700">赠送项目剩余：{Object.entries(gifts).map(([g, n]) => `${giftLabel(g)} ×${n}`).join('、')}</p>}
           {history.length === 0 ? <p className="text-sm text-muted">暂无预约</p> : (
             <ul className="divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
-              {history.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                  <div className={`min-w-0 ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}><p className="truncate font-medium">{a.service}</p><p className="text-xs text-muted">{fmtDateTime(a.start)}</p></div>
-                  <span className="flex items-center gap-2">{a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}<StatusBadge status={a.status} /></span>
-                </li>
-              ))}
+              {history.map((a) => {
+                // What this booking cost: its payments (a payment still unsettled is shown as owed), and who served.
+                const pays = payments.filter((p) => p.appointmentId === a.id)
+                const paid = pays.reduce((n, p) => n + paidAmount(p), 0)
+                const owed = pays.filter((p) => p.paymentMethod === 'unsettled').reduce((n, p) => n + p.amount, 0)
+                const tip = pays.reduce((n, p) => n + paidTip(p), 0)
+                const staff = a.staff || pays.find((p) => p.staff)?.staff
+                return (
+                  <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                    <div className={`min-w-0 ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}>
+                      <p className="truncate font-medium">{a.service}</p>
+                      <p className="text-xs text-muted">{fmtDateTime(a.start)}</p>
+                      <p className="text-xs text-muted">服务人员：{staff || '—'}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className={`text-sm font-medium ${pays.length === 0 || a.paymentDeleted ? 'text-muted' : ''}`}>
+                        {pays.length === 0 ? '未记账' : paid > 0 ? `消费 ${money(paid)}` : owed > 0 ? `未结算 ${money(owed)}` : '消费 $0'}
+                      </p>
+                      {tip > 0 && <p className="text-xs text-muted">小费 {money(tip)}</p>}
+                      <span className="mt-1 inline-flex items-center gap-2">{a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}<StatusBadge status={a.status} /></span>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
@@ -141,13 +133,17 @@ export default function Customers() {
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | customer
   const [error, setError] = useState('')
+  const [tierFilter, setTierFilter] = useState('') // '' = everyone, 'none' = not a member, else a member category
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return customers
+      .filter((c) => !tierFilter || (tierFilter === 'none' ? !tierOf(c) : tierOf(c)?.id === tierFilter))
       .filter((c) => !needle || `${c.name} ${c.phone} ${c.email} ${c.wechatId || ''} ${c.wechatNo || ''} ${(c.tags || []).join(' ')}`.toLowerCase().includes(needle))
-      .sort((a, b) => a.name.localeCompare(b.name, 'zh'))
-  }, [customers, q])
+      // Highest category first (VIP, 5000, 3000…), then non-members; by name within each.
+      .sort((a, b) => (tierOf(b)?.rank || 0) - (tierOf(a)?.rank || 0) || a.name.localeCompare(b.name, 'zh'))
+  }, [customers, q, tierFilter])
+  const tierCount = (id) => customers.filter((c) => (id === 'none' ? !tierOf(c) : tierOf(c)?.id === id)).length
 
   const stats = (id) => ({
     visits: appointments.filter((a) => a.customerId === id && a.status === 'completed' && !a.paymentDeleted).length,
@@ -172,6 +168,12 @@ export default function Customers() {
         <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
         <input className={`${inputCls} !rounded-2xl !py-3 !pl-11`} placeholder="搜索姓名、电话、微信、邮箱、标签…" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="按会员类别筛选">
+        <button onClick={() => setTierFilter('')} aria-pressed={tierFilter === ''} className={`rounded-full px-3 py-1 text-xs ${tierFilter === '' ? 'bg-ink text-ivory' : 'bg-white text-muted'}`}>全部 {customers.length}</button>
+        {[...MEMBER_TIERS, { id: 'none', label: '非会员', chip: 'bg-stone-200 text-stone-700' }].filter((t) => tierCount(t.id) > 0).map((t) => (
+          <button key={t.id} onClick={() => setTierFilter(tierFilter === t.id ? '' : t.id)} aria-pressed={tierFilter === t.id} className={`rounded-full px-3 py-1 text-xs font-medium ${t.chip} ${tierFilter === t.id ? 'ring-2 ring-ink/50' : 'opacity-80 hover:opacity-100'}`}>{t.label} {tierCount(t.id)}</button>
+        ))}
+      </div>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
 
       <Card>
@@ -184,7 +186,7 @@ export default function Customers() {
                   <button onClick={() => setEditing(c)} className="flex min-w-0 flex-1 basis-56 items-center gap-3 text-left min-[480px]:basis-0">
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand font-display text-sm text-gold">{c.name.slice(0, 1)}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2 truncate text-sm font-medium">{c.name}{c.member && <span className="rounded-full bg-gold px-2 py-0.5 text-[0.65rem] font-medium text-white">会员</span>}{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}{(c.tags || []).map((t) => <span key={t} className="rounded-full bg-gold/15 px-2 py-0.5 text-[0.65rem] font-normal text-gold">{t}</span>)}</span>
+                      <span className="flex items-center gap-2 truncate text-sm font-medium">{c.name}<TierBadge c={c} />{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}{(c.tags || []).map((t) => <span key={t} className="rounded-full bg-gold/15 px-2 py-0.5 text-[0.65rem] font-normal text-gold">{t}</span>)}</span>
                       <span className="flex flex-wrap gap-x-3 text-[0.7rem] leading-snug text-muted min-[480px]:flex-nowrap min-[480px]:overflow-hidden min-[480px]:whitespace-nowrap">
                         {c.phone && <span className="flex items-center gap-1"><Phone size={12} />{c.phone}</span>}
                         {(c.wechatId || c.wechatNo) && <span className="flex items-center gap-1"><MessageCircle size={12} />{[c.wechatId, c.wechatNo].filter(Boolean).join(' · ')}</span>}

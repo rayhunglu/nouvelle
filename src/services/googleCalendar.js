@@ -14,9 +14,9 @@ const TIME_ZONE = 'America/Los_Angeles';
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const TIMEOUT_MS = 8000;
 // Google's event colours. A staff member's colour wins (Rina brown, Yingna purple); anyone else gets the room's colour
-// (brown, yellow, dark green, blue in the CRM). Google has no brown for events, so "Tangerine" (6, the closest) stands in.
+// (brown, purple, dark green, blue in the CRM). Google has no brown for events, so "Tangerine" (6, the closest) stands in.
 const STAFF_COLOR = { Rina: '6', Yingna: '3' };
-const ROOM_COLOR = { room1: '6', room2: '5', room3: '10', room4: '9' };
+const ROOM_COLOR = { room1: '6', room2: '3', room3: '10', room4: '9' };
 const ROOM_NAME = { room1: '美容单人房', room2: '医美双人房', room3: '美睫单人房', room4: '头疗双人房' };
 
 const defaultCalendarId = () => process.env.GOOGLE_CALENDAR_ID || process.env.GOOGLE_CALENDAR_EMAIL || '';

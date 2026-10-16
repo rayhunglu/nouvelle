@@ -7,6 +7,12 @@ import PaymentForm from './PaymentForm'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
 import { dayKey, downloadCsv, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 
+// First and last day (YYYY-MM-DD) of a month given as YYYY-MM.
+const monthRange = (key) => {
+  const [y, m] = key.split('-').map(Number)
+  return { from: `${key}-01`, to: `${key}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}` }
+}
+
 export default function Finance() {
   const { payments, appointments, customerById, serviceById, remove } = useCrm()
   const { can } = useAuth()
@@ -14,7 +20,9 @@ export default function Finance() {
   const canDelete = can('deletePayments')
   const location = useLocation()
   const navigate = useNavigate()
-  const [month, setMonth] = useState(monthKey())
+  // The period shown: a start and an end date (inclusive). Empty = no limit on that side. It opens on the current month.
+  const [range, setRange] = useState(() => monthRange(monthKey()))
+  const { from, to } = range
   const [staffFilter, setStaffFilter] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | payment | { fromAppointment }
   const [error, setError] = useState('')
@@ -31,14 +39,14 @@ export default function Finance() {
   }, [location, appointments, navigate])
 
   const staffNames = useMemo(() => [...new Set(payments.map((p) => p.staff).filter(Boolean))], [payments])
-  const inMonth = (p) => !month || monthKey(new Date(p.datetime)) === month
+  const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
   const rows = useMemo(
     () => payments
       .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter))
       .sort((a, b) => b.datetime.localeCompare(a.datetime)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [payments, month, staffFilter],
+    [payments, from, to, staffFilter],
   )
   const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
   const counted = (p) => countsForPerformance(p, apptById) // unsettled, or tied to an appointment that is not completed: not counted
@@ -57,7 +65,7 @@ export default function Finance() {
     }
     return [...m.values()].sort((a, b) => b.revenue - a.revenue)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payments, month, apptById])
+  }, [payments, from, to, apptById])
 
   // What was settled: the appointment's service when the payment came from one, otherwise the services picked on the payment.
   const serviceNames = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean).join('、')
@@ -73,11 +81,17 @@ export default function Finance() {
     const total = countedRows.reduce((n, p) => n + performanceOf(p, payments), 0)
     const tipTotal = countedRows.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = countedRows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
-    const days = new Set(rows.map((p) => dayKey(p.datetime))).size
+    // Oldest first, from the start date down to the end date.
+    const sorted = [...countedRows].sort((a, b) => a.datetime.localeCompare(b.datetime))
+    // Days = every calendar day from the start date to the end date (inclusive). With no start / end date it runs from the first to the last payment.
+    const first = from || (sorted.length ? dayKey(sorted[0].datetime) : '')
+    const last = to || (sorted.length ? dayKey(sorted[sorted.length - 1].datetime) : '')
+    const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
     const r2 = (n) => Math.round(n * 100) / 100
-    downloadCsv(`nouvelle-payments-${month || 'all'}-${(staffFilter || '全员').replace(/[\\/:*?"<>|\s]+/g, '_')}.csv`, [
+    const rent = (950 / 30 / 2) * days // 房租支出: 950 ÷ 30 ÷ 2 × days
+    downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-${(staffFilter || '全员').replace(/[\\/:*?"<>|\s]+/g, '_')}.csv`, [
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
-      ...countedRows.map((p) => [
+      ...sorted.map((p) => [
         fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p),
         methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), p.referralSource, p.staff,
       ]),
@@ -86,6 +100,7 @@ export default function Finance() {
       ['总额（员工业绩）', r2(total)],
       ['小费总额', r2(tipTotal)],
       ['小费总额（剔除现金支付）', r2(tipNoCash)],
+      ...(staffFilter === 'Rina' ? [['房租支出', r2(rent)]] : []), // the rent share is only for Rina's export
     ])
   }
 
@@ -96,13 +111,21 @@ export default function Finance() {
         <button onClick={() => setEditing('new')} className="btn-primary !px-4 !py-2"><Plus size={16} /> 记一笔</button>
       </PageTitle>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={`${inputCls} !w-[8.75rem] !px-2.5 !py-1.5 !text-sm`} aria-label="月份" />
-        <button onClick={() => setMonth('')} className={`rounded-full px-3 py-1.5 text-sm ${!month ? 'bg-ink text-ivory' : 'bg-white text-muted'}`}>全部月份</button>
-        {seeAllStaff && (<select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} aria-label="按员工筛选" className={`${inputCls} !w-auto !px-2.5 !py-1.5 !text-sm sm:ml-auto`}>
-          <option value="">全部员工</option>
-          {staffNames.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>)}
+      <div className="mb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <input type="date" value={from} max={to || undefined} onChange={(e) => setRange({ from: e.target.value, to: e.target.value && to && e.target.value > to ? e.target.value : to })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="开始日期" />
+          <span className="text-muted">~</span>
+          <input type="date" value={to} min={from || undefined} onChange={(e) => setRange({ from: e.target.value && from && e.target.value < from ? e.target.value : from, to: e.target.value })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="结束日期" />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {[['本月', monthRange(monthKey())], ['上月', monthRange(monthKey(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)))], ['全部', { from: '', to: '' }]].map(([label, r]) => (
+            <button key={label} onClick={() => setRange(r)} className={`rounded-full px-3 py-1.5 text-sm ${range.from === r.from && range.to === r.to ? 'bg-ink text-ivory' : 'bg-white text-muted'}`}>{label}</button>
+          ))}
+          {seeAllStaff && (<select value={staffFilter} onChange={(e) => setStaffFilter(e.target.value)} aria-label="按员工筛选" className={`${inputCls} !w-auto !px-2.5 !py-1.5 !text-sm ml-auto`}>
+            <option value="">全部员工</option>
+            {staffNames.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>)}
+        </div>
       </div>
 
       <div className="mb-3 grid grid-cols-3 gap-2">
@@ -113,7 +136,7 @@ export default function Finance() {
 
       {byStaff.length > 0 && (
         <Card className="mb-3 px-3 py-2.5">
-          <h2 className="mb-2 text-sm font-medium">员工业绩{month ? `（${month}）` : ''}<span className="ml-2 hidden text-xs font-normal text-muted sm:inline">会员卡付款按实收比例折算（例：充 2000 送 200，业绩 = 金额 × 2000/2200）</span></h2>
+          <h2 className="mb-2 text-sm font-medium">员工业绩{from || to ? `（${from || '…'} ~ ${to || '…'}）` : ''}<span className="ml-2 hidden text-xs font-normal text-muted sm:inline">会员卡充 2000 送 200 的，业绩 = 实收金额 × 2000/2200；其他都按实收金额</span></h2>
           <ul className="grid grid-cols-3 gap-1.5">
             {byStaff.map((s) => (
               <li key={s.name} className="rounded-lg bg-sand px-2.5 py-1.5 text-sm leading-tight">
@@ -129,7 +152,7 @@ export default function Finance() {
 
       <Card>
         {rows.length === 0 ? <Empty>这个范围内没有收款记录</Empty> : (
-          <ul className="max-h-[max(9rem,calc(100dvh-30rem))] divide-y divide-ink/10 overflow-y-auto lg:max-h-none">
+          <ul className="max-h-[max(9rem,calc(100dvh-32.5rem))] divide-y divide-ink/10 overflow-y-auto lg:max-h-none">
             {rows.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-0.5 px-4 py-2">
                 <div className="min-w-0 flex-1 basis-56">

@@ -1,5 +1,5 @@
 const store = require('../../services/store');
-const { str } = require('./common');
+const { MEMBER_TIERS, str } = require('./common');
 const { makeCrud } = require('./crud');
 const calendar = require('../../services/googleCalendar');
 
@@ -16,8 +16,10 @@ function customerInput(b) {
   const split = 'firstName' in b || 'lastName' in b ? { firstName, lastName } : {};
   const gender = ['female', 'male', 'other'].includes(b.gender) ? b.gender : '';
   const genderField = 'gender' in b ? { gender } : {};
-  const memberField = 'member' in b ? { member: b.member === true } : {};
-  return { data: { name, ...split, ...genderField, ...memberField, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), wechatNo: str(b.wechatNo, 60), notes: str(b.notes, 2000), tags } };
+  // The category decides membership (any category except '' is a member); `member` stays in step because pricing reads it.
+  const tierField = 'memberTier' in b ? { memberTier: MEMBER_TIERS.includes(b.memberTier) ? b.memberTier : '' } : {};
+  const memberField = 'memberTier' in b ? { member: tierField.memberTier !== '' } : 'member' in b ? { member: b.member === true } : {};
+  return { data: { name, ...split, ...genderField, ...tierField, ...memberField, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), wechatNo: str(b.wechatNo, 60), notes: str(b.notes, 2000), tags } };
 }
 
 module.exports = makeCrud('customers', customerInput, {
