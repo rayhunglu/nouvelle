@@ -13,7 +13,9 @@ const store = require('./store');
 const TIME_ZONE = 'America/Los_Angeles';
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const TIMEOUT_MS = 8000;
-// Google's event colours, so each room keeps a recognisable colour (brown, yellow, dark green, blue in the CRM).
+// Google's event colours. A staff member's colour wins (Rina brown, Yingna purple); anyone else gets the room's colour
+// (brown, yellow, dark green, blue in the CRM). Google has no brown for events, so "Tangerine" (6, the closest) stands in.
+const STAFF_COLOR = { Rina: '6', Yingna: '3' };
 const ROOM_COLOR = { room1: '6', room2: '5', room3: '10', room4: '9' };
 const ROOM_NAME = { room1: '美容单人房', room2: '医美双人房', room3: '美睫单人房', room4: '头疗双人房' };
 
@@ -95,7 +97,7 @@ function eventOf(appt, customerName) {
     description: lines.join('\n'),
     start: { dateTime: start.toISOString(), timeZone: TIME_ZONE },
     end: { dateTime: end.toISOString(), timeZone: TIME_ZONE },
-    colorId: ROOM_COLOR[appt.room] || undefined,
+    colorId: STAFF_COLOR[appt.staff] || ROOM_COLOR[appt.room] || undefined,
     // Private marker so synced events can be told apart from ones typed in by hand.
     extendedProperties: { private: { crmAppointmentId: appt.id } },
   };

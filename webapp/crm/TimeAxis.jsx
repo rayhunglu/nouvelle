@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { dayKey } from './format'
 import { useCrm } from './data'
-import { roomOf } from './rooms'
+import { colorOf, roomOf } from './rooms'
 import { dayAppointments, hhmm, minutesOfDay, SLOT, ROW } from './timeline'
 
 // Day timeline for the appointment form: one row per 15 minutes. Press and drag with the mouse and the start time follows
@@ -105,7 +105,7 @@ export default function TimeAxis({ date, startMin, durationMin, room, appointmen
           const s = minutesOfDay(a.start)
           const dur = a.durationMin || 60
           const same = !room || a.room === room
-          const r = roomOf(a.room)
+          const r = colorOf(a)
           return (
             <div
               key={a.id}
@@ -113,7 +113,7 @@ export default function TimeAxis({ date, startMin, durationMin, room, appointmen
               className={`pointer-events-none absolute left-14 right-2 overflow-hidden rounded-lg px-2 py-1 text-[0.7rem] leading-tight ${same ? `${r.chip.split(' ').slice(0, 2).join(' ')} ring-1 ring-ink/10` : 'bg-stone-100 text-stone-500 ring-1 ring-dashed ring-ink/10'}`}
             >
               <p className="truncate font-medium">{hhmm(s)} {a.service}</p>
-              <p className="truncate opacity-80">{customerById[a.customerId]?.name || ''}{a.room ? ` · ${r.name}` : ''}</p>
+              <p className="truncate opacity-80">{customerById[a.customerId]?.name || ''}{a.room ? ` · ${roomOf(a.room).name}` : ''}</p>
             </div>
           )
         })}

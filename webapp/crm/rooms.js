@@ -8,4 +8,12 @@ export const ROOMS = [
 ]
 export const NO_ROOM = { id: '', name: '未指定房间', chip: 'bg-stone-200 text-stone-700 hover:bg-stone-300', dot: 'bg-stone-400' }
 
+// A booking is coloured by its staff member when that person has a colour (Rina brown, Yingna purple, the same as on the
+// Google Calendar), otherwise by its room.
+export const STAFF_COLOR = {
+  Rina: { chip: 'bg-[#ead9c6] text-[#4e3220] hover:bg-[#e0c9b0]', dot: 'bg-[#8b5a2b]' },
+  Yingna: { chip: 'bg-violet-100 text-violet-900 hover:bg-violet-200', dot: 'bg-violet-500' },
+}
+export const colorOf = (a) => STAFF_COLOR[a.staff] || roomOf(a.room)
+
 export const roomOf = (id) => ROOMS.find((r) => r.id === id) || NO_ROOM

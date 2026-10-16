@@ -4,7 +4,7 @@ import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card } from './ui'
 import { dayKey, fmtTime } from './format'
-import { NO_ROOM, ROOMS, roomOf } from './rooms'
+import { NO_ROOM, ROOMS, STAFF_COLOR, colorOf, roomOf } from './rooms'
 import { withStaff } from './staff'
 
 const HOUR_PX = 80 // default: 20px per 15-minute row (the time grid zooms between ZOOM_MIN and ZOOM_MAX)
@@ -20,7 +20,7 @@ const dayStart = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return 
 const dayEnd = (d) => { const x = dayStart(d); x.setDate(x.getDate() + 1); return x }
 
 // Colour comes from the room only; the status shows as a symbol before the time (see `mark`) and cancelled bookings are struck through.
-const chipCls = (a) => `${roomOf(a.room).chip} ${a.status === 'cancelled' || a.paymentDeleted ? 'line-through opacity-50' : ''}`
+const chipCls = (a) => `${colorOf(a).chip} ${a.status === 'cancelled' || a.paymentDeleted ? 'line-through opacity-50' : ''}`
 // Status icon in front of the time: a small solid badge, so the status stands out without changing the room colour.
 const BADGE = {
   'checked-in': { Icon: LogIn, cls: 'bg-lime-500', title: 'Check in' },
@@ -137,7 +137,7 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
                 {items.length > 3 && <p className="px-1 text-[0.7rem] text-muted">还有 {items.length - 3} 个</p>}
               </div>
               <div className="mt-1 flex justify-center gap-0.5 sm:hidden">
-                {items.slice(0, 4).map((a) => <i key={a.id} className={`h-1.5 w-1.5 rounded-full ${roomOf(a.room).dot}`} />)}
+                {items.slice(0, 4).map((a) => <i key={a.id} className={`h-1.5 w-1.5 rounded-full ${colorOf(a).dot}`} />)}
               </div>
             </div>
           )
@@ -974,6 +974,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
           </button>
         )
       })}
+      <span className="flex items-center gap-2 text-[0.7rem] text-muted sm:text-xs">预约颜色：{Object.entries(STAFF_COLOR).map(([n, c]) => <span key={n} className="flex items-center gap-1"><i className={`h-2.5 w-2.5 rounded-full ${c.dot}`} />{n}</span>)}</span>
     </div>
   )
   const staffSelect = !noStaffFilter && (
