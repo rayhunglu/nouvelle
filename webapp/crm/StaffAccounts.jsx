@@ -601,7 +601,7 @@ function AccountForm({ user, staffName, onClose, onSaved }) {
   }
 
   return (
-    <Modal title={user ? `设置 · ${user.displayName || user.staffName}` : '新增员工账号'} onClose={onClose} wide>
+    <Modal title={user ? `设置 · ${user.displayName || user.staffName}` : '新增员工账号'} onClose={onClose} wide loading={busy}>
       <form onSubmit={submit} className="space-y-4">
         {!user && <Field label="登录名 *"><input className={inputCls} value={f.username} onChange={set('username')} autoComplete="off" required autoFocus placeholder="例如 rina" /></Field>}
         <Field label="角色">

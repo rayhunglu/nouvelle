@@ -151,7 +151,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   }
 
   return (
-    <Modal title={quick ? 'Check out · 结算' : completeAppointment ? '完成预约 · 记一笔收款' : payment ? '编辑收款' : '记一笔收款'} onClose={onClose} wide={!quick}>
+    <Modal title={quick ? 'Check out · 结算' : completeAppointment ? '完成预约 · 记一笔收款' : payment ? '编辑收款' : '记一笔收款'} onClose={onClose} wide={!quick} loading={busy}>
       <form onSubmit={submit} className="space-y-4">
         {quick ? (
           <>

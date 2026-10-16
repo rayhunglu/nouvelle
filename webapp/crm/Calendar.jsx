@@ -177,6 +177,54 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
 // Generic time grid, 00:00-24:00 on a 24-hour clock. Each column is a day (week view) or a room (day view).
 // It scrolls inside its own frame (the column heads stay put) and, whenever the shown day changes, jumps so the
 // red "now" pointer is in view; days other than today open at the first booking, or 09:00.
+// The options of a booking (edit, check in / out, no-show, cancel, delete). Opened by a double click or right click on a
+// computer, and by tapping the booking on a phone, where it slides up from the bottom of the screen.
+function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, paidCount = () => 0 }) {
+  if (!menu) return null
+  const phone = window.innerWidth < 640
+  return (
+
+      <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end bg-ink/30' : ''}`} onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
+        <div
+          role="menu"
+          onPointerDown={(e) => e.stopPropagation()}
+          className={phone ? 'max-h-[85dvh] w-full overflow-y-auto rounded-t-2xl bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-base shadow-xl' : 'absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl'}
+          style={phone ? undefined : { left: Math.min(menu.x, window.innerWidth - 216), top: Math.max(8, Math.min(menu.y, window.innerHeight - 380)) }}
+        >
+          <p className={`truncate border-b border-ink/10 text-xs text-muted ${phone ? 'px-4 py-2.5' : 'px-3 py-2'}`}>{fmtTime(menu.a.start)} {customerById[menu.a.customerId]?.name || ''} · {menu.a.service}</p>
+          <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onEdit(a) }} className={`block w-full text-left hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>编辑预约</button>
+          {[['checked-in', 'Check in'], ['in-service', 'In service'], ['completed', 'Check out'], ['no-show', '未到店'], ['cancelled', '取消预约']].map(([st, label]) => (
+            <button key={st} role="menuitem" onClick={() => { const a = menu.a; if ((st === 'cancelled' || st === 'no-show') && paidCount(a) > 0) { setMenu({ ...menu, askCancel: st }); return } setMenu(null); if (a.status !== st || st === 'completed') onStatus(a, st) }}
+              className={`flex w-full items-center justify-between text-left hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'} ${menu.a.status === st ? 'bg-sand font-medium' : ''}`}>
+              {label}{menu.a.status === st && <span className="text-xs text-gold">当前</span>}
+            </button>
+          ))}
+          {menu.askCancel && (
+            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs text-rose-800">这个预约已有 {paidCount(menu.a)} 笔账目，标记为{menu.askCancel === 'no-show' ? '未到店' : '取消'}后账目里的项目和金额会一并删除。确定{menu.askCancel === 'no-show' ? '标记未到店' : '取消'}？</p>
+              <div className="flex gap-2">
+                <button role="menuitem" onClick={() => { const a = menu.a; const st = menu.askCancel; setMenu(null); onStatus(a, st) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">{menu.askCancel === 'no-show' ? '确定' : '确定取消'}</button>
+                <button role="menuitem" onClick={() => setMenu({ ...menu, askCancel: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">{menu.askCancel === 'no-show' ? '不改' : '不取消'}</button>
+              </div>
+            </div>
+          )}
+          {onDelete && (menu.ask ? (
+            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
+              <p className="text-xs text-rose-800">确定删除这个预约？删除后无法恢复。{paidCount(menu.a) > 0 && `账目里它的 ${paidCount(menu.a)} 笔记录也会一并删除。`}</p>
+              <div className="flex gap-2">
+                <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onDelete(a) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">确定删除</button>
+                <button role="menuitem" onClick={() => setMenu({ ...menu, ask: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">不删除</button>
+              </div>
+            </div>
+          ) : (
+            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className={`block w-full text-left text-rose-700 hover:bg-rose-50 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>删除预约</button>
+          ))}
+          <button role="menuitem" onClick={() => setMenu(null)} className={`block w-full border-t border-ink/10 text-left text-muted hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>关闭菜单</button>
+        </div>
+      </div>
+  )
+}
+
 const pad2 = (n) => String(n).padStart(2, '0')
 
 function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount = () => 0, blocks = [], onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, hourPx = 80, onZoom, scrollKey }) {
@@ -390,46 +438,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
         </div>
       </div>
     )}
-    {menu && (
-      <div className="fixed inset-0 z-50" onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
-        <div
-          role="menu"
-          onPointerDown={(e) => e.stopPropagation()}
-          className="absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl"
-          style={{ left: Math.min(menu.x, window.innerWidth - 216), top: Math.max(8, Math.min(menu.y, window.innerHeight - 380)) }}
-        >
-          <p className="truncate border-b border-ink/10 px-3 py-2 text-xs text-muted">{fmtTime(menu.a.start)} {customerById[menu.a.customerId]?.name || ''} · {menu.a.service}</p>
-          <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onEdit(a) }} className="block w-full px-3 py-2 text-left hover:bg-sand/70">编辑预约</button>
-          {[['checked-in', 'Check in'], ['in-service', 'In service'], ['completed', 'Check out'], ['no-show', '未到店'], ['cancelled', '取消预约']].map(([st, label]) => (
-            <button key={st} role="menuitem" onClick={() => { const a = menu.a; if ((st === 'cancelled' || st === 'no-show') && paidCount(a) > 0) { setMenu({ ...menu, askCancel: st }); return } setMenu(null); if (a.status !== st || st === 'completed') onStatus(a, st) }}
-              className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-sand/70 ${menu.a.status === st ? 'bg-sand font-medium' : ''}`}>
-              {label}{menu.a.status === st && <span className="text-xs text-gold">当前</span>}
-            </button>
-          ))}
-          {menu.askCancel && (
-            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs text-rose-800">这个预约已有 {paidCount(menu.a)} 笔账目，标记为{menu.askCancel === 'no-show' ? '未到店' : '取消'}后账目里的项目和金额会一并删除。确定{menu.askCancel === 'no-show' ? '标记未到店' : '取消'}？</p>
-              <div className="flex gap-2">
-                <button role="menuitem" onClick={() => { const a = menu.a; const st = menu.askCancel; setMenu(null); onStatus(a, st) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">{menu.askCancel === 'no-show' ? '确定' : '确定取消'}</button>
-                <button role="menuitem" onClick={() => setMenu({ ...menu, askCancel: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">{menu.askCancel === 'no-show' ? '不改' : '不取消'}</button>
-              </div>
-            </div>
-          )}
-          {onDelete && (menu.ask ? (
-            <div className="space-y-2 bg-rose-50 px-3 py-2.5">
-              <p className="text-xs text-rose-800">确定删除这个预约？删除后无法恢复。{paidCount(menu.a) > 0 && `账目里它的 ${paidCount(menu.a)} 笔记录也会一并删除。`}</p>
-              <div className="flex gap-2">
-                <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onDelete(a) }} className="flex-1 rounded-lg bg-rose-600 py-1.5 text-white hover:bg-rose-700">确定删除</button>
-                <button role="menuitem" onClick={() => setMenu({ ...menu, ask: false })} className="flex-1 rounded-lg border border-ink/15 bg-white py-1.5 hover:bg-sand/70">不删除</button>
-              </div>
-            </div>
-          ) : (
-            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className="block w-full px-3 py-2 text-left text-rose-700 hover:bg-rose-50">删除预约</button>
-          ))}
-          <button role="menuitem" onClick={() => setMenu(null)} className="block w-full border-t border-ink/10 px-3 py-2 text-left text-muted hover:bg-sand/70">关闭菜单</button>
-        </div>
-      </div>
-    )}
+    <ApptMenu menu={menu} setMenu={setMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} />
     <div ref={scroller} className="relative max-h-[calc(100svh-14rem)] min-h-[22rem] overflow-auto overscroll-contain" style={{ touchAction: onZoom ? 'pan-x pan-y' : undefined }}>
       {zoomTip && <span className="pointer-events-none sticky left-1/2 top-2 z-[40] float-right mr-3 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white">{zoomTip}</span>}
       <div className={`[--gut:2.75rem] sm:[--gut:3.5rem] ${columns.some((c) => c.beds !== undefined) ? 'sm:min-w-[var(--mw)]' : 'md:min-w-[var(--mw)]'}`} style={{ '--mw': `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
@@ -709,6 +718,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
                     onClick={(e) => {
                       e.stopPropagation()
                       if (justDragged.current) { justDragged.current = false; return } // the click that ends a drag is not a click
+                      if (window.innerWidth < 640) { setMenu({ a, x: e.clientX, y: e.clientY }); return } // on a phone a tap shows the options (edit, check in, delete...)
                       if (e.detail === 0 || lastPointer.current === 'touch') { onEdit(a); return }
                       // A single mouse click opens the full editor; waiting a moment lets a double click open the menu instead.
                       clearTimeout(clickTimer.current)
@@ -850,6 +860,9 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
     } catch { return modes.includes('month') ? 'month' : modes[0] }
   })
   const [cursor, setCursor] = useState(() => (initialDate ? new Date(initialDate) : new Date()))
+  // Month view / day list: on a phone, tapping a booking shows its options (edit, check in / out, cancel, delete) instead of opening the editor.
+  const [phoneMenu, setPhoneMenu] = useState(null)
+  const openAppt = (appt) => { if (window.innerWidth < 640) setPhoneMenu({ a: appt, x: 0, y: 0 }); else onEdit(appt) }
   const [selected, setSelected] = useState(() => keyOf(new Date()))
   const [hiddenRooms, setHiddenRooms] = useState(() => new Set())
   // The staff filter is shared with the list view when the page passes it in; otherwise it is local to this calendar.
@@ -1006,12 +1019,13 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
           {staffSelect}
         </div>
       )}
+      <ApptMenu menu={phoneMenu} setMenu={setPhoneMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} />
       <div key={`${mode}-${keyOf(cursor)}`} className={slide > 0 ? 'cal-in-next' : slide < 0 ? 'cal-in-prev' : ''} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {mode === 'month' && (
         <>
-          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} selected={selected} setSelected={setSelected} onOpenDay={onOpenDay} onSaveHours={onSaveHours} />
+          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={openAppt} onCreate={onCreate} selected={selected} setSelected={setSelected} onOpenDay={onOpenDay} onSaveHours={onSaveHours} />
           <div className="border-t border-ink/10 sm:hidden">
-            <DayAgenda days={[new Date(`${selected}T12:00:00`)]} byDay={byDay} customerById={customerById} onEdit={onEdit} onCreate={onCreate} emptyHint="这天没有预约，点日期新增" />
+            <DayAgenda days={[new Date(`${selected}T12:00:00`)]} byDay={byDay} customerById={customerById} onEdit={openAppt} onCreate={onCreate} emptyHint="这天没有预约，点日期新增" />
           </div>
         </>
       )}

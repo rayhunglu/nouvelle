@@ -238,7 +238,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
   }
 
   return (
-    <Modal title={block ? '屏蔽的时间' : '屏蔽时间'} onClose={onClose}>
+    <Modal title={block ? '屏蔽的时间' : '屏蔽时间'} onClose={onClose} loading={busy}>
       {!block && <EntryTabs mode="block" onMode={onMode} />}
       <form onSubmit={submit} className="space-y-4">
         <p className="rounded-xl bg-sand px-4 py-2.5 text-xs text-muted">这段时间有事，不接受预约：在日历上显示为斜线，新增、移动预约都不能落在这里。</p>
@@ -276,10 +276,12 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
 }
 
 function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
-  const { customers, appointments, services, save, customerById, hours, isClosed, worksOn, staffHours, staffRest, roomWindow, roster } = useCrm()
+  const { customers, appointments, services, payments, save, remove, customerById, hours, isClosed, worksOn, staffHours, staffRest, roomWindow, roster } = useCrm()
   const { user, can } = useAuth()
   const lockStaff = !can('assignOthers') // booking for another staff member needs permission: the staff field stays on themselves
   const canBlock = can('manageBlocks')
+  const canDeleteAppt = !!appt && can('deleteAppointments')
+  const [askDelete, setAskDelete] = useState(false)
   const [mode, setMode] = useState('appt') // 'block' switches this dialog to blocking time off (store manager only)
   const staffSuggestions = withStaff(appointments.map((a) => a.staff), roster)
   const [f, setF] = useState({
@@ -414,7 +416,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
   if (mode === 'block') return <BlockForm draftStart={draftStart} draftRoom={draftRoom} draftDuration={draftDuration} onClose={onClose} onMode={setMode} />
 
   return (
-    <Modal title={appt ? '编辑预约' : '新增预约'} onClose={onClose}>
+    <Modal title={appt ? '编辑预约' : '新增预约'} onClose={onClose} loading={busy} loadingText={askDelete ? '删除中…' : '保存中…'}>
       {!appt && canBlock && <EntryTabs mode="appt" onMode={setMode} />}
       <form onSubmit={submit} className="space-y-4">
         <Field label="客户 *">
@@ -523,6 +525,17 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
           <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>
           <button className="btn-primary !py-2.5" disabled={busy}>保存</button>
         </div>
+        {canDeleteAppt && (askDelete ? (
+          <div className="space-y-2 rounded-xl bg-rose-50 px-4 py-3">
+            <p className="text-sm text-rose-800">确定删除这个预约？删除后无法恢复。{payments.filter((p) => p.appointmentId === appt.id).length > 0 && `账目里它的 ${payments.filter((p) => p.appointmentId === appt.id).length} 笔记录也会一并删除。`}</p>
+            <div className="flex gap-2">
+              <button type="button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await remove('appointments', appt.id); onClose() } catch (err) { setError(err.message); setBusy(false) } }} className="flex-1 rounded-full bg-rose-600 py-2.5 text-sm text-white hover:bg-rose-700">确定删除</button>
+              <button type="button" onClick={() => setAskDelete(false)} className="flex-1 rounded-full border border-ink/15 bg-white py-2.5 text-sm hover:bg-sand/70">不删除</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setAskDelete(true)} className="mt-1 w-full rounded-full border border-rose-200 py-2.5 text-sm text-rose-700 hover:bg-rose-50">删除预约</button>
+        ))}
       </form>
     </Modal>
   )

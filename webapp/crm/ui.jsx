@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 import { STATUS } from './format'
 
 export const inputCls =
@@ -63,7 +63,9 @@ export function PageTitle({ title, sub, children, compact = false }) {
   )
 }
 
-export function Modal({ title, onClose, children, wide = false }) {
+// loading: while a save is in progress the whole screen dims and a small white box with a spinner shows on top of the dialog;
+// both go away together with the dialog when the save finishes (or when it fails and the dialog stays open).
+export function Modal({ title, onClose, children, wide = false, loading = false, loadingText = '保存中…' }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -89,6 +91,13 @@ export function Modal({ title, onClose, children, wide = false }) {
         </div>
         {children}
       </div>
+      {loading && (
+        <div className="fixed inset-0 z-[60] grid place-items-center bg-ink/40" onMouseDown={(e) => e.stopPropagation()} role="status" aria-live="polite">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 text-sm shadow-xl">
+            <Loader2 size={18} className="animate-spin text-gold" />{loadingText}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

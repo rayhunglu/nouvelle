@@ -70,7 +70,7 @@ function CustomerForm({ customer, onClose }) {
   }
 
   return (
-    <Modal title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer}>
+    <Modal title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer} loading={busy}>
       {/* The customer's key details stay pinned at the top while the history below is scrolled. */}
       {customer && (
         <div className="sticky -top-6 z-10 -mx-6 -mt-2 mb-4 border-b border-ink/10 bg-ivory/95 px-6 py-2 backdrop-blur">
