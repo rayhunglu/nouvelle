@@ -1,0 +1,23 @@
+{
+  "id": "/crm",
+  "name": "Nouvelle CRM",
+  "short_name": "Nouvelle",
+  "description": "Nouvelle Anti-Aging Center: appointments, customers and payments.",
+  "lang": "zh-CN",
+  "start_url": "/crm/appointments",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf6f1",
+  "theme_color": "#6b3f73",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "预约", "url": "/crm/appointments", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "客户", "url": "/crm/customers", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "账目", "url": "/crm/finance", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}
