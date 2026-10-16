@@ -125,6 +125,9 @@ export const cardBalance = (payments, customerId, exceptId) => payments
   .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0)
 export const methodLabel = (id) => [...METHODS, ...LEGACY_METHODS].find((m) => m.id === id)?.label || '—'
 
+// 客户来源 (= 介绍人): where a customer came from. Chosen on the booking, and again at check out (which starts from the booking's).
+export const CUSTOMER_SOURCES = ['Yingna', 'Rina', 'Dayu', '其他']
+
 // Member categories. `rank` orders them (highest first); `chip` is the badge colour wherever the customer is shown.
 export const MEMBER_TIERS = [
   { id: 'vip', label: 'VIP 会员', rank: 6, chip: 'bg-ink text-gold-light' },

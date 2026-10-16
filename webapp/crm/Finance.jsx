@@ -47,17 +47,19 @@ export default function Finance() {
   const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])], [payments, roster])
   const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
+  const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
+  // 介绍人 of a payment = the 客户来源 of its appointment. What was typed in the payment's own 介绍人 box (if anything) wins.
+  const referrerOf = (p) => p.referralSource || apptById[p.appointmentId]?.source || ''
   // The service a payment settled, by name (the same text the list shows), to tell 医美 from 美睫.
   const serviceNameOf = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
-  const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p))]?.includes(staff) && sameName(p.referralSource, staff)
+  const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p))]?.includes(staff) && sameName(referrerOf(p), staff)
   const rows = useMemo(
     () => payments
       .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || referredTo(p, staffFilter)))
       .sort((a, b) => b.datetime.localeCompare(a.datetime)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [payments, appointments, serviceById, from, to, staffFilter],
+    [payments, appointments, apptById, serviceById, from, to, staffFilter],
   )
-  const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
   const counted = (p) => countsForPerformance(p, apptById) // unsettled, or tied to an appointment that is not completed: not counted
   const countedRows = rows.filter(counted)
   const revenue = countedRows.reduce((s, p) => s + paidAmount(p), 0)
@@ -97,8 +99,8 @@ export default function Finance() {
     const inPeriod = payments.filter((p) => inMonth(p) && counted(p) && p.paymentMethod !== 'unsettled').sort((a, b) => a.datetime.localeCompare(b.datetime))
     const kind = (p) => projectKind(serviceNameOf(p))
     const service = inPeriod.filter((p) => p.staff === 'Rina' && !kind(p))
-    const medical = inPeriod.filter((p) => kind(p) === 'medical' && (p.staff === 'Rina' || sameName(p.referralSource, 'Rina')))
-    const lashFactor = (p) => (sameName(p.referralSource, 'Yingna') || sameName(p.referralSource, 'Rina') ? 0.4 * 0.3 : sameName(p.referralSource, 'Dayu') ? 0.3 * 0.3 : 0)
+    const medical = inPeriod.filter((p) => kind(p) === 'medical' && (p.staff === 'Rina' || sameName(referrerOf(p), 'Rina')))
+    const lashFactor = (p) => (sameName(referrerOf(p), 'Yingna') || sameName(referrerOf(p), 'Rina') ? 0.4 * 0.3 : sameName(referrerOf(p), 'Dayu') ? 0.3 * 0.3 : 0)
     const lash = inPeriod.filter((p) => kind(p) === 'lash' && lashFactor(p) > 0)
     const who = (p) => customerById[p.customerId]?.name || ''
     const serviceTotal = service.reduce((n, p) => n + performanceOf(p, payments), 0)
@@ -119,15 +121,15 @@ export default function Finance() {
     downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.csv`, [
       ['一、Rina 服务业绩'],
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
-      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p), methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), p.referralSource, p.staff]),
+      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p), methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
       [],
       ['二、医美提成（医美金额的 10%，不计入服务业绩）'],
       ['收款时间', '客户', '服务项目', '医美金额', '提成比例', '医美提成', '介绍人', '员工'],
-      ...medical.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), medicalRows[i][0], '10%', medicalRows[i][1], p.referralSource, p.staff]),
+      ...medical.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), medicalRows[i][0], '10%', medicalRows[i][1], referrerOf(p), p.staff]),
       [],
       ['三、睫毛提成（介绍人 Yingna / Rina：项目业绩×0.4×0.3；介绍人 Dayu：项目业绩×0.3×0.3；不计入服务业绩）'],
       ['收款时间', '客户', '服务项目', '项目业绩', '介绍人', '系数', '睫毛提成', '员工'],
-      ...lash.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), lashRows[i][0], p.referralSource, lashRows[i][1], lashRows[i][2], p.staff]),
+      ...lash.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), lashRows[i][0], referrerOf(p), lashRows[i][1], lashRows[i][2], p.staff]),
       [],
       ['日期天数', days],
       ['服务业绩总额', r2(serviceTotal)],
@@ -155,7 +157,7 @@ export default function Finance() {
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
       ...sorted.map((p) => [
         fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p),
-        methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), p.referralSource, p.staff,
+        methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff,
       ]),
       [],
       ['日期天数', days],
@@ -219,7 +221,7 @@ export default function Finance() {
                 <div className="min-w-0 flex-1 basis-56">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{p.referralSource ? ` · 介绍人 ${p.referralSource}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
+                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
                 </div>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>

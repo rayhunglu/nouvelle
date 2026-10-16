@@ -11,11 +11,10 @@ import TimeAxis from './TimeAxis'
 import { durationFor } from './durations'
 import { withStaff } from './staff'
 
-const SOURCES = ['Yingna', 'Rina', 'Dayu', '其他'] // 客户来源 choices
 import { defaultOpenStart, findClash, dayAppointments, hhmm, minutesOfDay } from './timeline'
 import { ROOMS, roomOf } from './rooms'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { STATUS, dayKey, fmtDay, fmtTime, googleCalendarUrl, money, toLocalInput } from './format'
+import { CUSTOMER_SOURCES, STATUS, dayKey, fmtDay, fmtTime, googleCalendarUrl, money, toLocalInput } from './format'
 
 // Rooms whose service field follows a category of the public website (slug from webapp/data/site.js):
 // 美容单人房 offers 护肤项目 first (with its 60/90-minute packages), then 医美, 美睫 and Spa; 医美双人房 lists 医美 first (injectables, IV drips, devices), then 护肤, 美睫 and Spa; 美睫单人房 lists 美睫 first, then 护肤, 医美 and Spa; 头疗双人房 offers everything (Spa first). Add a room here to link another one.
@@ -522,7 +521,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
         <Field label="客户来源">
           <select className={inputCls} value={f.source} onChange={set('source')}>
             <option value="">未选择</option>
-            {SOURCES.map((n) => <option key={n} value={n}>{n}</option>)}
+            {CUSTOMER_SOURCES.map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
         </Field>
         <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={(e) => { notesTouched.current = true; set('notes')(e) }} /></Field>

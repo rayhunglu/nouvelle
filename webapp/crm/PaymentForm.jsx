@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Field, Modal, inputCls } from './ui'
-import { GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftItems, giftLabel, giftsAllowed, money, toLocalInput } from './format'
+import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftItems, giftLabel, giftsAllowed, money, toLocalInput } from './format'
 
 // Dropdown of known people. "其他" reveals a text box for anyone not in the list.
 function PersonSelect({ value, onChange, groups, placeholder }) {
@@ -54,7 +54,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
     paymentMethod: payment?.paymentMethod || (startGift ? 'member_card' : 'credit_card'),
     giftUsed: payment ? payment.giftUsed || '' : startGift,
     tipMethod: payment?.tipMethod && payment.tipMethod !== payment.paymentMethod ? payment.tipMethod : '', // '' = same as the payment method
-    referralSource: payment?.referralSource || '',
+    referralSource: payment ? payment.referralSource || '' : appt?.source || '', // 介绍人 starts from the booking's 客户来源
     // 备注 follows the customer: a new checkout starts from the booking's notes, else the notes kept for the customer.
     notes: payment ? payment.notes || '' : appt?.notes || customers.find((c) => c.id === (appt?.customerId || customers[0]?.id))?.notes || '',
     topUp: payment?.topUp || '',
@@ -100,7 +100,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
     if (!a) return setF({ ...f, appointmentId: '' })
     setF({
       ...f, appointmentId: id, datetime: toLocalInput(a.start), serviceIds: matchedServiceIds(a.service),
-      amount: a.price || f.amount, staff: a.staff || f.staff,
+      amount: a.price || f.amount, staff: a.staff || f.staff, referralSource: f.referralSource || a.source || '',
     })
   }
   const toggleService = (id) =>
@@ -140,7 +140,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
         ...f, ...(unsettled ? { paymentMethod: 'unsettled', tipMethod: 'unsettled' } : {}), appointmentId: f.appointmentId || null, datetime: new Date(f.datetime).toISOString(),
         amount: Number(f.amount || 0), tipAmount: Number(f.tipAmount || 0), topUp: Number(f.topUp || 0), topUpGifts: f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0))), giftUsed: unsettled ? '' : f.giftUsed, serviceName: appt?.service || payment?.serviceName || '', tipMethod: unsettled ? 'unsettled' : f.tipMethod || f.paymentMethod,
       })
-      if (completeAppointment && appt) await save('appointments', appt.id, { ...appt, status: 'completed', notes: f.notes }) // the booking keeps what was written at check out
+      if (completeAppointment && appt) await save('appointments', appt.id, { ...appt, status: 'completed', notes: f.notes, ...(CUSTOMER_SOURCES.includes(f.referralSource) ? { source: f.referralSource } : {}) }) // the booking keeps what was written at check out
       // The notes belong to the customer too: save them so the next booking (any date) starts from them.
       const known = customers.find((c) => c.id === f.customerId)
       if (known && (notesTouched.current || !payment) && (f.notes || '') !== (known.notes || '')) await save('customers', known.id, { ...known, notes: f.notes })
@@ -321,21 +321,17 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           })()}
         </div>
 
+        {/* 客户来源 (= 介绍人): starts from the booking's, can be changed here; older free-text values stay selectable. */}
+        <Field label="客户来源">
+          <select className={inputCls} value={f.referralSource} onChange={set('referralSource')}>
+            <option value="">未选择</option>
+            {[...CUSTOMER_SOURCES, ...(f.referralSource && !CUSTOMER_SOURCES.includes(f.referralSource) ? [f.referralSource] : [])].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </Field>
+
         {!quick && (
           <>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="介绍人">
-            <PersonSelect
-              value={f.referralSource}
-              onChange={(v) => setF((cur) => ({ ...cur, referralSource: v }))}
-              placeholder="无 / 未填"
-              groups={[
-                { label: '员工', names: staffNames },
-                { label: '客户', names: customers.map((c) => c.name) },
-                { label: '以前填过', names: suggestions('referralSource').filter((n) => !staffNames.includes(n) && !customers.some((c) => c.name === n)) },
-              ]}
-            />
-          </Field>
           {!noAssign && (<Field label="员工">
             <PersonSelect
               value={f.staff}
