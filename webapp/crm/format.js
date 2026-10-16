@@ -104,15 +104,15 @@ export const giftItems = (payments, customerId, exceptId) => {
 // Which gift a service redeems: services whose name contains the gift's project.
 export const GIFT_SERVICE = { photofacial: /光子嫩肤/, thermage: /热拉提/ }
 export const giftForService = (name) => Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || ''
-// Staff performance of a payment. Only one kind of top-up is discounted: a $2,000 top-up that came with a $200 cash gift. Money
-// spent from such a card counts for 2000 / 2200 of the amount paid (a $198 service counts as 198 × 2000 / 2200, about $180).
-// Every other payment, and member-card payments from any other top-up, counts for the amount actually paid.
+// Staff performance of a payment. A customer who topped up $2,000 and received the $200 cash gift is on the 2000 / 2200 rule:
+// money they spend from the member card counts for 2000 / 2200 of the amount (a $198 service counts as 198 × 2000 / 2200 = $180).
+// Everyone else, and every other way of paying, counts for the amount actually paid.
+// The rule is the same for every payment of that customer from the day of the top-up on, whatever else they topped up.
+const RULE_NUM = 2000
+const RULE_DEN = 2200
 export const cardRatio = (payments, p) => {
-  const mine = payments.filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime && (x.topUp || 0) > 0)
-  const paid = mine.reduce((n, x) => n + x.topUp, 0)
-  const cashGifts = (x) => (x.topUpGifts || []).filter((g) => g === 'cash200').length
-  const credited = mine.reduce((n, x) => n + (x.topUp === 2000 && cashGifts(x) === 1 ? 2200 : x.topUp), 0)
-  return credited > 0 ? paid / credited : 1
+  const onRule = payments.some((x) => x.customerId === p.customerId && x.datetime <= p.datetime && x.topUp === 2000 && (x.topUpGifts || []).filter((g) => g === 'cash200').length === 1)
+  return onRule ? RULE_NUM / RULE_DEN : 1
 }
 // A payment counts toward revenue and staff performance only when it is settled (see paidAmount) and, if it belongs to an
 // appointment, that appointment is completed (checked in and out). apptById maps appointment id -> appointment.
@@ -134,5 +134,17 @@ export const MEMBER_TIERS = [
   { id: '1000', label: '1000 会员', rank: 2, chip: 'bg-sky-200 text-sky-900' },
   { id: 'member', label: '会员', rank: 1, chip: 'bg-gold text-white' }, // a member without a category (older records)
 ]
-// The category of a customer: their chosen one, or the plain "会员" for older records marked only as a member; null = not a member.
-export const tierOf = (c) => MEMBER_TIERS.find((t) => t.id === (c.memberTier || (c.member ? 'member' : ''))) || null
+// A member card's category follows how much the customer has topped up in total (5000 / 3000 / 2000 / 1000), unless one was
+// picked by hand on their profile (the manual choice always wins, and VIP can only be set by hand).
+const TOPUP_TIERS = [['5000', 5000], ['3000', 3000], ['2000', 2000], ['1000', 1000]]
+export const tierFromTopUps = (payments, customerId) => {
+  const total = payments.filter((p) => p.customerId === customerId).reduce((n, p) => n + (p.topUp || 0), 0)
+  const hit = TOPUP_TIERS.find(([, min]) => total >= min)
+  return hit ? hit[0] : ''
+}
+// The category of a customer: the one chosen by hand, else the one their top-ups add up to, else plain "会员" for older records marked
+// only as a member; null = not a member. Pass the payments to include the top-up rule.
+export const tierOf = (c, payments = []) => {
+  const id = c.memberTier || (c.id ? tierFromTopUps(payments, c.id) : '') || (c.member ? 'member' : '')
+  return MEMBER_TIERS.find((t) => t.id === id) || null
+}

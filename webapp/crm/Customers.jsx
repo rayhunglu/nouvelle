@@ -6,7 +6,8 @@ import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './u
 import { MEMBER_TIERS, cardBalance, fmtDateTime, giftItems, giftLabel, money, paidAmount, paidTip, tierOf } from './format'
 
 function TierBadge({ c }) {
-  const t = tierOf(c)
+  const { payments } = useCrm()
+  const t = tierOf(c, payments)
   return t ? <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${t.chip}`}>{t.label}</span> : null
 }
 
@@ -24,7 +25,7 @@ function CustomerForm({ customer, onClose }) {
   const { save, appointments, payments } = useCrm()
   const [f, setF] = useState({
     name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
-    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: tierOf(customer || {})?.id || '',
+    tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: customer?.memberTier || (customer?.member ? 'member' : ''),
   })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -76,6 +77,7 @@ function CustomerForm({ customer, onClose }) {
             <option value="">非会员</option>
             {[...MEMBER_TIERS].reverse().map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
+          {!f.memberTier && customer && tierOf(customer, payments) && <span className="mt-1 block text-xs text-muted">没有手动选择：按充值累计自动显示为「{tierOf(customer, payments).label}」，选一个就以手动选的为准。</span>}
         </Field>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
@@ -138,12 +140,12 @@ export default function Customers() {
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return customers
-      .filter((c) => !tierFilter || (tierFilter === 'none' ? !tierOf(c) : tierOf(c)?.id === tierFilter))
+      .filter((c) => !tierFilter || (tierFilter === 'none' ? !tierOf(c, payments) : tierOf(c, payments)?.id === tierFilter))
       .filter((c) => !needle || `${c.name} ${c.phone} ${c.email} ${c.wechatId || ''} ${c.wechatNo || ''} ${(c.tags || []).join(' ')}`.toLowerCase().includes(needle))
       // Highest category first (VIP, 5000, 3000…), then non-members; by name within each.
-      .sort((a, b) => (tierOf(b)?.rank || 0) - (tierOf(a)?.rank || 0) || a.name.localeCompare(b.name, 'zh'))
-  }, [customers, q, tierFilter])
-  const tierCount = (id) => customers.filter((c) => (id === 'none' ? !tierOf(c) : tierOf(c)?.id === id)).length
+      .sort((a, b) => (tierOf(b, payments)?.rank || 0) - (tierOf(a, payments)?.rank || 0) || a.name.localeCompare(b.name, 'zh'))
+  }, [customers, payments, q, tierFilter])
+  const tierCount = (id) => customers.filter((c) => (id === 'none' ? !tierOf(c, payments) : tierOf(c, payments)?.id === id)).length
 
   const stats = (id) => ({
     visits: appointments.filter((a) => a.customerId === id && a.status === 'completed' && !a.paymentDeleted).length,

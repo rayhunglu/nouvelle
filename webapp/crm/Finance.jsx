@@ -4,6 +4,7 @@ import { Download, HandCoins, Pencil, Plus, Receipt, Trash2, TrendingUp } from '
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
+import { projectKind } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
 import { dayKey, downloadCsv, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 
@@ -13,8 +14,13 @@ const monthRange = (key) => {
   return { from: `${key}-01`, to: `${key}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}` }
 }
 
+// Picking a staff member also shows the payments they referred: Rina for 医美 projects, Yingna and Rina for 美睫 projects
+// (the 介绍人 of the payment). The payment keeps its own staff member; this only adds it to the referrer's view.
+const REFERRER_LINKS = { medical: ['Rina'], lash: ['Yingna', 'Rina'] }
+const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
+
 export default function Finance() {
-  const { payments, appointments, customerById, serviceById, remove } = useCrm()
+  const { payments, appointments, customerById, serviceById, remove, roster } = useCrm()
   const { can } = useAuth()
   const seeAllStaff = can('viewAllFinance') // the staff filter only matters when other staff's payments are visible
   const canDelete = can('deletePayments')
@@ -38,15 +44,18 @@ export default function Finance() {
     }
   }, [location, appointments, navigate])
 
-  const staffNames = useMemo(() => [...new Set(payments.map((p) => p.staff).filter(Boolean))], [payments])
+  const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])], [payments, roster])
   const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
+  // The service a payment settled, by name (the same text the list shows), to tell 医美 from 美睫.
+  const serviceNameOf = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
+  const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p))]?.includes(staff) && sameName(p.referralSource, staff)
   const rows = useMemo(
     () => payments
-      .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter))
+      .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || referredTo(p, staffFilter)))
       .sort((a, b) => b.datetime.localeCompare(a.datetime)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [payments, from, to, staffFilter],
+    [payments, appointments, serviceById, from, to, staffFilter],
   )
   const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
   const counted = (p) => countsForPerformance(p, apptById) // unsettled, or tied to an appointment that is not completed: not counted
@@ -77,7 +86,61 @@ export default function Finance() {
     try { await remove('payments', p.id) } catch (err) { setError(err.message) }
   }
 
+  // Rina's export has three parts: her own service (服务业绩), the 医美 commission and the 美睫 commission.
+  //  1. Payments for clients Rina served herself, except 医美 and 美睫 projects: the 服务业绩.
+  //  2. 医美 projects of Rina's (served by her or referred by her): not 服务业绩, only 10% of the amount.
+  //  3. 美睫 projects (any staff) whose referrer is Yingna, Rina or Dayu: not 服务业绩; project amount × 0.4 × 0.3 when the referrer is
+  //     Yingna or Rina, × 0.3 × 0.3 when it is Dayu.
+  // The amount used is the same 业绩 figure as everywhere else (member-card payments already scaled by 2000 / 2200).
+  const exportRinaCsv = () => {
+    const r2 = (n) => Math.round(n * 100) / 100
+    const inPeriod = payments.filter((p) => inMonth(p) && counted(p) && p.paymentMethod !== 'unsettled').sort((a, b) => a.datetime.localeCompare(b.datetime))
+    const kind = (p) => projectKind(serviceNameOf(p))
+    const service = inPeriod.filter((p) => p.staff === 'Rina' && !kind(p))
+    const medical = inPeriod.filter((p) => kind(p) === 'medical' && (p.staff === 'Rina' || sameName(p.referralSource, 'Rina')))
+    const lashFactor = (p) => (sameName(p.referralSource, 'Yingna') || sameName(p.referralSource, 'Rina') ? 0.4 * 0.3 : sameName(p.referralSource, 'Dayu') ? 0.3 * 0.3 : 0)
+    const lash = inPeriod.filter((p) => kind(p) === 'lash' && lashFactor(p) > 0)
+    const who = (p) => customerById[p.customerId]?.name || ''
+    const serviceTotal = service.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const medicalRows = medical.map((p) => [performanceOf(p, payments), r2(performanceOf(p, payments) * 0.1)])
+    const medicalTotal = medicalRows.reduce((n, r) => n + r[1], 0)
+    const lashRows = lash.map((p) => [performanceOf(p, payments), lashFactor(p), r2(performanceOf(p, payments) * lashFactor(p))])
+    const lashTotal = lashRows.reduce((n, r) => n + r[2], 0)
+    // Tips on the clients Rina served herself.
+    const mine = inPeriod.filter((p) => p.staff === 'Rina')
+    const tipTotal = mine.reduce((n, p) => n + paidTip(p), 0)
+    const tipNoCash = mine.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
+    // Days: every calendar day from the start date to the end date (the first to the last payment when no dates are set).
+    const all = [...service, ...medical, ...lash].sort((a, b) => a.datetime.localeCompare(b.datetime))
+    const first = from || (all.length ? dayKey(all[0].datetime) : '')
+    const last = to || (all.length ? dayKey(all[all.length - 1].datetime) : '')
+    const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
+    const rent = (950 / 30 / 2) * days // 房租支出: 950 ÷ 30 ÷ 2 × days
+    downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.csv`, [
+      ['一、Rina 服务业绩'],
+      ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
+      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p), methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), p.referralSource, p.staff]),
+      [],
+      ['二、医美提成（医美金额的 10%，不计入服务业绩）'],
+      ['收款时间', '客户', '服务项目', '医美金额', '提成比例', '医美提成', '介绍人', '员工'],
+      ...medical.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), medicalRows[i][0], '10%', medicalRows[i][1], p.referralSource, p.staff]),
+      [],
+      ['三、睫毛提成（介绍人 Yingna / Rina：项目业绩×0.4×0.3；介绍人 Dayu：项目业绩×0.3×0.3；不计入服务业绩）'],
+      ['收款时间', '客户', '服务项目', '项目业绩', '介绍人', '系数', '睫毛提成', '员工'],
+      ...lash.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), lashRows[i][0], p.referralSource, lashRows[i][1], lashRows[i][2], p.staff]),
+      [],
+      ['日期天数', days],
+      ['服务业绩总额', r2(serviceTotal)],
+      ['医美提成总额', r2(medicalTotal)],
+      ['睫毛提成总额', r2(lashTotal)],
+      ['小费总额', r2(tipTotal)],
+      ['小费总额（剔除现金支付）', r2(tipNoCash)],
+      ['房租支出', r2(rent)],
+    ])
+  }
+
   const exportCsv = () => {
+    if (staffFilter === 'Rina') return exportRinaCsv()
     const total = countedRows.reduce((n, p) => n + performanceOf(p, payments), 0)
     const tipTotal = countedRows.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = countedRows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
@@ -88,7 +151,6 @@ export default function Finance() {
     const last = to || (sorted.length ? dayKey(sorted[sorted.length - 1].datetime) : '')
     const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
     const r2 = (n) => Math.round(n * 100) / 100
-    const rent = (950 / 30 / 2) * days // 房租支出: 950 ÷ 30 ÷ 2 × days
     downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-${(staffFilter || '全员').replace(/[\\/:*?"<>|\s]+/g, '_')}.csv`, [
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
       ...sorted.map((p) => [
@@ -100,7 +162,6 @@ export default function Finance() {
       ['总额（员工业绩）', r2(total)],
       ['小费总额', r2(tipTotal)],
       ['小费总额（剔除现金支付）', r2(tipNoCash)],
-      ...(staffFilter === 'Rina' ? [['房租支出', r2(rent)]] : []), // the rent share is only for Rina's export
     ])
   }
 
@@ -158,7 +219,7 @@ export default function Finance() {
                 <div className="min-w-0 flex-1 basis-56">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{p.referralSource ? ` · 介绍人 ${p.referralSource}` : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
+                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{p.referralSource ? ` · 介绍人 ${p.referralSource}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
                 </div>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>

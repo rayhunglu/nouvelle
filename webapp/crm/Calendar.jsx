@@ -367,6 +367,8 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
   }
   const bpress = useRef(null) // a press on a blocked-time box: { k, kind: 'move' | 'top' | 'len', x, y, grab, active }
   const justDraggedBlock = useRef(false)
+  // Close (or reopen) a room for the one day of a column; the room name, its coloured dot and the 开放中 / 已关闭 pill all do this.
+  const toggleClosed = (c) => onSaveHours({ closed: { room: c.room, date: dayKey(c.date.toISOString()), from: dayStart(c.date).toISOString(), to: dayEnd(c.date).toISOString(), value: !isClosed(c.room, dayKey(c.date.toISOString())) } })
   const [bmenu, setBmenu] = useState(null) // double-click / right-click options of a blocked-time box: { k, x, y, ask }
   const bclick = useRef(null)
   const [bdrag, setBdrag] = useState(null) // preview while moving / resizing a block: { id, col?, q?, startMin?, dur? }
@@ -446,9 +448,12 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
           <div />
           {columns.map((c) => (
             <div key={c.key} className="border-l border-ink/30 py-2.5 last:border-r">
-              {c.header}
+              {onSaveHours && c.beds !== undefined && c.room ? (
+                <button type="button" onClick={() => toggleClosed(c)} className="mx-auto block w-full" aria-label={`${isClosed(c.room, dayKey(c.date.toISOString())) ? '重新开放' : '关闭'} ${roomOf(c.room).name}（仅这一天）`}
+                  title={isClosed(c.room, dayKey(c.date.toISOString())) ? '点击重新开放这个房间（仅这一天）' : '点击关闭这个房间（仅这一天，暂不接受预约）'}>{c.header}</button>
+              ) : c.header}
               {onSaveHours && c.beds !== undefined && c.room && (
-                <button type="button" onClick={() => onSaveHours({ closed: { room: c.room, date: dayKey(c.date.toISOString()), from: dayStart(c.date).toISOString(), to: dayEnd(c.date).toISOString(), value: !isClosed(c.room, dayKey(c.date.toISOString())) } })}
+                <button type="button" onClick={() => toggleClosed(c)}
                   title={isClosed(c.room, dayKey(c.date.toISOString())) ? '点击重新开放这个房间（仅这一天）' : '点击关闭这个房间（仅这一天，暂不接受预约）'} aria-pressed={!isClosed(c.room, dayKey(c.date.toISOString()))}
                   className={`mx-auto mt-1 flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.62rem] font-medium transition ${isClosed(c.room, dayKey(c.date.toISOString())) ? 'bg-stone-300 text-stone-700' : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'}`}>
                   <i className={`h-1.5 w-1.5 rounded-full ${isClosed(c.room, dayKey(c.date.toISOString())) ? 'bg-stone-500' : 'bg-emerald-600'}`} />{isClosed(c.room, dayKey(c.date.toISOString())) ? '已关闭' : '开放中'}
@@ -955,16 +960,16 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
       key: r.id || 'none', date: cursor, room: r.id, beds: r.beds || 1, today: keyOf(cursor) === today,
       items: dayItems.filter((a) => (a.room || '') === r.id),
       header: (
-        <p className="flex flex-col items-center justify-center gap-0.5 px-0.5 text-[0.65rem] font-medium leading-tight sm:flex-row sm:gap-1.5 sm:px-0 sm:text-xs">
+        <span className="flex flex-col items-center justify-center gap-0.5 px-0.5 text-[0.65rem] font-medium leading-tight sm:flex-row sm:gap-1.5 sm:px-0 sm:text-xs">
           <i className={`h-2.5 w-2.5 shrink-0 rounded-full ${r.dot}`} /> <span>{r.name}</span>
-        </p>
+        </span>
       ),
     }))
 
   // The room names (they also hide / show a room) and the staff filter: in the day view the room names sit to the right of the
   // date and the staff filter to the right of the 出勤 line; in the week / month views they share one row of their own.
   const roomChips = (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+    <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-1.5 sm:flex">
       {[...ROOMS, ...(roomCounts[''] ? [NO_ROOM] : [])].map((r) => {
         const off = hiddenRooms.has(r.id)
         return (
