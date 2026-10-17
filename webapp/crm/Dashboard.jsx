@@ -70,10 +70,18 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
 
-  // Refetch when appointments/transactions change so the numbers stay current.
+  // Refetch when appointments/transactions change so the numbers stay current, and again whenever the page comes back into view
+  // or every minute, so bookings other staff made (or a day that rolled over) show up without reloading.
   useEffect(() => {
     api('/crm/summary').then(setSummary).catch(() => {})
   }, [appointments, payments])
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') reload().catch(() => {}) }
+    const timer = setInterval(refresh, 60000)
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('focus', refresh) }
+  }, [reload])
 
   // Tick / untick the reminder. The box changes at once; the server keeps it, and a failure puts it back.
   const toggleReminder = async (a, done) => {

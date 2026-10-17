@@ -1,25 +1,26 @@
 const store = require('../../services/store');
 const { wrap } = require('./common');
 const { visibleRows } = require('../../middleware/crmAccess');
+const { clinicDay } = require('./schedule');
 
 // Dashboard numbers: today's and upcoming bookings, this month's revenue and tips, and the last 6 months.
 const getSummary = wrap(async (req, res) => {
+  // Days are the clinic's days (Los Angeles time), not the server's: on Vercel the server clock is UTC, which would move an
+  // evening booking onto the next day and flip "today" / "tomorrow" in the afternoon.
   const now = new Date();
-  const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
-  const dayAfter = new Date(startOfDay); dayAfter.setDate(dayAfter.getDate() + 2);
-  const pad = (n) => String(n).padStart(2, '0');
-  const dateKey = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const todayKey = clinicDay(now);
+  const shiftDay = (key, n) => { const d = new Date(`${key}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const tomorrowKey = shiftDay(todayKey, 1);
+  const dateKey = (iso) => clinicDay(new Date(iso));
   const monthKey = (d) => d.slice(0, 7);
-  const thisMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  const thisMonth = todayKey.slice(0, 7);
 
   const appts = await visibleRows(req, 'appointments', await store.list('appointments'));
 
-  const inRange = (a, from, to) => { const s = new Date(a.start); return s >= from && s < to; };
-  const today = appts.filter((a) => a.status !== 'cancelled' && inRange(a, startOfDay, endOfDay));
+  const today = appts.filter((a) => a.status !== 'cancelled' && dateKey(a.start) === todayKey);
   // Tomorrow's bookings still to be served: these are the ones to remind the customer about.
   const tomorrow = appts
-    .filter((a) => ['scheduled', 'checked-in', 'in-service'].includes(a.status) && inRange(a, endOfDay, dayAfter))
+    .filter((a) => ['scheduled', 'checked-in', 'in-service'].includes(a.status) && dateKey(a.start) === tomorrowKey)
     .sort((a, b) => a.start.localeCompare(b.start));
 
   // Unsettled payments (checked out but not yet paid) are owed money, not revenue, until their method is set.
@@ -35,8 +36,9 @@ const getSummary = wrap(async (req, res) => {
   // last 6 months, oldest first
   const months = [];
   for (let i = 5; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const [y, m] = thisMonth.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     const rows = payments.filter((p) => inMonth(p, key));
     months.push({ month: key, revenue: received(rows), tips: tipsReceived(rows) });
   }
