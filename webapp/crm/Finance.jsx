@@ -17,6 +17,8 @@ const monthRange = (key) => {
 // Picking a staff member also shows the payments they referred: Rina for 医美 projects, Yingna and Rina for 美睫 projects
 // (the 介绍人 of the payment). The payment keeps its own staff member; this only adds it to the referrer's view.
 const REFERRER_LINKS = { medical: ['Rina'], lash: ['Yingna', 'Rina'] }
+// Clicking into a date box opens its calendar straight away (where the browser supports it).
+const openPicker = (e) => { try { e.target.showPicker() } catch { /* not allowed here: the box still works by typing */ } }
 const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
 
 export default function Finance() {
@@ -104,40 +106,46 @@ export default function Finance() {
     const lash = inPeriod.filter((p) => kind(p) === 'lash' && lashFactor(p) > 0)
     const who = (p) => customerById[p.customerId]?.name || ''
     const serviceTotal = service.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const servicePaid = service.reduce((n, p) => n + paidAmount(p), 0)
+    const serviceTips = service.reduce((n, p) => n + paidTip(p), 0)
+    const serviceTipsNoCash = service.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
     const medicalRows = medical.map((p) => [performanceOf(p, payments), r2(performanceOf(p, payments) * 0.1)])
     const medicalTotal = medicalRows.reduce((n, r) => n + r[1], 0)
     const lashRows = lash.map((p) => [performanceOf(p, payments), lashFactor(p), r2(performanceOf(p, payments) * lashFactor(p))])
     const lashTotal = lashRows.reduce((n, r) => n + r[2], 0)
-    // Tips on the clients Rina served herself.
-    const mine = inPeriod.filter((p) => p.staff === 'Rina')
-    const tipTotal = mine.reduce((n, p) => n + paidTip(p), 0)
-    const tipNoCash = mine.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
+    const lashPerformance = lashRows.reduce((n, r) => n + r[0], 0)
     // Days: every calendar day from the start date to the end date (the first to the last payment when no dates are set).
     const all = [...service, ...medical, ...lash].sort((a, b) => a.datetime.localeCompare(b.datetime))
     const first = from || (all.length ? dayKey(all[0].datetime) : '')
     const last = to || (all.length ? dayKey(all[all.length - 1].datetime) : '')
     const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
     const rent = (950 / 30 / 2) * days // 房租支出: 950 ÷ 30 ÷ 2 × days
+    // Rina 薪资 = (服务业绩 + 医美提成 + 睫毛提成 − 房租) × 0.94 + 小费(剔除现金支付)
+    const salary = (serviceTotal + medicalTotal + lashTotal - rent) * 0.94 + serviceTipsNoCash
     downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.csv`, [
       ['一、Rina 服务业绩'],
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
       ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p), methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
+      ['合计', '', '', r2(serviceTotal), r2(servicePaid), r2(serviceTips)],
+      ['小费总额（剔除现金支付）', '', '', '', '', r2(serviceTipsNoCash)],
       [],
       ['二、医美提成（医美金额的 10%，不计入服务业绩）'],
       ['收款时间', '客户', '服务项目', '医美金额', '提成比例', '医美提成', '介绍人', '员工'],
       ...medical.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), medicalRows[i][0], '10%', medicalRows[i][1], referrerOf(p), p.staff]),
+      ['医美提成总额', '', '', '', '', r2(medicalTotal)],
       [],
       ['三、睫毛提成（介绍人 Yingna / Rina：项目业绩×0.4×0.3；介绍人 Dayu：项目业绩×0.3×0.3；不计入服务业绩）'],
       ['收款时间', '客户', '服务项目', '项目业绩', '介绍人', '系数', '睫毛提成', '员工'],
       ...lash.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), lashRows[i][0], referrerOf(p), lashRows[i][1], lashRows[i][2], p.staff]),
+      ['项目业绩总额 / 睫毛提成总额', '', '', r2(lashPerformance), '', '', r2(lashTotal)],
       [],
       ['日期天数', days],
+      ['房租支出', r2(rent)],
       ['服务业绩总额', r2(serviceTotal)],
       ['医美提成总额', r2(medicalTotal)],
       ['睫毛提成总额', r2(lashTotal)],
-      ['小费总额', r2(tipTotal)],
-      ['小费总额（剔除现金支付）', r2(tipNoCash)],
-      ['房租支出', r2(rent)],
+      ['小费总额（剔除现金支付）', r2(serviceTipsNoCash)],
+      ['Rina薪资', r2(salary)],
     ])
   }
 
@@ -176,9 +184,9 @@ export default function Finance() {
 
       <div className="mb-3 space-y-2">
         <div className="flex items-center gap-2">
-          <input type="date" value={from} max={to || undefined} onChange={(e) => setRange({ from: e.target.value, to: e.target.value && to && e.target.value > to ? e.target.value : to })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="开始日期" />
+          <input type="date" value={from} max={to || undefined} onChange={(e) => setRange({ from: e.target.value, to: e.target.value && to && e.target.value > to ? e.target.value : to })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="开始日期" onClick={openPicker} onFocus={openPicker} />
           <span className="text-muted">~</span>
-          <input type="date" value={to} min={from || undefined} onChange={(e) => setRange({ from: e.target.value && from && e.target.value < from ? e.target.value : from, to: e.target.value })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="结束日期" />
+          <input type="date" value={to} min={from || undefined} onChange={(e) => setRange({ from: e.target.value && from && e.target.value < from ? e.target.value : from, to: e.target.value })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="结束日期" onClick={openPicker} onFocus={openPicker} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {[['本月', monthRange(monthKey())], ['上月', monthRange(monthKey(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)))], ['全部', { from: '', to: '' }]].map(([label, r]) => (

@@ -1769,6 +1769,40 @@ const collagenStimulator = {
   },
 }
 
+// Added to the Devices category as the sixth card (see below).
+const acneMicroneedling = {
+  id: 'acne-microneedling',
+  key: 'acne-microneedling',
+  name: { en: 'Acne Microneedling & Skin Renewal', zh: '祛痘焕肤微针' },
+  image: '/images/treatments/zh/acne-microneedling.jpg', // replaced by the zh/en pair in TREATMENT_PHOTOS
+  subtitle: { en: '', zh: 'ACNE MICRONEEDLING & SKIN RENEWAL' },
+  body: {
+    en: 'For acne marks, enlarged pores and rough skin, a professional microneedling treatment encourages the skin’s natural repair, improving skin quality for a finer, smoother complexion.',
+    zh: '针对痘印、毛孔粗大及肌肤粗糙等问题，通过专业微针护理促进肌肤自然修复，改善肤质，焕现细腻平滑肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: ['Fade acne marks | Improves post-acne pigmentation', 'Improve acne scars | Softens shallow, depressed acne scars', 'Refine pores | Improves enlarged pores', 'Renew skin quality | Improves roughness and uneven texture'],
+        zh: ['淡化痘印｜改善痘后色素沉着', '改善痘疤｜淡化浅表凹陷性痘疤', '细致毛孔｜改善毛孔粗大', '焕新肤质｜改善粗糙与肤质不均'],
+      },
+    },
+    {
+      title: { en: 'Who it’s for', zh: '适合人群' },
+      text: { en: 'Those with acne marks, shallow acne scars, enlarged pores, rough texture or uneven skin tone.', zh: '有痘印、浅表痘疤、毛孔粗大、肤质粗糙及肤色不均等困扰的人群。' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Professional skin assessment · Personalised microneedling · Skin repair care', zh: '专业肌肤评估 · 个性化微针护理 · 肌肤修复管理' },
+    },
+  ],
+  note: {
+    en: 'Temporary redness, dryness or peeling may occur after treatment. Your condition is assessed by a professional first.',
+    zh: '治疗后可能出现短暂泛红、干燥或脱屑。情况需先由专业人员评估。',
+  },
+}
+
 const tirzepatide = {
   id: 'tirzepatide',
   key: 'tirzepatide',
@@ -1840,10 +1874,11 @@ export const categories = [
       en: 'Medical-grade devices for tightening, resurfacing, pigment correction, body sculpting and whole-body wellness.',
       zh: '医疗级仪器，紧致、焕肤、祛斑、身体塑形与全身养护。',
     },
-    treatments: pick(
-      'skin-1', 'skin-3', 'skin-4', 'skin-5', 'skin-7', 'skin-8',
-      'hair-3', 'body-1', 'body-2', 'wellness-1',
-    ),
+    treatments: [
+      ...pick('skin-1', 'skin-3', 'skin-4', 'skin-5', 'skin-7'),
+      acneMicroneedling, // 06: 祛痘焕肤微针; the items that used to be 06-10 follow it as 07-11
+      ...pick('skin-8', 'hair-3', 'body-1', 'body-2', 'wellness-1'),
+    ],
   },
   keepBase('skincare-experts'),
   keepBase('lash'),
@@ -1872,6 +1907,7 @@ const TREATMENT_PHOTOS = {
   'wellness-2': { zh: '/images/treatments/shared/wellness-2.jpg', en: '/images/treatments/shared/wellness-2.jpg' },
   'hormone-stem-cell-1': { zh: '/images/treatments/shared/hormone-stem-cell-1.jpg', en: '/images/treatments/shared/hormone-stem-cell-1.jpg' },
   'tirzepatide': { zh: '/images/treatments/shared/tirzepatide.jpg', en: '/images/treatments/shared/tirzepatide.jpg' },
+  'acne-microneedling': { zh: '/images/treatments/zh/acne-microneedling.jpg', en: '/images/treatments/en/acne-microneedling.jpg' }, // roller photo (Asian model) for the Chinese site, Legend Pro photo (Western model) for the English one
   'iv-therapy-1': { zh: '/images/treatments/shared/iv-therapy-1.jpg', en: '/images/treatments/en/nad-iv.jpg' },
   'iv-therapy-2': { zh: '/images/treatments/shared/iv-therapy-2.jpg', en: '/images/treatments/en/brightening-iv.jpg' },
   'hormone-stem-cell-2': { zh: '/images/treatments/zh/hormone-stem-cell-2.jpg', en: '/images/treatments/en/vitality-iv.jpg' },
@@ -2043,7 +2079,7 @@ categories.find((c) => c.slug === 'injectables').treatments.forEach((x, i) => {
 const devices = categories.find((c) => c.slug === 'devices')
 devices.cover.zh = '/images/treatments/zh/dev-full.jpg'
 const DEVICE_CROPS = ['dev-full', 'dev-handpiece', 'dev-face', 'dev-screen', 'dev-profile'].map((n) => `/images/treatments/zh/${n}.jpg`)
-devices.treatments.filter((x) => x.key !== 'wellness-1').forEach((x, i) => {
+devices.treatments.filter((x) => x.key !== 'wellness-1' && x.key !== 'acne-microneedling').forEach((x, i) => { // 祛痘焕肤微针 keeps its own photo
   x.image = { ...x.image, zh: DEVICE_CROPS[i % DEVICE_CROPS.length] }
 })
 
