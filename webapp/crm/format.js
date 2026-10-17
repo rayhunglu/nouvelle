@@ -67,6 +67,20 @@ export function downloadCsv(filename, rows) {
   URL.revokeObjectURL(a.href)
 }
 
+// Downloads an .xlsx workbook (unlike CSV it can carry cell colours). `rows` is an array of rows; a cell is a plain value, or
+// { value, backgroundColor, fontWeight } for a styled one. The library is loaded only when an Excel file is asked for.
+export async function downloadXlsx(filename, rows, { sheet = 'Sheet1', widths = [] } = {}) {
+  const { default: writeExcelFile } = await import('write-excel-file/browser')
+  const data = rows.map((r) => r.map((c) => (c !== null && typeof c === 'object' ? c : { value: c === undefined || c === '' ? null : c })))
+  const blob = await writeExcelFile(data, { sheet, columns: widths.map((width) => ({ width })) }).toBlob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+  return blob
+}
+
 export const METHODS = [
   { id: 'credit_card', label: 'Credit card' },
   { id: 'cash', label: 'Cash' },

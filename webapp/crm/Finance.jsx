@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Download, HandCoins, Pencil, Plus, Receipt, Trash2, TrendingUp } from 'lucide-react'
 import { useAuth } from '../auth'
@@ -6,7 +6,7 @@ import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
 import { projectKind } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
-import { dayKey, downloadCsv, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
+import { dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 
 // First and last day (YYYY-MM-DD) of a month given as YYYY-MM.
 const monthRange = (key) => {
@@ -31,6 +31,7 @@ export default function Finance() {
   // The period shown: a start and an end date (inclusive). Empty = no limit on that side. It opens on the current month.
   const [range, setRange] = useState(() => monthRange(monthKey()))
   const { from, to } = range
+  const endBox = useRef(null)
   const [staffFilter, setStaffFilter] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | payment | { fromAppointment }
   const [error, setError] = useState('')
@@ -96,7 +97,7 @@ export default function Finance() {
   //  3. 美睫 projects (any staff) whose referrer is Yingna, Rina or Dayu: not 服务业绩; project amount × 0.4 × 0.3 when the referrer is
   //     Yingna or Rina, × 0.3 × 0.3 when it is Dayu.
   // The amount used is the same 业绩 figure as everywhere else (member-card payments already scaled by 2000 / 2200).
-  const exportRinaCsv = () => {
+  const exportRinaCsv = async () => {
     const r2 = (n) => Math.round(n * 100) / 100
     const inPeriod = payments.filter((p) => inMonth(p) && counted(p) && p.paymentMethod !== 'unsettled').sort((a, b) => a.datetime.localeCompare(b.datetime))
     const kind = (p) => projectKind(serviceNameOf(p))
@@ -106,7 +107,6 @@ export default function Finance() {
     const lash = inPeriod.filter((p) => kind(p) === 'lash' && lashFactor(p) > 0)
     const who = (p) => customerById[p.customerId]?.name || ''
     const serviceTotal = service.reduce((n, p) => n + performanceOf(p, payments), 0)
-    const servicePaid = service.reduce((n, p) => n + paidAmount(p), 0)
     const serviceTips = service.reduce((n, p) => n + paidTip(p), 0)
     const serviceTipsNoCash = service.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
     const medicalRows = medical.map((p) => [performanceOf(p, payments), r2(performanceOf(p, payments) * 0.1)])
@@ -121,32 +121,43 @@ export default function Finance() {
     const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
     const rent = (950 / 30 / 2) * days // 房租支出: 950 ÷ 30 ÷ 2 × days
     // Rina 薪资 = (服务业绩 + 医美提成 + 睫毛提成 − 房租) × 0.94 + 小费(剔除现金支付)
-    const salary = (serviceTotal + medicalTotal + lashTotal - rent) * 0.94 + serviceTipsNoCash
-    downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.csv`, [
-      ['一、Rina 服务业绩'],
-      ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
-      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p), methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
-      ['合计', '', '', r2(serviceTotal), r2(servicePaid), r2(serviceTips)],
-      ['小费总额（剔除现金支付）', '', '', '', '', r2(serviceTipsNoCash)],
+    const afterTax = (serviceTotal + medicalTotal + lashTotal - rent) * 0.94 // 扣除 6% 税后
+    const salary = afterTax + serviceTipsNoCash
+    // Rina's file is an Excel workbook, so the total rows can be coloured: 服务业绩 合计 light brown, 医美提成总额 purple,
+    // 睫毛提成总额 green, Rina薪资 yellow. A total row is coloured from its label up to its last number.
+    const BROWN = '#ead9c6'
+    const PURPLE = '#d9c2f0'
+    const GREEN = '#bfe5c3'
+    const YELLOW = '#fff2a8'
+    const band = (color, row, upTo) => row.map((v, i) => (i <= upTo ? { value: v === '' || v === undefined ? null : v, backgroundColor: color, fontWeight: 'bold' } : v))
+    const title = (t) => [{ value: t, fontWeight: 'bold' }]
+    const head = (cols) => cols.map((v) => ({ value: v, fontWeight: 'bold' }))
+    await downloadXlsx(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.xlsx`, [
+      title('一、Rina 服务业绩'),
+      head(['收款时间', '客户', '服务项目', '金额（员工业绩）', '小费', '小费付款方式', '介绍人', '员工']),
+      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
+      band(BROWN, ['合计', '', '', r2(serviceTotal), r2(serviceTips)], 4),
+      band(BROWN, ['小费总额（剔除现金支付）', '', '', '', r2(serviceTipsNoCash)], 4),
       [],
-      ['二、医美提成（医美金额的 10%，不计入服务业绩）'],
-      ['收款时间', '客户', '服务项目', '医美金额', '提成比例', '医美提成', '介绍人', '员工'],
+      title('二、医美提成（医美金额的 10%，不计入服务业绩）'),
+      head(['收款时间', '客户', '服务项目', '医美金额', '提成比例', '医美提成', '介绍人', '员工']),
       ...medical.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), medicalRows[i][0], '10%', medicalRows[i][1], referrerOf(p), p.staff]),
-      ['医美提成总额', '', '', '', '', r2(medicalTotal)],
+      band(PURPLE, ['医美提成总额', '', '', '', '', r2(medicalTotal)], 5),
       [],
-      ['三、睫毛提成（介绍人 Yingna / Rina：项目业绩×0.4×0.3；介绍人 Dayu：项目业绩×0.3×0.3；不计入服务业绩）'],
-      ['收款时间', '客户', '服务项目', '项目业绩', '介绍人', '系数', '睫毛提成', '员工'],
+      title('三、睫毛提成（介绍人 Yingna / Rina：项目业绩×0.4×0.3；介绍人 Dayu：项目业绩×0.3×0.3；不计入服务业绩）'),
+      head(['收款时间', '客户', '服务项目', '项目业绩', '介绍人', '系数', '睫毛提成', '员工']),
       ...lash.map((p, i) => [fmtDateTime(p.datetime), who(p), serviceNames(p), lashRows[i][0], referrerOf(p), lashRows[i][1], lashRows[i][2], p.staff]),
-      ['项目业绩总额 / 睫毛提成总额', '', '', r2(lashPerformance), '', '', r2(lashTotal)],
+      band(GREEN, ['睫毛提成总额', '', '', r2(lashPerformance), '', '', r2(lashTotal)], 6),
       [],
       ['日期天数', days],
       ['房租支出', r2(rent)],
       ['服务业绩总额', r2(serviceTotal)],
       ['医美提成总额', r2(medicalTotal)],
       ['睫毛提成总额', r2(lashTotal)],
+      ['扣除6%税后', r2(afterTax)],
       ['小费总额（剔除现金支付）', r2(serviceTipsNoCash)],
-      ['Rina薪资', r2(salary)],
-    ])
+      band(YELLOW, ['Rina薪资', r2(salary)], 1),
+    ], { sheet: 'Rina', widths: [26, 16, 30, 18, 12, 16, 12, 12] })
   }
 
   const exportCsv = () => {
@@ -178,15 +189,19 @@ export default function Finance() {
   return (
     <>
       <PageTitle compact title="账目" sub="记录每一笔收款 · 导出 CSV 后可直接导入 Google 表格">
-        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2" disabled={!rows.length}><Download size={16} /> 导出 CSV</button>
+        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2" disabled={!rows.length}><Download size={16} /> 导出 {staffFilter === 'Rina' ? 'Excel' : 'CSV'}</button>
         <button onClick={() => setEditing('new')} className="btn-primary !px-4 !py-2"><Plus size={16} /> 记一笔</button>
       </PageTitle>
 
       <div className="mb-3 space-y-2">
         <div className="flex items-center gap-2">
-          <input type="date" value={from} max={to || undefined} onChange={(e) => setRange({ from: e.target.value, to: e.target.value && to && e.target.value > to ? e.target.value : to })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="开始日期" onClick={openPicker} onFocus={openPicker} />
+          <input type="date" value={from} max={to || undefined} onChange={(e) => {
+            setRange({ from: e.target.value, to: e.target.value && to && e.target.value > to ? e.target.value : to })
+            // A date chosen in the calendar (not typed digit by digit) goes straight on to the end date's calendar.
+            if (e.target.value && !e.nativeEvent.inputType) setTimeout(() => endBox.current?.focus(), 150)
+          }} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="开始日期" onClick={openPicker} onFocus={openPicker} />
           <span className="text-muted">~</span>
-          <input type="date" value={to} min={from || undefined} onChange={(e) => setRange({ from: e.target.value && from && e.target.value < from ? e.target.value : from, to: e.target.value })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="结束日期" onClick={openPicker} onFocus={openPicker} />
+          <input ref={endBox} type="date" value={to} min={from || undefined} onChange={(e) => setRange({ from: e.target.value && from && e.target.value < from ? e.target.value : from, to: e.target.value })} className={`${inputCls} min-w-0 flex-1 !px-2.5 !py-1.5 !text-sm`} aria-label="结束日期" onClick={openPicker} onFocus={openPicker} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {[['本月', monthRange(monthKey())], ['上月', monthRange(monthKey(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1)))], ['全部', { from: '', to: '' }]].map(([label, r]) => (
