@@ -17,7 +17,7 @@ const DEFAULT_SERVICES = [
   '咨询', 'Botox 肉毒素', '玻尿酸填充', 'Belkyra 双下巴溶脂', '童颜针', '替西帕肽减肥针', 'Silhouette InstaLift 童颜线',
   'Thermage 热玛吉', 'Stellar M22 光子嫩肤', '点阵激光', 'Pico 激光', 'RF 射频微针', 'AviClear 祛痘激光',
   'HydraFacial', 'PRP 生发', 'NAD+ 静脉注射', '高压氧舱 HBOT', 'EMSculpt 磁波塑肌', 'BTL 溶脂刀',
-  '日式小颜 60 分钟', '日式小颜 90 分钟', '修丽可清洁补水', '修丽可滋润修复', '中式古法面部刮痧', '专业祛痘针清',
+  '日式小颜 60 分钟', '日式小颜 90 分钟', '修丽可清洁补水', '修丽可滋润修复', '中式古法面部刮痧', '专业祛痘针清', '祛痘焕肤微针',
   '身体 Spa', '头皮 Spa', '睫毛嫁接 · 经典', '睫毛嫁接 · 混合', '睫毛嫁接 · 浓密', '半永久纹绣', '定制修眉', '个人形象定制妆容', '高级感水雾眉', '自然款美瞳线', '无创洗眉', '无创洗眼线', '产品销售',
 ];
 const newService = (name) => ({ id: crypto.randomUUID(), name, createdAt: new Date().toISOString() });

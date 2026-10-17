@@ -1776,6 +1776,9 @@ const acneMicroneedling = {
   name: { en: 'Acne Microneedling & Skin Renewal', zh: '祛痘焕肤微针' },
   image: '/images/treatments/zh/acne-microneedling.jpg', // replaced by the zh/en pair in TREATMENT_PHOTOS
   subtitle: { en: '', zh: 'ACNE MICRONEEDLING & SKIN RENEWAL' },
+  // Prices used by the CRM booking form: first visit and returning member $350, returning non-member $399.
+  price: '$350',
+  regularPrice: '$399',
   body: {
     en: 'For acne marks, enlarged pores and rough skin, a professional microneedling treatment encourages the skin’s natural repair, improving skin quality for a finer, smoother complexion.',
     zh: '针对痘印、毛孔粗大及肌肤粗糙等问题，通过专业微针护理促进肌肤自然修复，改善肤质，焕现细腻平滑肌肤。',

@@ -914,6 +914,17 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const zoomTo = (v) => { setHourPx(v); try { localStorage.setItem('crm.hourPx', String(Math.round(v))) } catch { /* storage unavailable */ } }
   const step = (dir) => { setSlide(dir); setCursor((c) => (mode === 'month' ? new Date(c.getFullYear(), c.getMonth() + dir, 1) : addDays(c, dir * (mode === 'week' ? 7 : 1)))) }
   // In the week / month calendar, 当日 jumps to today's day timeline; in the day view it just returns to today.
+  // The title at the top left opens a month picker: choose a year and a month to jump there (the same day of the month, or its last day).
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
+  const jumpToMonth = (year, month) => {
+    const daysIn = new Date(year, month + 1, 0).getDate()
+    const next = new Date(year, month, mode === 'month' ? 1 : Math.min(cursor.getDate(), daysIn))
+    setSlide(next > cursor ? 1 : -1)
+    setCursor(next)
+    setSelected(keyOf(next))
+    setPickerOpen(false)
+  }
   const goToday = () => {
     if (mode !== 'day' && onOpenDay) { onOpenDay(new Date()); return }
     setSlide(0); setCursor(new Date()); setSelected(keyOf(new Date()))
@@ -993,10 +1004,34 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-ink/10 px-1.5 py-1.5 sm:px-4">
-        <div className="flex shrink-0 items-center">
+        <div className="relative flex shrink-0 items-center">
           <button onClick={() => step(-1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="上一页"><ChevronLeft size={15} /></button>
           <button onClick={() => step(1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="下一页"><ChevronRight size={16} /></button>
-          <h2 className="font-display text-[0.95rem] sm:text-lg">{label}</h2>
+          <button type="button" onClick={() => { setPickerYear(cursor.getFullYear()); setPickerOpen((o) => !o) }} aria-expanded={pickerOpen} aria-haspopup="dialog" title="选择月份"
+            className="rounded-lg px-1.5 py-0.5 font-display text-[0.95rem] hover:bg-sand sm:text-lg"><h2 className="inline">{label}</h2></button>
+          {pickerOpen && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setPickerOpen(false)} />
+              <div role="dialog" aria-label="选择月份" className="absolute left-0 top-full z-40 mt-2 w-64 rounded-2xl border border-ink/10 bg-white p-3 shadow-xl">
+                <div className="mb-2 flex items-center justify-between">
+                  <button type="button" onClick={() => setPickerYear((y) => y - 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="上一年"><ChevronLeft size={16} /></button>
+                  <span className="font-display text-base">{pickerYear} 年</span>
+                  <button type="button" onClick={() => setPickerYear((y) => y + 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="下一年"><ChevronRight size={16} /></button>
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {Array.from({ length: 12 }, (_, m) => {
+                    const here = pickerYear === cursor.getFullYear() && m === cursor.getMonth()
+                    const now = new Date()
+                    const thisMonth = pickerYear === now.getFullYear() && m === now.getMonth()
+                    return (
+                      <button type="button" key={m} onClick={() => jumpToMonth(pickerYear, m)} aria-pressed={here}
+                        className={`rounded-xl py-2 text-sm transition ${here ? 'bg-ink text-ivory' : thisMonth ? 'bg-sand font-medium hover:bg-sand/70' : 'hover:bg-sand'}`}>{m + 1} 月</button>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>
         {mode === 'day' && roomChips}
         <div className="ml-auto flex items-center gap-2">
