@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Download, FileText, Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Camera, ChevronLeft, ChevronRight, Download, FileText, Mail, MessageCircle, Pencil, Phone, Plus, ImagePlus, Search, Trash2, Upload, X } from 'lucide-react'
 import { api } from '../api'
+import { uploadCustomerFile } from './files'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
@@ -22,52 +23,28 @@ function lastVisitOf(customerId, appointments, payments) {
 }
 const fmtLast = (iso) => (iso ? fmtDateTime(iso) : '尚未到访')
 
-const FILE_MAX = 4 * 1024 * 1024
 const fmtSize = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
 
-const FILE_LABELS = ['同意书', '问诊表', '病历', '术前照片', '术后照片', '检查报告', '收据', '身份证件']
-
-// Documents of one customer. The browser only talks to our server; the server keeps the files in Google Drive.
-// Uploading opens a small dialog: pick the file and what it is (a preset name, or 其他 and type one). It is saved as 客户名_名称.ext.
-function CustomerFiles({ customer }) {
-  const customerId = customer.id
+// Documents are kept per appointment record: the 同意书 (consent form) and the before / after photos. The browser only talks to our
+// server; the server keeps the files in Google Drive. Everything is uploaded as soon as it is chosen and saved as 客户名_<label>.ext.
+function useCustomerFiles(customer) { // customer is undefined while a new customer is being added
+  const customerId = customer?.id
   const canDelete = useAuth().can('deleteCustomers')
   const [files, setFiles] = useState(null)
   const [error, setError] = useState('')
-  const [dialog, setDialog] = useState(false)
-  const [file, setFile] = useState(null)
-  const [label, setLabel] = useState(FILE_LABELS[0])
-  const [custom, setCustom] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [formError, setFormError] = useState('')
+  const [busyKey, setBusyKey] = useState('')
   const base = `/api/crm/customers/${customerId}/files`
 
-  const load = () => api(`/crm/customers/${customerId}/files`).then(setFiles).catch((err) => { setFiles([]); setError(err.message) })
+  const load = () => (customerId ? api(`/crm/customers/${customerId}/files`) : Promise.resolve([])).then(setFiles).catch((err) => { setFiles([]); setError(err.message) })
   useEffect(() => { load() }, [customerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ext = file ? file.name.split('.').pop().toLowerCase() : ''
-  const finalLabel = (label === '其他' ? custom : label).trim()
-  const preview = file && finalLabel ? `${customer.name}_${finalLabel}.${ext}` : ''
-
-  const openDialog = () => { setFile(null); setLabel(FILE_LABELS[0]); setCustom(''); setFormError(''); setDialog(true) }
-
-  const upload = async (e) => {
-    e.preventDefault()
-    setFormError('')
-    if (!file) return setFormError('请选择文件')
-    if (file.size > FILE_MAX) return setFormError('文件太大（最大 4MB）')
-    if (!finalLabel) return setFormError('请填写文件名称')
-    setBusy(true)
-    try {
-      const res = await fetch(`${base}?label=${encodeURIComponent(finalLabel)}&ext=${encodeURIComponent(ext)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file, credentials: 'same-origin' })
-      const data = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(data?.error || res.statusText)
-      setDialog(false)
-      await load()
-    } catch (err) {
-      setFormError(err.message)
-    }
-    setBusy(false)
+  // label: 同意书, or Before正面 / After右面 …; big photos are shrunk first (see files.js).
+  const upload = async (appt, label, picked) => {
+    if (!picked) return
+    setError('')
+    setBusyKey(`${appt.id}|${label}`)
+    try { await uploadCustomerFile({ customerId, appointmentId: appt.id, label, file: picked }); await load() } catch (err) { setError(err.message) }
+    setBusyKey('')
   }
 
   const download = async (f) => {
@@ -89,57 +66,163 @@ function CustomerFiles({ customer }) {
     try { await api(`/crm/customers/${customerId}/files/${f.id}`, { method: 'DELETE' }); await load() } catch (err) { setError(err.message) }
   }
 
+  return { customerId, files, error, canDelete, upload, busyKey, download, del }
+}
+
+// A photo comes through our server (login needed), so it is fetched with the session cookie and shown from a blob address.
+// Fetched once per file and kept for the session, so the thumbnail and the big viewer share it.
+const blobCache = new Map()
+function blobUrl(customerId, fileId) {
+  if (!blobCache.has(fileId)) {
+    blobCache.set(fileId, fetch(`/api/crm/customers/${customerId}/files/${fileId}`, { credentials: 'same-origin' })
+      .then((r) => { if (!r.ok) throw new Error(r.statusText); return r.blob() })
+      .then((b) => URL.createObjectURL(b))
+      .catch((err) => { blobCache.delete(fileId); throw err }))
+  }
+  return blobCache.get(fileId)
+}
+function useBlobUrl(customerId, fileId) {
+  const [url, setUrl] = useState('')
+  useEffect(() => { let gone = false; blobUrl(customerId, fileId).then((u) => { if (!gone) setUrl(u) }).catch(() => {}); return () => { gone = true } }, [customerId, fileId])
+  return url
+}
+
+function Thumb({ customerId, file, onOpen }) {
+  const url = useBlobUrl(customerId, file.id)
+  return url
+    ? <button type="button" onClick={onOpen} className="block h-full w-full" aria-label={file.name}><img src={url} alt={file.name} className="h-full w-full object-cover" /></button>
+    : <span className="grid h-full w-full place-items-center text-[0.6rem] text-muted">…</span>
+}
+
+function Slide({ customerId, file }) {
+  const url = useBlobUrl(customerId, file.id)
   return (
-    <div className="mt-8 border-t border-ink/10 pt-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium">文件{files ? `（${files.length}）` : ''}</h3>
-        <button type="button" onClick={openDialog} className="btn-ghost !px-3 !py-1.5 text-sm"><Upload size={14} /> 上传文件</button>
+    <div className="flex h-full w-full shrink-0 snap-center items-center justify-center px-2">
+      {url ? <img src={url} alt={file.name} className="max-h-full max-w-full object-contain" draggable={false} /> : <span className="text-sm text-white/70">加载中…</span>}
+    </div>
+  )
+}
+
+// Full-screen viewer for the photos of one appointment record: swipe (or use the arrows / arrow keys) to go to the next photo.
+function PhotoViewer({ customerId, photos, start, onClose }) {
+  const scroller = useRef(null)
+  const [i, setI] = useState(start)
+  const go = (n) => { const el = scroller.current; if (el) el.scrollTo({ left: Math.max(0, Math.min(photos.length - 1, n)) * el.clientWidth, behavior: 'smooth' }) }
+  useEffect(() => { const el = scroller.current; if (el) el.scrollTo({ left: start * el.clientWidth }) }, [start])
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); else if (e.key === 'ArrowLeft') go(i - 1); else if (e.key === 'ArrowRight') go(i + 1) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }) // eslint-disable-line react-hooks/exhaustive-deps
+  const cur = photos[i]
+  return (
+    <div className="fixed inset-0 z-[70] flex flex-col bg-black/90" role="dialog" aria-modal="true" aria-label="照片">
+      <div className="flex items-center justify-between px-4 py-3 text-sm text-white">
+        <span>{cur.caption} · {i + 1} / {photos.length}</span>
+        <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/15" aria-label="关闭"><X size={18} /></button>
       </div>
-      {error && <p role="alert" className="mb-2 text-sm text-rose-700">{error}</p>}
-      {files === null ? <p className="text-sm text-muted">加载中…</p> : files.length === 0 ? <p className="text-sm text-muted">暂无文件（PDF、图片、Word、Excel，单个最大 4MB）</p> : (
-        <ul className="divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
-          {files.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-              <FileText size={16} className="shrink-0 text-muted" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{f.name}</p>
-                <p className="text-xs text-muted">{fmtDateTime(f.createdAt)} · {fmtSize(f.size)}{f.uploadedBy ? ` · ${f.uploadedBy}` : ''}</p>
-              </div>
-              <button type="button" onClick={() => download(f)} aria-label="下载" className="rounded-full p-2 text-muted hover:bg-ink/5 hover:text-ink"><Download size={16} /></button>
-              {canDelete && <button type="button" onClick={() => del(f)} aria-label="删除" className="rounded-full p-2 text-muted hover:bg-rose-50 hover:text-rose-700"><Trash2 size={16} /></button>}
+      <div className="relative min-h-0 flex-1">
+        <div ref={scroller} className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onScroll={(e) => setI(Math.max(0, Math.min(photos.length - 1, Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))))} onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+          {photos.map((p) => <Slide key={p.id} customerId={customerId} file={p} />)}
+        </div>
+        {i > 0 && <button type="button" onClick={() => go(i - 1)} className="absolute left-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 sm:grid" aria-label="上一张"><ChevronLeft size={22} /></button>}
+        {i < photos.length - 1 && <button type="button" onClick={() => go(i + 1)} className="absolute right-2 top-1/2 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-white hover:bg-white/30 sm:grid" aria-label="下一张"><ChevronRight size={22} /></button>}
+      </div>
+    </div>
+  )
+}
+
+const PHOTO_SIDES = ['正面', '左面', '右面']
+const PHOTO_SETS = ['Before', 'After']
+const photoLabelOf = (f) => { const m = f.name.match(/_(Before|After)(正面|左面|右面)\.[^.]+$/); return m ? m[1] + m[2] : '' }
+
+// One appointment record's documents: before / after photos (front, left, right) and the 同意书.
+function ApptFiles({ appt, fx }) {
+  const [view, setView] = useState(null) // id of the photo open in the big viewer
+  const mine = (fx.files || []).filter((f) => f.appointmentId === appt.id)
+  const order = PHOTO_SETS.flatMap((set) => PHOTO_SIDES.map((side) => `${set}${side}`))
+  // Every photo of the record in the order before front/left/right, after front/left/right: what the viewer swipes through.
+  const photos = mine.filter((f) => photoLabelOf(f)).sort((a, b) => order.indexOf(photoLabelOf(a)) - order.indexOf(photoLabelOf(b)) || a.createdAt.localeCompare(b.createdAt))
+    .map((f) => ({ ...f, caption: photoLabelOf(f).replace(/^(Before|After)/, '$1 ') }))
+  const consent = mine.filter((f) => !photoLabelOf(f))
+  const pick = (label) => (e) => { const f = e.target.files[0]; e.target.value = ''; fx.upload(appt, label, f) }
+  return (
+    <div className="mt-2 border-t border-ink/5 pt-2">
+      <div className="mb-2 grid grid-cols-2 gap-3">
+      {PHOTO_SETS.map((set) => (
+        <div key={set} className="min-w-0">
+          <p className="mb-1 text-xs text-muted">{set} 照片</p>
+          <div className="flex gap-1.5">
+            {PHOTO_SIDES.map((side) => {
+              const lab = `${set}${side}`
+              const list = photos.filter((f) => photoLabelOf(f) === lab)
+              const last = list.at(-1)
+              const busy = fx.busyKey === `${appt.id}|${lab}`
+              return (
+                <div key={lab} className="min-w-0 flex-1 text-center">
+                  <div className="relative aspect-square overflow-hidden rounded-lg border border-dashed border-ink/20 bg-white">
+                    {last ? <Thumb key={last.id} customerId={fx.customerId} file={last} onOpen={() => setView(last.id)} /> : busy ? (
+                      <span className="grid h-full w-full place-items-center text-[0.65rem] text-muted">上传中…</span>
+                    ) : (
+                      // Two entrances: the top half opens the back camera, the bottom half the photo library.
+                      <div className="grid h-full w-full grid-rows-2 divide-y divide-dashed divide-ink/20">
+                        <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`拍照 ${set} ${side}`}>
+                          <Camera size={15} />
+                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pick(lab)} />
+                        </label>
+                        <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`上传 ${set} ${side}`}>
+                          <ImagePlus size={15} />
+                          <input type="file" accept="image/*" className="hidden" onChange={pick(lab)} />
+                        </label>
+                      </div>
+                    )}
+                    {last && busy && <span className="absolute inset-0 grid place-items-center bg-white/70 text-[0.65rem]">上传中…</span>}
+                  </div>
+                  <p className="mt-0.5 text-[0.65rem] text-muted">
+                    {side}
+                    {last && (
+                      <span className="ml-1 text-gold">
+                        {list.length > 1 ? `（${list.length}）` : ''}
+                        <label className="cursor-pointer hover:underline">拍<input type="file" accept="image/*" capture="environment" className="hidden" onChange={pick(lab)} /></label>
+                        <span className="text-muted"> · </span>
+                        <label className="cursor-pointer hover:underline">传<input type="file" accept="image/*" className="hidden" onChange={pick(lab)} /></label>
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted">同意书{fx.files ? `（${consent.length}）` : ''}</span>
+        <label className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 text-xs text-muted hover:bg-ink/5 hover:text-ink">
+          <Upload size={12} /> {fx.busyKey === `${appt.id}|同意书` ? '上传中…' : '上传同意书'}
+          <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" onChange={pick('同意书')} />
+        </label>
+      </div>
+      {consent.length > 0 && (
+        <ul className="mt-1 space-y-0.5">
+          {consent.map((f) => (
+            <li key={f.id} className="flex items-center gap-2 text-xs">
+              <FileText size={12} className="shrink-0 text-muted" />
+              <span className="min-w-0 flex-1 truncate">{f.name}<span className="text-muted"> · {fmtSize(f.size)}</span></span>
+              <button type="button" onClick={() => fx.download(f)} aria-label="下载" className="rounded-full p-1.5 text-muted hover:bg-ink/5 hover:text-ink"><Download size={13} /></button>
+              {fx.canDelete && <button type="button" onClick={() => fx.del(f)} aria-label="删除" className="rounded-full p-1.5 text-muted hover:bg-rose-50 hover:text-rose-700"><Trash2 size={13} /></button>}
             </li>
           ))}
         </ul>
       )}
-
-      {dialog && (
-        <Modal title="上传文件" onClose={() => setDialog(false)} loading={busy}>
-          <form onSubmit={upload} className="space-y-4">
-            <Field label="选择文件">
-              <input type="file" className={inputCls} onChange={(e) => setFile(e.target.files[0] || null)} accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv" />
-            </Field>
-            <Field label="文件名称">
-              <select className={inputCls} value={label} onChange={(e) => setLabel(e.target.value)}>
-                {FILE_LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                <option value="其他">其他（自己填写）</option>
-              </select>
-            </Field>
-            {label === '其他' && <Field label="自己填写名称"><input className={inputCls} value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={60} autoFocus placeholder="例如：术后复诊记录" /></Field>}
-            {preview && <p className="text-xs text-muted">保存为：<b className="text-ink">{preview}</b></p>}
-            {formError && <p role="alert" className="text-sm text-rose-700">{formError}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setDialog(false)} className="btn-ghost !py-2.5">取消</button>
-              <button className="btn-primary !py-2.5" disabled={busy}>{busy ? '上传中…' : '上传'}</button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {view && photos.some((p) => p.id === view) && <PhotoViewer customerId={fx.customerId} photos={photos} start={photos.findIndex((p) => p.id === view)} onClose={() => setView(null)} />}
     </div>
   )
 }
 
 function CustomerForm({ customer, onClose }) {
   const { save, appointments, payments } = useCrm()
+  const fx = useCustomerFiles(customer)
   const [f, setF] = useState({
     name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
     tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: customer?.memberTier || (customer?.member ? 'member' : ''),
@@ -168,10 +251,10 @@ function CustomerForm({ customer, onClose }) {
   }
 
   return (
-    <Modal title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer} loading={busy}>
+    <Modal inset title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer} loading={busy}>
       {/* The customer's key details stay pinned at the top while the history below is scrolled. */}
       {customer && (
-        <div className="sticky -top-6 z-10 -mx-6 -mt-2 mb-4 border-b border-ink/10 bg-ivory/95 px-6 py-2 backdrop-blur">
+        <div className="sticky -top-4 z-10 -mx-4 -mt-1 mb-4 border-b border-ink/10 bg-ivory/95 px-4 py-2 backdrop-blur sm:-top-6 sm:-mx-6 sm:-mt-2 sm:px-6">
           <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium">{customer.name}<TierBadge c={customer} /></p>
           <p className="flex flex-wrap gap-x-3 text-xs text-muted">
             {customer.phone && <span>{customer.phone}</span>}
@@ -217,7 +300,8 @@ function CustomerForm({ customer, onClose }) {
                 const tip = pays.reduce((n, p) => n + paidTip(p), 0)
                 const staff = a.staff || pays.find((p) => p.staff)?.staff
                 return (
-                  <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                  <li key={a.id} className="px-4 py-2.5 text-sm">
+                    <div className="flex items-center justify-between gap-3">
                     <div className={`min-w-0 ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}>
                       <p className="truncate font-medium">{a.service}</p>
                       <p className="text-xs text-muted">{fmtDateTime(a.start)}</p>
@@ -230,6 +314,8 @@ function CustomerForm({ customer, onClose }) {
                       {tip > 0 && <p className="text-xs text-muted">小费 {money(tip)}</p>}
                       <span className="mt-1 inline-flex items-center gap-2">{a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}<StatusBadge status={a.status} /></span>
                     </div>
+                    </div>
+                    <ApptFiles appt={a} fx={fx} />
                   </li>
                 )
               })}
@@ -237,8 +323,8 @@ function CustomerForm({ customer, onClose }) {
           )}
         </div>
       )}
-      {customer && <CustomerFiles customer={customer} />}
       {/* 取消 / 保存 sit at the very bottom, under the history and the documents (they belong to the form above via its id). */}
+      {fx.error && <p role="alert" className="mt-4 text-right text-sm text-rose-700">{fx.error}</p>}
       {error && <p role="alert" className="mt-4 text-right text-sm text-rose-700">{error}</p>}
       <div className="mt-4 flex justify-end gap-2 border-t border-ink/10 pt-4">
         <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>

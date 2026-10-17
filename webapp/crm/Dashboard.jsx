@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarCheck, HandCoins, MessageCircle, Phone, TrendingUp, Users } from 'lucide-react'
+import { CalendarCheck, Check, HandCoins, MessageCircle, Phone, TrendingUp, Users } from 'lucide-react'
 import { api } from '../api'
 import { useCrm } from './data'
 import { Card, PageTitle, StatCard, StatusBadge } from './ui'
@@ -18,10 +18,11 @@ function ApptRow({ a, name }) {
   )
 }
 
-// A booking to remind the customer about: when it is, and how to reach them.
-function ReminderRow({ a, customer }) {
+// A booking to remind the customer about: when it is, and how to reach them. The box on the right is ticked once the customer was reminded.
+function ReminderRow({ a, customer, onToggle }) {
   const c = customer || {}
   const wechat = [c.wechatId, c.wechatNo].filter(Boolean).join(' · ')
+  const done = !!a.reminded
   return (
     <li className="flex items-center gap-3 px-4 py-2">
       <div className="w-12 shrink-0 text-sm font-medium">{fmtTime(a.start)}</div>
@@ -34,6 +35,15 @@ function ReminderRow({ a, customer }) {
           {!c.phone && !wechat && !c.email && <span>没有联系方式</span>}
         </p>
       </div>
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={done}
+        aria-label={done ? '已提醒（点击取消）' : '提醒完成后点击打勾'}
+        title={done ? '已提醒，点击取消' : '提醒完成后点击打勾'}
+        onClick={() => onToggle(a, !done)}
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-md border transition ${done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-ink/30 bg-white hover:border-ink/60'}`}
+      >{done && <Check size={14} strokeWidth={3} />}</button>
     </li>
   )
 }
@@ -56,13 +66,27 @@ function Bars({ months }) {
 }
 
 export default function Dashboard() {
-  const { customerById, appointments, payments } = useCrm()
+  const { customerById, appointments, payments, reload } = useCrm()
   const [summary, setSummary] = useState(null)
+  const [error, setError] = useState('')
 
   // Refetch when appointments/transactions change so the numbers stay current.
   useEffect(() => {
     api('/crm/summary').then(setSummary).catch(() => {})
   }, [appointments, payments])
+
+  // Tick / untick the reminder. The box changes at once; the server keeps it, and a failure puts it back.
+  const toggleReminder = async (a, done) => {
+    setError('')
+    setSummary((x) => ({ ...x, tomorrow: x.tomorrow.map((t) => (t.id === a.id ? { ...t, reminded: done } : t)) }))
+    try {
+      await api(`/crm/appointments/${a.id}/reminder`, { method: 'PUT', body: { done } })
+      await reload()
+    } catch (err) {
+      setError(err.message)
+      setSummary((x) => ({ ...x, tomorrow: x.tomorrow.map((t) => (t.id === a.id ? { ...t, reminded: !done } : t)) }))
+    }
+  }
 
   if (!summary) return <p className="text-sm text-muted">加载中…</p>
   const name = (a) => customerById[a.customerId]?.name || '（已删除客户）'
@@ -92,10 +116,11 @@ export default function Dashboard() {
           <Card>
             <div className="flex items-center justify-between border-b border-ink/10 px-4 py-2">
               <h2 className="text-sm font-medium">明日预约 · 预约提醒</h2>
-              <span className="text-xs text-muted">{summary.tomorrow.length} 位</span>
+              <span className="text-xs text-muted">已提醒 {summary.tomorrow.filter((a) => a.reminded).length} / {summary.tomorrow.length}</span>
             </div>
+            {error && <p role="alert" className="px-4 py-1.5 text-xs text-rose-700">{error}</p>}
             {summary.tomorrow.length === 0 ? <p className="px-4 py-3 text-center text-xs text-muted">明天没有预约</p> : (
-              <ul className="max-h-28 divide-y divide-ink/10 overflow-y-auto lg:max-h-[calc((100vh-19rem)/2)]">{summary.tomorrow.map((a) => <ReminderRow key={a.id} a={a} customer={customerById[a.customerId]} />)}</ul>
+              <ul className="divide-y divide-ink/10">{summary.tomorrow.map((a) => <ReminderRow key={a.id} a={a} customer={customerById[a.customerId]} onToggle={toggleReminder} />)}</ul>
             )}
           </Card>
         </div>

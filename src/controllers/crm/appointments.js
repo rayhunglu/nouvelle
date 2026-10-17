@@ -1,5 +1,6 @@
 const store = require('../../services/store');
-const { SOURCES, STATUSES, ROOM_NAMES, str, num } = require('./common');
+const { wrap, SOURCES, STATUSES, ROOM_NAMES, str, num } = require('./common');
+const { visibleRows } = require('../../middleware/crmAccess');
 const { makeCrud } = require('./crud');
 const calendar = require('../../services/googleCalendar');
 const { hoursRow } = require('./settings');
@@ -157,11 +158,18 @@ async function syncCalendar(row) {
   if (r.id && (r.id !== row.googleEventId || target !== row.googleCalendarId)) await store.update('appointments', row.id, { googleEventId: r.id, googleCalendarId: target });
 }
 
-module.exports = makeCrud('appointments', appointmentInput, {
+const reminderDone = wrap(async (req, res) => {
+  const a = await store.get('appointments', req.params.id);
+  if (!a || !(await visibleRows(req, 'appointments', [a])).length) return res.status(404).json({ error: 'Not found' });
+  res.json(await store.update('appointments', a.id, { reminded: req.body && req.body.done === true }));
+});
+
+const crud = makeCrud('appointments', appointmentInput, {
   conflict: roomConflict,
   async afterWrite(row, isNew, req, prev) {
     await syncCalendar(row);
     await syncPaymentsOf(row, prev);
+    if (prev && prev.start !== row.start && row.reminded) await store.update('appointments', row.id, { reminded: false }); // moved to another time: remind again
     if (row.status === 'cancelled' || row.status === 'no-show') { await dropPaymentsOf(row.id); return; } // cancelling or a no-show takes its payments back
     // A new booking (or one handed over to someone else) is announced to the staff member it belongs to, unless they made it themselves.
     const handedOver = !isNew && prev && (prev.staff || '') !== (row.staff || '');
@@ -173,7 +181,9 @@ module.exports = makeCrud('appointments', appointmentInput, {
     const a = await store.get('appointments', id);
     if (a && a.googleEventId) await calendar.remove(a.googleEventId, a.googleCalendarId || calendar.defaultCalendarId()); // the calendar event goes too
     await dropPaymentsOf(id); // so does deleting
+    await require('./customerFiles').removeAllOfAppointment(id); // and its documents in Drive
     return null;
   },
 });
 
+module.exports = { ...crud, reminderDone };

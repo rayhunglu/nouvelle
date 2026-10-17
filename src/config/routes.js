@@ -51,6 +51,7 @@ function crmRouter() {
   r.get('/appointments/:id', appointments.get);
   r.post('/appointments', appointments.create);
   r.put('/appointments/:id', appointments.update);
+  r.put('/appointments/:id/reminder', appointments.reminderDone); // tick / untick "reminder sent" (dashboard, tomorrow's bookings)
   r.delete('/appointments/:id', appointments.remove);
 
   // Payments

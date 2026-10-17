@@ -65,7 +65,8 @@ export function PageTitle({ title, sub, children, compact = false }) {
 
 // loading: while a save is in progress the whole screen dims and a small white box with a spinner shows on top of the dialog;
 // both go away together with the dialog when the save finishes (or when it fails and the dialog stays open).
-export function Modal({ title, onClose, children, wide = false, loading = false, loadingText = '保存中…' }) {
+// `inset`: on a phone the dialog floats as a smaller card with space on every side, instead of a full-width sheet from the bottom.
+export function Modal({ title, onClose, children, wide = false, loading = false, loadingText = '保存中…', inset = false }) {
   // The dialog closes when the grey backdrop is tapped (press and release both on it). It closes on the click, not on the press: closing
   // on the press removed the backdrop first, and on a phone the same tap then landed on whatever button was underneath.
   const pressedBackdrop = useRef(false)
@@ -80,15 +81,15 @@ export function Modal({ title, onClose, children, wide = false, loading = false,
   }, [onClose])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onPointerDown={(e) => { pressedBackdrop.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && pressedBackdrop.current) onClose() }}>
+    <div className={`fixed inset-0 z-50 flex justify-center bg-ink/50 backdrop-blur-sm sm:items-center sm:p-4 ${inset ? 'items-center p-6' : 'items-end p-0'}`} onPointerDown={(e) => { pressedBackdrop.current = e.target === e.currentTarget }} onClick={(e) => { if (e.target === e.currentTarget && pressedBackdrop.current) onClose() }}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`max-h-[92dvh] w-full overflow-y-auto rounded-t-3xl bg-ivory p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
+        className={`w-full overflow-y-auto bg-ivory shadow-2xl sm:rounded-3xl sm:p-6 ${inset ? 'max-h-[82dvh] rounded-2xl p-4 text-sm [&_input:not([type=checkbox]):not([type=radio]):not([type=file])]:!py-2 [&_select]:!py-2 [&_textarea]:!py-2 [&_input]:!text-sm [&_select]:!text-sm [&_textarea]:!text-sm max-sm:[&_.btn-primary]:!py-2 max-sm:[&_.btn-ghost]:!py-2' : 'max-h-[92dvh] rounded-t-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]'} ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
       >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="font-display text-2xl">{title}</h2>
+        <div className={`flex items-center justify-between ${inset ? 'mb-3 sm:mb-5' : 'mb-5'}`}>
+          <h2 className={`font-display ${inset ? 'text-xl sm:text-2xl' : 'text-2xl'}`}>{title}</h2>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="关闭"><X size={18} /></button>
         </div>
         {children}

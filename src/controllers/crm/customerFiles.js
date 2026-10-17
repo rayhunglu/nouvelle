@@ -3,7 +3,7 @@ const drive = require('../../services/googleDrive');
 const { wrap } = require('./common');
 const { isStaff, visibleRows } = require('../../middleware/crmAccess');
 
-// Documents on a customer's page. The browser only talks to this server; the server keeps the bytes in Google Drive.
+// Documents on a customer's page, kept per appointment record. The browser only talks to this server; the server keeps the bytes in Google Drive.
 // Every request first checks the customer is one this user may see, and a file is only served through its own customer's URL.
 const MAX_BYTES = 4 * 1024 * 1024; // Vercel rejects request bodies over about 4.5MB
 const TYPES = { // allowed extensions -> what is sent back when downloading
@@ -23,7 +23,7 @@ const fileOf = async (req, customerId) => {
   const f = await store.get('customerFiles', req.params.fileId);
   return f && f.customerId === customerId ? f : null;
 };
-const publicRow = (f) => ({ id: f.id, name: f.name, size: f.size, mimeType: f.mimeType, uploadedBy: f.uploadedBy, createdAt: f.createdAt });
+const publicRow = (f) => ({ id: f.id, appointmentId: f.appointmentId || null, name: f.name, size: f.size, mimeType: f.mimeType, uploadedBy: f.uploadedBy, createdAt: f.createdAt });
 
 const list = wrap(async (req, res) => {
   const c = await customerOf(req);
@@ -36,6 +36,8 @@ const upload = wrap(async (req, res) => {
   const c = await customerOf(req);
   if (!c) return res.status(404).json({ error: 'Not found' });
   if (!drive.enabled()) return res.status(503).json({ error: '文件存储（Google Drive）还没有配置' });
+  const appt = await store.get('appointments', String(req.query.appointmentId || ''));
+  if (!appt || appt.customerId !== c.id || !(await visibleRows(req, 'appointments', [appt])).length) return res.status(400).json({ error: '请选择这位客户的一个预约记录' });
   const label = safeName(req.query.label);
   const ext = String(req.query.ext || '').toLowerCase();
   const name = `${safeName(c.name)}_${label}.${ext}`;
@@ -46,7 +48,7 @@ const upload = wrap(async (req, res) => {
   if (buf.length > MAX_BYTES) return res.status(413).json({ error: '文件太大（最大 4MB）' });
   if (MAGIC[ext] && buf.subarray(0, MAGIC[ext].length).toString('latin1') !== MAGIC[ext]) return res.status(400).json({ error: '文件内容与扩展名不符' });
   const driveId = await drive.upload({ name, mimeType: TYPES[ext], buffer: buf });
-  const row = await store.create('customerFiles', { customerId: c.id, driveId, name, mimeType: TYPES[ext], size: buf.length, uploadedBy: req.session.user.username });
+  const row = await store.create('customerFiles', { customerId: c.id, appointmentId: appt.id, driveId, name, mimeType: TYPES[ext], size: buf.length, uploadedBy: req.session.user.username });
   res.status(201).json(publicRow(row));
 });
 
@@ -74,12 +76,15 @@ const remove = wrap(async (req, res) => {
   res.json({ ok: true });
 });
 
-// Deleting a customer takes their documents too.
-async function removeAllOf(customerId) {
-  for (const f of (await store.list('customerFiles')).filter((x) => x.customerId === customerId)) {
+// Deleting a customer (or one appointment record) takes the documents with it.
+async function removeWhere(match) {
+  for (const f of (await store.list('customerFiles')).filter(match)) {
     try { if (drive.enabled()) await drive.remove(f.driveId); } catch (err) { console.error('[customerFiles] Drive delete failed:', err.message); }
     await store.remove('customerFiles', f.id);
   }
 }
 
-module.exports = { list, upload, download, remove, removeAllOf, isStaff };
+const removeAllOf = (customerId) => removeWhere((f) => f.customerId === customerId);
+const removeAllOfAppointment = (appointmentId) => removeWhere((f) => f.appointmentId === appointmentId);
+
+module.exports = { list, upload, download, remove, removeAllOf, removeAllOfAppointment };

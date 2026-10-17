@@ -103,7 +103,7 @@ export const GIFT_OPTIONS = [
 ]
 export const giftLabel = (id) => GIFT_OPTIONS.find((g) => g.id === id)?.label.replace('赠送', '').trim() || id
 export const TOPUP_AMOUNTS = [1000, 2000, 3000]
-export const giftsAllowed = (topUp) => (topUp >= 3000 ? 2 : topUp >= 2000 ? 1 : 0)
+export const giftsAllowed = (topUp) => (topUp >= 2000 ? GIFT_OPTIONS.length : 0) // $2,000 and up: any of the gifts, as many as wanted
 export const cardLoaded = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length
 // Free sessions earned from top-ups (光子嫩肤 / 热拉提) minus the ones already used, as { id: count } (zero counts left out).
 export const giftItems = (payments, customerId, exceptId) => {

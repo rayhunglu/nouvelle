@@ -25,7 +25,7 @@ async function getFile(id) {
 
 async function createFile(input) {
   try {
-    const row = newRecord({ customerId: input.customerId, driveId: input.driveId, name: input.name, mimeType: input.mimeType, size: input.size, uploadedBy: input.uploadedBy });
+    const row = newRecord({ customerId: input.customerId, appointmentId: input.appointmentId, driveId: input.driveId, name: input.name, mimeType: input.mimeType, size: input.size, uploadedBy: input.uploadedBy });
     await dbClient.insertOne(COLLECTION, row);
     return row;
   } catch (err) {

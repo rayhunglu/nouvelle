@@ -152,11 +152,11 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   }
 
   if (customers.length === 0) {
-    return <Modal title="记账" onClose={onClose}><p className="text-sm text-muted">请先到「客户」页新增客户。</p></Modal>
+    return <Modal inset title="记账" onClose={onClose}><p className="text-sm text-muted">请先到「客户」页新增客户。</p></Modal>
   }
 
   return (
-    <Modal title={quick ? 'Check out · 结算' : completeAppointment ? '完成预约 · 记一笔收款' : payment ? '编辑收款' : '记一笔收款'} onClose={onClose} wide={!quick} loading={busy}>
+    <Modal inset title={quick ? 'Check out · 结算' : completeAppointment ? '完成预约 · 记一笔收款' : payment ? '编辑收款' : '记一笔收款'} onClose={onClose} wide={!quick} loading={busy}>
       <form onSubmit={submit} className="space-y-4">
         {quick ? (
           <>
@@ -271,10 +271,10 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
                   {METHODS.filter((m) => m.id !== 'member_card' && m.id !== 'unsettled').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </Field>
-              <p className="self-end text-xs text-muted">$1,000 无赠送；$2,000 赠送 1 项；$3,000 赠送 2 项</p>
+              <p className="self-end text-xs text-muted">$1,000 无赠送；$2,000、$3,000 可任选赠送项目（可多选）</p>
               {giftsAllowed(Number(f.topUp || 0)) > 0 && (
                 <div className="sm:col-span-2">
-                  <span className="mb-1.5 block text-xs font-medium text-muted">赠送（请选 {giftsAllowed(Number(f.topUp || 0))} 项，已选 {f.topUpGifts.length}，点其他选项可直接切换）</span>
+                  <span className="mb-1.5 block text-xs font-medium text-muted">赠送（任选，可多选，已选 {f.topUpGifts.length} 项）</span>
                   <div className="flex flex-wrap gap-2">
                     {GIFT_OPTIONS.map((g) => {
                       const on = f.topUpGifts.includes(g.id)

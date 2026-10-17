@@ -184,18 +184,18 @@ function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, pai
   const phone = window.innerWidth < 640
   return (
 
-      <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end bg-ink/30' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setMenu(null) }} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
+      <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end justify-center bg-ink/30 px-8 pb-[max(1rem,env(safe-area-inset-bottom))]' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setMenu(null) }} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
         <div
           role="menu"
           onPointerDown={(e) => e.stopPropagation()}
-          className={phone ? 'max-h-[85dvh] w-full overflow-y-auto rounded-t-2xl bg-white pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 text-base shadow-xl' : 'absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl'}
+          className={phone ? 'max-h-[70dvh] w-full max-w-xs overflow-y-auto rounded-2xl bg-white py-0.5 text-sm shadow-xl' : 'absolute w-52 overflow-hidden rounded-xl border border-ink/15 bg-white py-1 text-sm shadow-xl'}
           style={phone ? undefined : { left: Math.min(menu.x, window.innerWidth - 216), top: Math.max(8, Math.min(menu.y, window.innerHeight - 380)) }}
         >
-          <p className={`truncate border-b border-ink/10 text-xs text-muted ${phone ? 'px-4 py-2.5' : 'px-3 py-2'}`}>{fmtTime(menu.a.start)} {customerById[menu.a.customerId]?.name || ''} · {menu.a.service}</p>
-          <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onEdit(a) }} className={`block w-full text-left hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>编辑预约</button>
+          <p className={`truncate border-b border-ink/10 text-xs text-muted ${phone ? 'px-4 py-1.5' : 'px-3 py-2'}`}>{fmtTime(menu.a.start)} {customerById[menu.a.customerId]?.name || ''} · {menu.a.service}</p>
+          <button role="menuitem" onClick={() => { const a = menu.a; setMenu(null); onEdit(a) }} className={`block w-full text-left hover:bg-sand/70 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>编辑预约</button>
           {[['checked-in', 'Check in'], ['in-service', 'In service'], ['completed', 'Check out'], ['no-show', '未到店'], ['cancelled', '取消预约']].map(([st, label]) => (
             <button key={st} role="menuitem" onClick={() => { const a = menu.a; if ((st === 'cancelled' || st === 'no-show') && paidCount(a) > 0) { setMenu({ ...menu, askCancel: st }); return } setMenu(null); if (a.status !== st || st === 'completed') onStatus(a, st) }}
-              className={`flex w-full items-center justify-between text-left hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'} ${menu.a.status === st ? 'bg-sand font-medium' : ''}`}>
+              className={`flex w-full items-center justify-between text-left hover:bg-sand/70 ${phone ? 'px-4 py-2' : 'px-3 py-2'} ${menu.a.status === st ? 'bg-sand font-medium' : ''}`}>
               {label}{menu.a.status === st && <span className="text-xs text-gold">当前</span>}
             </button>
           ))}
@@ -217,9 +217,9 @@ function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, pai
               </div>
             </div>
           ) : (
-            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className={`block w-full text-left text-rose-700 hover:bg-rose-50 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>删除预约</button>
+            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className={`block w-full text-left text-rose-700 hover:bg-rose-50 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>删除预约</button>
           ))}
-          <button role="menuitem" onClick={() => setMenu(null)} className={`block w-full border-t border-ink/10 text-left text-muted hover:bg-sand/70 ${phone ? 'px-4 py-3' : 'px-3 py-2'}`}>关闭菜单</button>
+          <button role="menuitem" onClick={() => setMenu(null)} className={`block w-full border-t border-ink/10 text-left text-muted hover:bg-sand/70 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>关闭菜单</button>
         </div>
       </div>
   )

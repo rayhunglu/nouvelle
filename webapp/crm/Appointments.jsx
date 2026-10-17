@@ -8,6 +8,8 @@ import { useCrm } from './data'
 import CalendarView from './Calendar'
 import PaymentForm from './PaymentForm'
 import TimeAxis from './TimeAxis'
+import TimeWheel from './TimeWheel'
+import CheckInDocs, { docsMissing } from './CheckInDocs'
 import { durationFor } from './durations'
 import { withStaff } from './staff'
 
@@ -237,7 +239,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
   }
 
   return (
-    <Modal title={block ? '屏蔽的时间' : '屏蔽时间'} onClose={onClose} loading={busy}>
+    <Modal inset title={block ? '屏蔽的时间' : '屏蔽时间'} onClose={onClose} loading={busy}>
       {!block && <EntryTabs mode="block" onMode={onMode} />}
       <form onSubmit={submit} className="space-y-4">
         <p className="rounded-xl bg-sand px-4 py-2.5 text-xs text-muted">这段时间有事，不接受预约：在日历上显示为斜线，新增、移动预约都不能落在这里。</p>
@@ -274,7 +276,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
   )
 }
 
-function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
+function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheckedIn }) {
   const { customers, appointments, services, payments, save, remove, customerById, hours, isClosed, worksOn, staffHours, staffRest, roomWindow, roster } = useCrm()
   const { user, can } = useAuth()
   const lockStaff = !can('assignOthers') // booking for another staff member needs permission: the staff field stays on themselves
@@ -407,11 +409,12 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
         customerId = made.id
       }
       const body = { ...f, customerId, start: new Date(f.start).toISOString(), durationMin: Number(f.durationMin), price: f.price === '' ? 0 : Number(f.price) }
-      await save('appointments', appt?.id, body)
+      const saved = await save('appointments', appt?.id, body)
       // Keep the customer's notes up to date, so the next booking (any date) starts from them.
       const known = customerById[customerId]
       if (known && (notesTouched.current || !appt) && (f.notes || '') !== (known.notes || '')) await save('customers', customerId, { ...known, notes: f.notes })
       onClose()
+      if (onCheckedIn && body.status !== appt?.status && (body.status === 'checked-in' || body.status === 'in-service')) onCheckedIn(saved, body.status === 'checked-in' ? 'checkin' : 'service')
     } catch (err) {
       setError(err.message)
       setBusy(false)
@@ -421,7 +424,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
   if (mode === 'block') return <BlockForm draftStart={draftStart} draftRoom={draftRoom} draftDuration={draftDuration} onClose={onClose} onMode={setMode} />
 
   return (
-    <Modal title={appt ? '编辑预约' : '新增预约'} onClose={onClose} loading={busy} loadingText={askDelete ? '删除中…' : '保存中…'}>
+    <Modal inset title={appt ? '编辑预约' : '新增预约'} onClose={onClose} loading={busy} loadingText={askDelete ? '删除中…' : '保存中…'}>
       {!appt && canBlock && <EntryTabs mode="appt" onMode={setMode} />}
       <form onSubmit={submit} className="space-y-4">
         <Field label="客户 *">
@@ -487,12 +490,12 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose }) {
         </div>
         <div>
           <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3">
-            <span className="text-xs font-medium text-muted">开始时间（每格 15 分钟，点空白格选择）</span>
+            <span className="text-xs font-medium text-muted">开始时间（上下滚动选择）</span>
             <span className={`text-xs font-medium ${clash ? 'text-rose-700' : 'text-gold'}`}>
               {hhmm(startMin)} – {hhmm(startMin + durationMin)}
             </span>
           </div>
-          <TimeAxis date={date} startMin={startMin} durationMin={durationMin} room={f.room} appointments={appointments} customerById={customerById} selfId={appt?.id} clash={clash} onPick={pickSlot} />
+          <TimeWheel startMin={startMin} onPick={pickSlot} />
           {clash && <p role="alert" className="mt-2 text-xs text-rose-700">与「{customerById[clash.customerId]?.name || '其他客户'} · {clash.service}」在同一房间的时间冲突，保存时会被拒绝。</p>}
         </div>
 
@@ -581,6 +584,7 @@ export default function Appointments() {
   const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows only their appointments, in every view
   const [editing, setEditing] = useState(null)
   const [completing, setCompleting] = useState(null) // appointment being completed via the payment form
+  const [docsFor, setDocsFor] = useState(null) // { appt, mode }: just checked in (consent form + before photos) or put in service (after photos)
   const [error, setError] = useState('')
 
   const groups = useMemo(() => {
@@ -607,6 +611,12 @@ export default function Appointments() {
     try { await remove('appointments', a.id) } catch (err) { setError(err.message) }
   }
 
+  // The upload window (consent form + before photos at check in, after photos in service) only opens when something is still missing
+  // on this record, so a booking that already has them is not asked again.
+  const askDocs = async (a, mode) => {
+    if (await docsMissing(a, customerById[a.customerId]?.name, mode)) setDocsFor({ appt: a, mode })
+  }
+
   // Status taken from the double-click menu (check in → in service → check out, or no-show / cancelled).
   const setStatus = async (a, status) => {
     setError('')
@@ -617,6 +627,8 @@ export default function Appointments() {
         customerId: a.customerId, service: a.service, start: a.start, durationMin: a.durationMin, price: a.price, status,
         room: a.room || '', staff: a.staff || '', notes: a.notes || '',
       })
+      if (status === 'checked-in' && a.status !== 'checked-in') askDocs(a, 'checkin')
+      else if (status === 'in-service' && a.status !== 'in-service') askDocs(a, 'service')
     } catch (err) { setError(err.message) }
   }
 
@@ -768,8 +780,10 @@ export default function Appointments() {
           draftRoom={editing.draftRoom}
           draftDuration={editing.draftDuration}
           onClose={() => setEditing(null)}
+          onCheckedIn={askDocs}
         />
       )}
+      {docsFor && <CheckInDocs key={`${docsFor.appt.id}-${docsFor.mode}`} appt={docsFor.appt} mode={docsFor.mode} customer={customerById[docsFor.appt.customerId]} onClose={() => setDocsFor(null)} />}
     </>
   )
 }

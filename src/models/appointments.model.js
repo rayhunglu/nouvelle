@@ -108,6 +108,7 @@ async function updateAppointment(id, input) {
       googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
       googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
       paymentDeleted: { type: 'boolean' },
+      reminded: { type: 'boolean' }, // the day-before reminder to the customer was sent (ticked on the dashboard)
     });
     if (error) throw error;
     const query = compact({
@@ -125,6 +126,7 @@ async function updateAppointment(id, input) {
       googleEventId: input.googleEventId,
       googleCalendarId: input.googleCalendarId,
       paymentDeleted: input.paymentDeleted,
+      reminded: input.reminded,
     });
     return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...query, id, updatedAt: new Date().toISOString() });
   } catch (err) {

@@ -5,7 +5,7 @@ import { colorOf, roomOf } from './rooms'
 import { dayAppointments, hhmm, minutesOfDay, SLOT, ROW } from './timeline'
 
 // Day timeline for the appointment form: one row per 15 minutes. Press and drag with the mouse and the start time follows
-// the pointer (grab the chosen block itself to slide it); a tap or click on a row sets the start time;
+// the pointer (grab the chosen block itself to slide it, with a finger too); a tap or click on a row sets the start time;
 // existing appointments are drawn as blocks and the chosen slot turns red when it clashes in the same room.
 
 export default function TimeAxis({ date, startMin, durationMin, room, appointments, customerById, selfId, clash, onPick }) {
@@ -126,10 +126,19 @@ export default function TimeAxis({ date, startMin, durationMin, room, appointmen
           </div>
         )}
 
-        {/* The slot being chosen. */}
+        {/* The slot being chosen. It is the drag handle: with a mouse or a finger, press it and slide up / down (touch-action none keeps
+            the finger from scrolling the frame instead; touching anywhere else still scrolls). */}
         <div
-          style={{ top: top(startMin), height: Math.max(ROW, (durationMin / SLOT) * ROW) - 2 }}
-          className={`pointer-events-none absolute left-14 right-2 z-10 rounded-lg px-2 py-1 text-[0.72rem] font-medium leading-tight text-white shadow-md ${clash ? 'bg-rose-600/90' : 'bg-gold/90'}`}
+          style={{ top: top(startMin), height: Math.max(ROW, (durationMin / SLOT) * ROW) - 2, touchAction: 'none' }}
+          onPointerDown={(e) => {
+            if (e.button !== 0) return
+            e.stopPropagation()
+            lastType.current = e.pointerType
+            grab.current = Math.max(0, Math.min(durationMin - 1, cellAt(e) - startMin))
+            try { track.current.setPointerCapture(e.pointerId) } catch { /* capture is only a convenience */ }
+            setDragging(true)
+          }}
+          className={`absolute left-14 right-2 z-10 rounded-lg px-2 py-1 text-[0.72rem] font-medium leading-tight text-white shadow-md ${dragging ? 'cursor-grabbing' : 'cursor-grab'} ${clash ? 'bg-rose-600/90' : 'bg-gold/90'}`}
         >
           {hhmm(startMin)} – {hhmm(startMin + durationMin)}
         </div>

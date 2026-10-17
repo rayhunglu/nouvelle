@@ -16,9 +16,9 @@ async function paymentInput(b) {
   const topUpMethod = topUp > 0 ? b.topUpMethod : '';
   if (topUp > 0 && !METHODS.includes(topUpMethod)) return { error: `topUpMethod must be one of ${METHODS.join(', ')}` };
   if (topUp > 0 && (topUpMethod === 'member_card' || topUpMethod === 'unsettled')) return { error: 'a card top-up must be paid by a real payment method' };
-  // Top-up gifts: 2000+ earns one, 3000+ earns two, each chosen from $200 card credit / 光子嫩肤 / 热拉提.
+  // Top-up gifts: from $2,000 up, any of $200 card credit / 光子嫩肤 / 热拉提 (as many as wanted, each once).
   const GIFTS = ['cash200', 'photofacial', 'thermage'];
-  const allowed = topUp >= 3000 ? 2 : topUp >= 2000 ? 1 : 0;
+  const allowed = topUp >= 2000 ? GIFTS.length : 0;
   const topUpGifts = Array.isArray(b.topUpGifts) ? [...new Set(b.topUpGifts)].filter((g) => GIFTS.includes(g)) : [];
   if (topUpGifts.length > allowed) return { error: `this top-up includes at most ${allowed} gift(s)` };
   const giftUsed = ['photofacial', 'thermage'].includes(b.giftUsed) ? b.giftUsed : ''; // a free top-up gift session redeemed at this visit
