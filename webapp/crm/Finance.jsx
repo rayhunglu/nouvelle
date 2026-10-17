@@ -97,6 +97,9 @@ export default function Finance() {
   //  3. 美睫 projects (any staff) whose referrer is Yingna, Rina or Dayu: not 服务业绩; project amount × 0.4 × 0.3 when the referrer is
   //     Yingna or Rina, × 0.3 × 0.3 when it is Dayu.
   // The amount used is the same 业绩 figure as everywhere else (member-card payments already scaled by 2000 / 2200).
+  const staffLabel = staffFilter || '全员'
+  const exportName = `${staffLabel}_${from || 'start'}_${to || 'end'}`.replace(/[\\/:*?"<>|\s]+/g, '_') // file name: staff + start date + end date
+  const exportTitle = `${staffLabel} ${from || '开始'} ${to || '结束'} 薪资明细` // first row of the file
   const exportRinaCsv = async () => {
     const r2 = (n) => Math.round(n * 100) / 100
     const inPeriod = payments.filter((p) => inMonth(p) && counted(p) && p.paymentMethod !== 'unsettled').sort((a, b) => a.datetime.localeCompare(b.datetime))
@@ -132,7 +135,8 @@ export default function Finance() {
     const band = (color, row, upTo) => row.map((v, i) => (i <= upTo ? { value: v === '' || v === undefined ? null : v, backgroundColor: color, fontWeight: 'bold' } : v))
     const title = (t) => [{ value: t, fontWeight: 'bold' }]
     const head = (cols) => cols.map((v) => ({ value: v, fontWeight: 'bold' }))
-    await downloadXlsx(`nouvelle-payments-${from || 'start'}_${to || 'end'}-Rina.xlsx`, [
+    await downloadXlsx(`${exportName}.xlsx`, [
+      [{ value: exportTitle, fontWeight: 'bold' }],
       title('一、Rina 服务业绩'),
       head(['收款时间', '客户', '服务项目', '金额（员工业绩）', '小费', '小费付款方式', '介绍人', '员工']),
       ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
@@ -160,8 +164,39 @@ export default function Finance() {
     ], { sheet: 'Rina', widths: [26, 16, 30, 18, 12, 16, 12, 12] })
   }
 
+  // Dayu's file: each payment's pay = 员工业绩 × 0.7 when Dayu brought the customer, × 0.6 when Yingna or Rina did (anyone else, or nobody,
+  // is treated like Dayu's own customer: × 0.7). Totals: 员工业绩, 小费, 小费 without cash; 税后薪资 = 员工业绩总额 × 0.94;
+  // 实际总薪资 = 税后薪资 + 小费(剔除现金).
+  const exportDayuCsv = async () => {
+    const r2 = (n) => Math.round(n * 100) / 100
+    const list = countedRows.filter((p) => p.staff === 'Dayu').sort((a, b) => a.datetime.localeCompare(b.datetime))
+    const factor = (p) => (sameName(referrerOf(p), 'Yingna') || sameName(referrerOf(p), 'Rina') ? 0.6 : 0.7)
+    const perf = list.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const tipTotal = list.reduce((n, p) => n + paidTip(p), 0)
+    const tipNoCash = list.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
+    const afterTax = perf * 0.94
+    const bold = (v) => ({ value: v, fontWeight: 'bold' })
+    const yellow = (v) => ({ value: v, backgroundColor: '#fff2a8', fontWeight: 'bold' }) // the final pay row is light yellow
+    const green = (v) => ({ value: v, backgroundColor: '#bfe5c3', fontWeight: 'bold' }) // the totals block is filled green
+    await downloadXlsx(`${exportName}.xlsx`, [
+      [bold(exportTitle)],
+      ['收款时间', '客户', '服务项目', '金额（员工业绩）', '介绍人', '系数', '当笔薪资', '小费', '小费付款方式', '员工'].map(bold),
+      ...list.map((p) => [
+        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), referrerOf(p), factor(p),
+        r2(performanceOf(p, payments) * factor(p)), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), p.staff,
+      ]),
+      [],
+      [green('员工业绩总额'), green(r2(perf))],
+      [green('小费总额'), green(r2(tipTotal))],
+      [green('小费总额（剔除现金支付）'), green(r2(tipNoCash))],
+      [green('Dayu税后薪资（员工业绩总额×0.94）'), green(r2(afterTax))],
+      [yellow('Dayu实际总薪资（税后薪资+小费剔除现金）'), yellow(r2(afterTax + tipNoCash))],
+    ], { sheet: 'Dayu', widths: [26, 16, 30, 18, 12, 8, 14, 10, 16, 10] })
+  }
+
   const exportCsv = () => {
     if (staffFilter === 'Rina') return exportRinaCsv()
+    if (staffFilter === 'Dayu') return exportDayuCsv()
     const total = countedRows.reduce((n, p) => n + performanceOf(p, payments), 0)
     const tipTotal = countedRows.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = countedRows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
@@ -172,7 +207,8 @@ export default function Finance() {
     const last = to || (sorted.length ? dayKey(sorted[sorted.length - 1].datetime) : '')
     const days = first && last ? Math.round((Date.parse(`${last}T00:00:00Z`) - Date.parse(`${first}T00:00:00Z`)) / 86400000) + 1 : 0
     const r2 = (n) => Math.round(n * 100) / 100
-    downloadCsv(`nouvelle-payments-${from || 'start'}_${to || 'end'}-${(staffFilter || '全员').replace(/[\\/:*?"<>|\s]+/g, '_')}.csv`, [
+    downloadCsv(`${exportName}.csv`, [
+      [exportTitle],
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
       ...sorted.map((p) => [
         fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p),
@@ -189,7 +225,7 @@ export default function Finance() {
   return (
     <>
       <PageTitle compact title="账目" sub="记录每一笔收款 · 导出 CSV 后可直接导入 Google 表格">
-        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2" disabled={!rows.length}><Download size={16} /> 导出 {staffFilter === 'Rina' ? 'Excel' : 'CSV'}</button>
+        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2" disabled={!rows.length}><Download size={16} /> 导出 {staffFilter === 'Rina' || staffFilter === 'Dayu' ? 'Excel' : 'CSV'}</button>
         <button onClick={() => setEditing('new')} className="btn-primary !px-4 !py-2"><Plus size={16} /> 记一笔</button>
       </PageTitle>
 

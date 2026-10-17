@@ -110,6 +110,27 @@ async function dropPaymentsOf(appointmentId) {
   }
 }
 
+// Editing an appointment carries over to the payment(s) settled on it, so 客户 / 总览 / 账目 follow the booking. The customer always
+// moves (except a payment that also loaded the member card); staff, service name and referrer move unless the payment was
+// deliberately changed at checkout (its value no longer matches what the appointment used to say).
+async function syncPaymentsOf(row, prev) {
+  if (!prev) return;
+  const follow = (cur, was, now) => (!cur || cur === (was || '') ? (now || '') : cur);
+  for (const p of (await store.list('payments')).filter((x) => x.appointmentId === row.id)) {
+    const patch = {};
+    if (!(p.topUp > 0) && p.customerId !== row.customerId) patch.customerId = row.customerId;
+    const staff = follow(p.staff, prev.staff, row.staff);
+    if (staff !== (p.staff || '')) patch.staff = staff;
+    const name = follow(p.serviceName, prev.service, row.service);
+    if (name !== (p.serviceName || '')) patch.serviceName = name;
+    if ('source' in row) {
+      const ref = follow(p.referralSource, prev.source, row.source);
+      if (ref !== (p.referralSource || '')) patch.referralSource = ref;
+    }
+    if (Object.keys(patch).length) await store.update('payments', p.id, patch);
+  }
+}
+
 // Keeps the Google Calendar in step with the appointment (CRM -> Google, see services/googleCalendar.js). Each staff member's
 // bookings go to their own calendar when one is set on their page, otherwise to the default calendar. A cancelled or no-show
 // booking has its event removed, and an event moves when the booking is handed to someone with a different calendar.
@@ -140,6 +161,7 @@ module.exports = makeCrud('appointments', appointmentInput, {
   conflict: roomConflict,
   async afterWrite(row, isNew, req, prev) {
     await syncCalendar(row);
+    await syncPaymentsOf(row, prev);
     if (row.status === 'cancelled' || row.status === 'no-show') { await dropPaymentsOf(row.id); return; } // cancelling or a no-show takes its payments back
     // A new booking (or one handed over to someone else) is announced to the staff member it belongs to, unless they made it themselves.
     const handedOver = !isNew && prev && (prev.staff || '') !== (row.staff || '');
