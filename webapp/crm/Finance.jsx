@@ -165,8 +165,8 @@ export default function Finance() {
   }
 
   // Dayu's file: each payment's pay = 员工业绩 × 0.7 when Dayu brought the customer, × 0.6 when Yingna or Rina did (anyone else, or nobody,
-  // is treated like Dayu's own customer: × 0.7). Totals: 员工业绩, 小费, 小费 without cash; 税后薪资 = 员工业绩总额 × 0.94;
-  // 实际总薪资 = 税后薪资 + 小费(剔除现金).
+  // is treated like Dayu's own customer: × 0.7). Totals: 员工业绩, 小费, 小费 without cash; 税后薪资 = 当笔薪资总额 × 0.94;
+  // 应得总薪资 = 税后薪资 + 小费(剔除现金).
   const exportDayuCsv = async () => {
     const r2 = (n) => Math.round(n * 100) / 100
     const list = countedRows.filter((p) => p.staff === 'Dayu').sort((a, b) => a.datetime.localeCompare(b.datetime))
@@ -174,24 +174,25 @@ export default function Finance() {
     const perf = list.reduce((n, p) => n + performanceOf(p, payments), 0)
     const tipTotal = list.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = list.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
-    const afterTax = perf * 0.94
+    const payTotal = list.reduce((n, p) => n + performanceOf(p, payments) * factor(p), 0)
+    const afterTax = payTotal * 0.94 // 税后薪资 = 当笔薪资总额 × 0.94
     const bold = (v) => ({ value: v, fontWeight: 'bold' })
     const yellow = (v) => ({ value: v, backgroundColor: '#fff2a8', fontWeight: 'bold' }) // the final pay row is light yellow
     const green = (v) => ({ value: v, backgroundColor: '#bfe5c3', fontWeight: 'bold' }) // the totals block is filled green
     await downloadXlsx(`${exportName}.xlsx`, [
       [bold(exportTitle)],
-      ['收款时间', '客户', '服务项目', '金额（员工业绩）', '介绍人', '系数', '当笔薪资', '小费', '小费付款方式', '员工'].map(bold),
+      ['收款时间', '客户', '服务项目', '介绍人', '金额（员工业绩）', '系数', '当笔薪资', '小费', '小费付款方式', '员工'].map(bold),
       ...list.map((p) => [
-        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), referrerOf(p), factor(p),
+        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), referrerOf(p), performanceOf(p, payments), factor(p),
         r2(performanceOf(p, payments) * factor(p)), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), p.staff,
       ]),
       [],
-      [green('员工业绩总额'), green(r2(perf))],
-      [green('小费总额'), green(r2(tipTotal))],
-      [green('小费总额（剔除现金支付）'), green(r2(tipNoCash))],
-      [green('Dayu税后薪资（员工业绩总额×0.94）'), green(r2(afterTax))],
-      [yellow('Dayu实际总薪资（税后薪资+小费剔除现金）'), yellow(r2(afterTax + tipNoCash))],
-    ], { sheet: 'Dayu', widths: [26, 16, 30, 18, 12, 8, 14, 10, 16, 10] })
+      // 合计 row sits under its columns (员工业绩, 当笔薪资, 小费); the tip without cash goes on the next row under 小费.
+      [green('合计'), green(null), green(null), green(null), green(r2(perf)), green(null), green(r2(payTotal)), green(r2(tipTotal))],
+      [green('小费总额（剔除现金支付）'), green(null), green(null), green(null), green(null), green(null), green(null), green(r2(tipNoCash))],
+      [],
+      [yellow('税后薪资'), yellow(r2(afterTax)), yellow('应得总薪资'), yellow(r2(afterTax + tipNoCash))],
+    ], { sheet: 'Dayu', widths: [26, 16, 30, 12, 18, 8, 14, 10, 16, 10] })
   }
 
   const exportCsv = () => {
