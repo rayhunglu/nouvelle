@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Download, FileText, Mail, MessageCircle, Pencil, Phone, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
@@ -20,6 +21,122 @@ function lastVisitOf(customerId, appointments, payments) {
   return times.length ? times.reduce((a, b) => (a > b ? a : b)) : null
 }
 const fmtLast = (iso) => (iso ? fmtDateTime(iso) : '尚未到访')
+
+const FILE_MAX = 4 * 1024 * 1024
+const fmtSize = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+
+const FILE_LABELS = ['同意书', '问诊表', '病历', '术前照片', '术后照片', '检查报告', '收据', '身份证件']
+
+// Documents of one customer. The browser only talks to our server; the server keeps the files in Google Drive.
+// Uploading opens a small dialog: pick the file and what it is (a preset name, or 其他 and type one). It is saved as 客户名_名称.ext.
+function CustomerFiles({ customer }) {
+  const customerId = customer.id
+  const canDelete = useAuth().can('deleteCustomers')
+  const [files, setFiles] = useState(null)
+  const [error, setError] = useState('')
+  const [dialog, setDialog] = useState(false)
+  const [file, setFile] = useState(null)
+  const [label, setLabel] = useState(FILE_LABELS[0])
+  const [custom, setCustom] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [formError, setFormError] = useState('')
+  const base = `/api/crm/customers/${customerId}/files`
+
+  const load = () => api(`/crm/customers/${customerId}/files`).then(setFiles).catch((err) => { setFiles([]); setError(err.message) })
+  useEffect(() => { load() }, [customerId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ext = file ? file.name.split('.').pop().toLowerCase() : ''
+  const finalLabel = (label === '其他' ? custom : label).trim()
+  const preview = file && finalLabel ? `${customer.name}_${finalLabel}.${ext}` : ''
+
+  const openDialog = () => { setFile(null); setLabel(FILE_LABELS[0]); setCustom(''); setFormError(''); setDialog(true) }
+
+  const upload = async (e) => {
+    e.preventDefault()
+    setFormError('')
+    if (!file) return setFormError('请选择文件')
+    if (file.size > FILE_MAX) return setFormError('文件太大（最大 4MB）')
+    if (!finalLabel) return setFormError('请填写文件名称')
+    setBusy(true)
+    try {
+      const res = await fetch(`${base}?label=${encodeURIComponent(finalLabel)}&ext=${encodeURIComponent(ext)}`, { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: file, credentials: 'same-origin' })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error || res.statusText)
+      setDialog(false)
+      await load()
+    } catch (err) {
+      setFormError(err.message)
+    }
+    setBusy(false)
+  }
+
+  const download = async (f) => {
+    setError('')
+    try {
+      const res = await fetch(`${base}/${f.id}`, { credentials: 'same-origin' })
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error || res.statusText)
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(await res.blob()); a.download = f.name; a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const del = async (f) => {
+    if (!window.confirm(`删除文件「${f.name}」？`)) return
+    setError('')
+    try { await api(`/crm/customers/${customerId}/files/${f.id}`, { method: 'DELETE' }); await load() } catch (err) { setError(err.message) }
+  }
+
+  return (
+    <div className="mt-8 border-t border-ink/10 pt-5">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-medium">文件{files ? `（${files.length}）` : ''}</h3>
+        <button type="button" onClick={openDialog} className="btn-ghost !px-3 !py-1.5 text-sm"><Upload size={14} /> 上传文件</button>
+      </div>
+      {error && <p role="alert" className="mb-2 text-sm text-rose-700">{error}</p>}
+      {files === null ? <p className="text-sm text-muted">加载中…</p> : files.length === 0 ? <p className="text-sm text-muted">暂无文件（PDF、图片、Word、Excel，单个最大 4MB）</p> : (
+        <ul className="divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
+          {files.map((f) => (
+            <li key={f.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <FileText size={16} className="shrink-0 text-muted" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{f.name}</p>
+                <p className="text-xs text-muted">{fmtDateTime(f.createdAt)} · {fmtSize(f.size)}{f.uploadedBy ? ` · ${f.uploadedBy}` : ''}</p>
+              </div>
+              <button type="button" onClick={() => download(f)} aria-label="下载" className="rounded-full p-2 text-muted hover:bg-ink/5 hover:text-ink"><Download size={16} /></button>
+              {canDelete && <button type="button" onClick={() => del(f)} aria-label="删除" className="rounded-full p-2 text-muted hover:bg-rose-50 hover:text-rose-700"><Trash2 size={16} /></button>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {dialog && (
+        <Modal title="上传文件" onClose={() => setDialog(false)} loading={busy}>
+          <form onSubmit={upload} className="space-y-4">
+            <Field label="选择文件">
+              <input type="file" className={inputCls} onChange={(e) => setFile(e.target.files[0] || null)} accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.doc,.docx,.xls,.xlsx,.txt,.csv" />
+            </Field>
+            <Field label="文件名称">
+              <select className={inputCls} value={label} onChange={(e) => setLabel(e.target.value)}>
+                {FILE_LABELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                <option value="其他">其他（自己填写）</option>
+              </select>
+            </Field>
+            {label === '其他' && <Field label="自己填写名称"><input className={inputCls} value={custom} onChange={(e) => setCustom(e.target.value)} maxLength={60} autoFocus placeholder="例如：术后复诊记录" /></Field>}
+            {preview && <p className="text-xs text-muted">保存为：<b className="text-ink">{preview}</b></p>}
+            {formError && <p role="alert" className="text-sm text-rose-700">{formError}</p>}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setDialog(false)} className="btn-ghost !py-2.5">取消</button>
+              <button className="btn-primary !py-2.5" disabled={busy}>{busy ? '上传中…' : '上传'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </div>
+  )
+}
 
 function CustomerForm({ customer, onClose }) {
   const { save, appointments, payments } = useCrm()
@@ -64,7 +181,7 @@ function CustomerForm({ customer, onClose }) {
           </p>
         </div>
       )}
-      <form onSubmit={submit} className="space-y-4">
+      <form id="customer-form" onSubmit={submit} className="space-y-4">
         <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="电话"><input className={inputCls} value={f.phone} onChange={set('phone')} type="tel" /></Field>
@@ -81,11 +198,6 @@ function CustomerForm({ customer, onClose }) {
         </Field>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
-        {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-        <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>
-          <button className="btn-primary !py-2.5" disabled={busy}>保存</button>
-        </div>
       </form>
 
       {customer && (
@@ -125,6 +237,13 @@ function CustomerForm({ customer, onClose }) {
           )}
         </div>
       )}
+      {customer && <CustomerFiles customer={customer} />}
+      {/* 取消 / 保存 sit at the very bottom, under the history and the documents (they belong to the form above via its id). */}
+      {error && <p role="alert" className="mt-4 text-right text-sm text-rose-700">{error}</p>}
+      <div className="mt-4 flex justify-end gap-2 border-t border-ink/10 pt-4">
+        <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>
+        <button form="customer-form" className="btn-primary !py-2.5" disabled={busy}>保存</button>
+      </div>
     </Modal>
   )
 }

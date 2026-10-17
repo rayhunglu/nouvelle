@@ -30,6 +30,7 @@ module.exports = makeCrud('customers', customerInput, {
       await store.remove('appointments', a.id);
     }
     for (const p of (await store.list('payments')).filter((x) => x.customerId === id)) await store.remove('payments', p.id);
+    await require('./customerFiles').removeAllOf(id); // and their documents in Drive
     return null;
   },
 });

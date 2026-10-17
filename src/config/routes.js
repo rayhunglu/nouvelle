@@ -4,6 +4,7 @@ const auth = require('../routes/auth');
 const express = require('express');
 const access = require('../middleware/crmAccess');
 const customers = require('../controllers/crm/customers');
+const customerFiles = require('../controllers/crm/customerFiles');
 const appointments = require('../controllers/crm/appointments');
 const payments = require('../controllers/crm/payments');
 const blocks = require('../controllers/crm/blocks');
@@ -38,6 +39,12 @@ function crmRouter() {
   r.post('/customers', customers.create);
   r.put('/customers/:id', customers.update);
   r.delete('/customers/:id', customers.remove);
+
+  // Customer documents (kept in Google Drive; the browser only talks to this server). The body is the raw file.
+  r.get('/customers/:id/files', customerFiles.list);
+  r.post('/customers/:id/files', express.raw({ type: () => true, limit: '4mb' }), customerFiles.upload);
+  r.get('/customers/:id/files/:fileId', customerFiles.download);
+  r.delete('/customers/:id/files/:fileId', customerFiles.remove);
 
   // Appointments
   r.get('/appointments', appointments.list);

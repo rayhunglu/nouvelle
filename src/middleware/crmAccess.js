@@ -34,12 +34,12 @@ const loadPermissions = wrap(async (req, res, next) => {
 });
 
 const STAFF_ALLOWED = (perms) => ({
-  GET: [/^\/(appointments|customers|payments)(\/[^/]+)?$/, /^\/services$/, /^\/summary$/, /^\/blocks$/, /^\/settings$/, /^\/schedule$/, /^\/staff-list$/],
-  POST: [/^\/(appointments|customers|payments)$/, ...(perms.manageBlocks ? [/^\/blocks$/] : [])],
+  GET: [/^\/(appointments|customers|payments)(\/[^/]+)?$/, /^\/customers\/[^/]+\/files(\/[^/]+)?$/, /^\/services$/, /^\/summary$/, /^\/blocks$/, /^\/settings$/, /^\/schedule$/, /^\/staff-list$/],
+  POST: [/^\/(appointments|customers|payments)$/, /^\/customers\/[^/]+\/files$/, ...(perms.manageBlocks ? [/^\/blocks$/] : [])],
   PUT: [/^\/(appointments|customers|payments)\/[^/]+$/, ...(perms.manageBlocks ? [/^\/blocks\/[^/]+$/] : [])],
   DELETE: [
     ...(perms.deleteAppointments ? [/^\/appointments\/[^/]+$/] : []),
-    ...(perms.deleteCustomers ? [/^\/customers\/[^/]+$/] : []),
+    ...(perms.deleteCustomers ? [/^\/customers\/[^/]+$/, /^\/customers\/[^/]+\/files\/[^/]+$/] : []),
     ...(perms.deletePayments ? [/^\/payments\/[^/]+$/] : []),
     ...(perms.manageBlocks ? [/^\/blocks\/[^/]+$/] : []),
   ],

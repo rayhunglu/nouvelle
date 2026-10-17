@@ -9,4 +9,5 @@ module.exports = {
   applications: require('./applications.model'),
   blocks: require('./blocks.model'),
   settings: require('./settings.model'),
+  customerFiles: require('./customerFiles.model'),
 };

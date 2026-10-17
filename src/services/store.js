@@ -8,7 +8,7 @@ const mongo = require('./mongo');
 const DATA_DIR = process.env.CRM_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'crm.json');
 
-const COLLECTIONS = ['customers', 'appointments', 'payments', 'services', 'messages', 'applications', 'users', 'blocks', 'settings'];
+const COLLECTIONS = ['customers', 'appointments', 'payments', 'services', 'messages', 'applications', 'users', 'blocks', 'settings', 'customerFiles'];
 
 let db = null;
 
