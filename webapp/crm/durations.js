@@ -1,3 +1,4 @@
+// 美睫: every set takes 60 minutes; the lower lashes (下睫毛) and a fill (补睫毛) 30.
 // 医美 rule: injectables take 30 minutes, except 水光针, PRP 生发 and 童颜线 (60); every device (仪器类) and IV drip (点滴类) takes 60.
 // Default length (minutes) of each service, used to fill in the appointment's duration as soon as a service is picked.
 // A length written in the name itself ("... 60 分钟", "... 90 分钟") always wins; the table below covers the rest.
@@ -52,9 +53,9 @@ const DEFAULTS = {
   专业祛痘针清: 60,
   '身体 Spa': 60,
   '头皮 Spa': 60,
-  '睫毛嫁接 · 经典': 120,
-  '睫毛嫁接 · 混合': 150,
-  '睫毛嫁接 · 浓密': 150,
+  '睫毛嫁接 · 经典': 60,
+  '睫毛嫁接 · 混合': 60,
+  '睫毛嫁接 · 浓密': 60,
   半永久纹绣: 120,
   定制修眉: 45,
   个人形象定制妆容: 60,

@@ -15,6 +15,7 @@ const { getSettings, putSettings } = require('../controllers/crm/settings');
 const { getAvailability } = require('../controllers/availability');
 const { getRoster, addStaff, removeStaff } = require('../controllers/crm/roster');
 const { getSchedule, putSchedule } = require('../controllers/crm/schedule');
+const { getServiceSettings, putServiceSettings } = require('../controllers/crm/serviceSettings');
 const { getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar } = require('../controllers/crm/staffProfile');
 const mongo = require('../services/mongo');
 const { rateLimit } = require('../middleware/security');
@@ -83,6 +84,10 @@ function crmRouter() {
   r.get('/staff-list', getRoster);
   r.post('/staff-list', adminOnly, addStaff);
   r.delete('/staff-list/:name', adminOnly, removeStaff);
+
+  // Treatments: open / closed for online booking, and who can do each (owner and admin only)
+  r.get('/service-settings', adminOnly, getServiceSettings);
+  r.put('/service-settings', adminOnly, putServiceSettings);
 
   // Staff attendance
   r.get('/schedule', getSchedule);

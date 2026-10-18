@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, CalendarOff, ChevronRight, Clock, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
+import { ArrowLeft, Bell, CalendarOff, ChevronRight, Clock, ListChecks, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { Card, Empty, Field, Modal, PageTitle, inputCls } from './ui'
 import { DEFAULT_ROOM_STAFF } from './staff'
+import { serviceList } from '../data/bookable'
 import { ROOMS } from './rooms'
 import { useCrm } from './data'
 
@@ -83,6 +84,120 @@ function ShopHours() {
   )
 }
 
+// 服务项目管理: the treatments that can be booked on the website, by big group. Each one can be switched off (it cannot be booked
+// online) and has the people who can do it: online booking needs one of them at work and free, so when they all rest, nobody can book.
+function ServiceSettings() {
+  const { roster } = useCrm()
+  const groups = useMemo(() => serviceList(), [])
+  const [expanded, setExpanded] = useState(false)
+  const [openGroups, setOpenGroups] = useState({})
+  const [items, setItems] = useState(null) // { [key]: { open, staff } } as saved
+  const [error, setError] = useState('')
+  const [busyKey, setBusyKey] = useState('')
+  useEffect(() => { if (expanded && items === null) api('/crm/service-settings').then(setItems).catch((e) => { setItems({}); setError(e.message) }) }, [expanded, items])
+
+  const save = async (key, body) => {
+    setBusyKey(key); setError('')
+    try { setItems(await api('/crm/service-settings', { method: 'PUT', body: { key, ...body } })) } catch (e) { setError(e.message) }
+    setBusyKey('')
+  }
+  const staffOf = (g, key) => items?.[key]?.staff ?? g.staff
+  const toggleStaff = (g, key, name) => {
+    const cur = staffOf(g, key)
+    save(key, { staff: cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name] })
+  }
+  const closedCount = items ? Object.values(items).filter((x) => x.open === false).length : 0
+  // A group's bookable window: the one its treatments share, or null when they differ / there is none.
+  const windowOf = (g, key) => items?.[key]?.hours ?? g.hours ?? null
+  const groupWindow = (g) => {
+    const ws = g.items.map((it) => windowOf(g, it.key))
+    const first = ws[0]
+    return first && ws.every((w) => w && w.startMin === first.startMin && w.endMin === first.endMin) ? first : null
+  }
+  const mixed = (g) => g.items.some((it) => JSON.stringify(windowOf(g, it.key)) !== JSON.stringify(windowOf(g, g.items[0].key)))
+  const setGroupWindow = (g, startMin, endMin) => {
+    const keys = g.items.map((it) => it.key)
+    const w = groupWindow(g) || { startMin: 0, endMin: 1440 }
+    const next = { startMin: startMin ?? w.startMin, endMin: endMin ?? w.endMin }
+    save(keys[0], { keys, hours: next.startMin === 0 && next.endMin === 1440 && !g.hours ? null : next })
+  }
+
+  return (
+    <Card className="mb-2 mt-3 p-4 sm:p-5">
+      <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="flex w-full items-center gap-2 text-left">
+        <ListChecks size={16} className="shrink-0 text-gold" />
+        <h2 className="text-sm font-medium">服务项目管理</h2>
+        <span className="ml-auto text-xs text-muted">{items === null ? '' : closedCount ? `${closedCount} 项已关闭` : '全部开放'}</span>
+        <ChevronRight size={16} className={`shrink-0 text-muted transition ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+      {expanded && (
+        <div className="mt-3">
+          <p className="mb-3 text-xs text-muted">按大项目管理官网能预约的服务。关闭的项目官网不能预约；每个项目选好可操作人员，官网只会显示他们有空的时间，这些人都休息的日子客人就约不到。</p>
+          {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">{error}</p>}
+          {items === null ? <p className="text-sm text-muted">加载中…</p> : groups.map((g) => (
+            <section key={g.id} className="mb-2 rounded-xl border border-ink/10 bg-white">
+              <button type="button" onClick={() => setOpenGroups((o) => ({ ...o, [g.id]: !o[g.id] }))} aria-expanded={!!openGroups[g.id]} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium">
+                {g.label}
+                <span className="text-xs font-normal text-muted">{g.items.length} 项{g.items.filter((it) => items[it.key]?.open === false).length ? ` · ${g.items.filter((it) => items[it.key]?.open === false).length} 项关闭` : ''}</span>
+                <ChevronRight size={15} className={`ml-auto shrink-0 text-muted transition ${openGroups[g.id] ? 'rotate-90' : ''}`} />
+              </button>
+              {openGroups[g.id] && (
+                <>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-ink/10 bg-sand/40 px-3 py-2 text-xs">
+                  <span className="text-muted">可预约时间</span>
+                  <select value={groupWindow(g)?.startMin ?? ''} onChange={(e) => e.target.value !== '' && setGroupWindow(g, Number(e.target.value), null)} disabled={!!busyKey} aria-label={`${g.label} 可预约开始时间`} className={`${inputCls} !w-auto !px-2 !py-1 text-xs`}>
+                    {!groupWindow(g) && <option value="">{mixed(g) ? '各项不同' : '跟随营业时间'}</option>}
+                    {QUARTERS.slice(0, -1).map((m) => <option key={m} value={m}>{hm(m)}</option>)}
+                  </select>
+                  <span className="text-muted">到</span>
+                  <select value={groupWindow(g)?.endMin ?? ''} onChange={(e) => e.target.value !== '' && setGroupWindow(g, null, Number(e.target.value))} disabled={!!busyKey} aria-label={`${g.label} 可预约结束时间`} className={`${inputCls} !w-auto !px-2 !py-1 text-xs`}>
+                    {!groupWindow(g) && <option value="">{mixed(g) ? '各项不同' : '跟随营业时间'}</option>}
+                    {QUARTERS.slice(1).map((m) => <option key={m} value={m}>{hm(m)}</option>)}
+                  </select>
+                  <span className="text-[0.7rem] text-muted">{g.label}的所有项目；不会超出店铺营业时间</span>
+                  {(groupWindow(g) || mixed(g)) && <button type="button" onClick={() => save(g.items[0].key, { keys: g.items.map((it) => it.key), hours: null })} className="ml-auto text-[0.7rem] text-gold hover:underline">恢复默认</button>}
+                </div>
+                <ul className="divide-y divide-ink/10 border-t border-ink/10">
+                  {g.items.map((it) => {
+                    const open = items[it.key]?.open !== false
+                    const staff = staffOf(g, it.key)
+                    const custom = !!items[it.key]
+                    return (
+                      <li key={it.key} className={`px-3 py-2.5 text-sm ${open ? '' : 'bg-stone-50'}`}>
+                        <div className="flex items-center gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className={`truncate font-medium ${open ? '' : 'text-muted line-through'}`}>{it.name.zh}</p>
+                            <p className="truncate text-[0.7rem] text-muted">{it.section.zh}{!open ? ' · 官网不能预约' : ''}</p>
+                          </div>
+                          <button
+                            type="button" role="switch" aria-checked={open} aria-label={`${it.name.zh} ${open ? '开放' : '关闭'}`} disabled={busyKey === it.key}
+                            onClick={() => save(it.key, { open: !open })}
+                            className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium transition ${open ? 'bg-emerald-100 text-emerald-900 hover:bg-emerald-200' : 'bg-stone-200 text-stone-700 hover:bg-stone-300'}`}
+                          >{open ? '开放' : '关闭'}</button>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[0.7rem] text-muted">可操作人员</span>
+                          {roster.map((n) => {
+                            const on = staff.includes(n)
+                            return <button key={n} type="button" aria-pressed={on} disabled={busyKey === it.key} onClick={() => toggleStaff(g, it.key, n)} className={`rounded-full border px-2.5 py-0.5 text-xs transition ${on ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-ink/15 hover:border-ink/40'}`}>{n}</button>
+                          })}
+                          {staff.length === 0 && <span className="text-[0.7rem] text-amber-700">没选人员：只看房间有没有空</span>}
+                          {custom && <button type="button" onClick={() => save(it.key, { reset: true })} className="ml-auto text-[0.7rem] text-gold hover:underline">恢复默认</button>}
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+                </>
+              )}
+            </section>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export default function StaffAccounts() {
   const { roster, reload } = useCrm()
   const navigate = useNavigate()
@@ -111,6 +226,7 @@ export default function StaffAccounts() {
     <>
       <PageTitle title="设置" sub="店铺营业时间，以及员工的登录账号、联系方式和出勤" />
       <ShopHours />
+      <ServiceSettings />
       <h2 className="mb-2 mt-8 text-sm font-medium">员工管理 <span className="font-normal text-muted">先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤</span></h2>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
 

@@ -17,6 +17,7 @@ const T = {
   threadLift: { zh: '铃铛童颜线面部提升', en: 'Silhouette InstaLift', to: '/treatments/injectables#injectables-5' },
   smallFace: { zh: '日式小颜', en: 'Japanese face slimming', to: '/treatments/skincare-experts#japanese-face-correction' },
   mesotherapy: { zh: '水光针', en: 'Mesotherapy', to: '/treatments/injectables#skin-2' },
+  hbot: { zh: '高压氧舱', en: 'Hyperbaric oxygen', to: '/treatments/devices#wellness-1' },
   nad: { zh: 'NAD+ 静脉注射', en: 'NAD+ IV Therapy', to: '/treatments/iv-therapy#iv-therapy-1' },
   vitality: { zh: '活力能量针', en: 'Vitality Booster IV', to: '/treatments/iv-therapy#hormone-stem-cell-2' },
   stemCell: { zh: '干细胞治疗', en: 'Stem Cell Therapy', to: '/treatments/iv-therapy#stem-cell' },
@@ -61,7 +62,7 @@ const body = [
     dot: [57.1, 19.0], label: [78, 19.0] },
   { zh: '小腿', en: 'Calves', to: '/treatments/injectables#injectables-1', // 肉毒
     dot: [47.3, 78.0], label: [22, 78.0], side: 'l' },
-  { zh: '全身抗衰', en: 'Body anti-aging', to: [T.nad, T.vitality, T.stemCell, T.bComplex, T.hormone], dot: [59.5, 25.5], label: [78, 27.5] },
+  { zh: '全身抗衰', en: 'Body anti-aging', to: [T.nad, T.vitality, T.stemCell, T.bComplex, T.hormone, T.hbot], dot: [59.5, 25.5], label: [78, 27.5] },
   { zh: '体重管理', en: 'Weight control', to: '/treatments/injectables#tirzepatide', dot: [58.9, 40.0], label: [78, 40.0] },
   { zh: '全身紧致', en: 'Body firming', to: '/treatments/injectables#hormone-stem-cell-1', dot: [59.8, 50.0], label: [78, 50.0] },
   { zh: '全身美白', en: 'Body brightening', to: '/treatments/iv-therapy#iv-therapy-2', // 美白焕肤针
@@ -102,7 +103,7 @@ function Panel({ title, photo, items, lang, aspect }) {
                   {openKey === it.zh && (
                     <span
                       className="absolute z-20 flex w-max flex-col overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-ink/10"
-                      style={{ [it.side === 'l' ? 'right' : 'left']: `${it.side === 'l' ? 100 - it.label[0] : it.label[0]}%`, top: `calc(${it.label[1]}% + 1.5rem)` }}
+                      style={{ [it.side === 'l' ? 'left' : 'right']: '3%', maxWidth: '94%', ...(it.label[1] > 60 ? { bottom: `calc(${100 - it.label[1]}% + 1.5rem)` } : { top: `calc(${it.label[1]}% + 1.5rem)` }) }} // low pills open upwards, so the list stays inside the photo
                     >
                       {it.to.map((o) => <Link key={o.to} to={o.to} className="whitespace-nowrap px-3.5 py-2 text-sm hover:bg-gold hover:text-ivory">{lang === 'zh' ? o.zh : o.en}</Link>)}
                     </span>

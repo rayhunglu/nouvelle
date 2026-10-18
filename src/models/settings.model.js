@@ -2,10 +2,10 @@ const dbClient = require('../lib/dbClient');
 const { validateInput } = require('../lib/validate');
 const { compact, newRecord, validId } = require('./util');
 
-// Key / value rows: business hours ("hours"), staff schedule ("schedule"), staff contact details ("profiles").
+// Key / value rows: business hours ("hours"), staff schedule ("schedule"), staff contact details ("profiles"), the treatments' settings ("services").
 // Each key uses a different subset of the fields, so only `key` is required on create.
 const COLLECTION = 'settings';
-const KEYS = ['hours', 'schedule', 'profiles', 'roster'];
+const KEYS = ['hours', 'schedule', 'profiles', 'roster', 'services'];
 
 async function getSetting(key) {
   try {
@@ -37,6 +37,7 @@ async function createSetting(input) {
       closedDays: { type: 'array' },
       staff: { type: 'object' },
       names: { type: 'array' }, // roster: the staff names
+      items: { type: 'object' }, // services: { [treatment key]: { open, staff } }
     });
     if (error) throw error;
     const query = newRecord(compact({
@@ -47,6 +48,7 @@ async function createSetting(input) {
       closedDays: input.closedDays,
       staff: input.staff,
       names: input.names,
+      items: input.items,
     }));
     await dbClient.insertOne(COLLECTION, query);
     return query;
@@ -67,6 +69,7 @@ async function updateSetting(id, input) {
       closedDays: { type: 'array' },
       staff: { type: 'object' },
       names: { type: 'array' }, // roster: the staff names
+      items: { type: 'object' }, // services: { [treatment key]: { open, staff } }
     });
     if (error) throw error;
     const query = compact({
@@ -76,6 +79,7 @@ async function updateSetting(id, input) {
       closedDays: input.closedDays,
       staff: input.staff,
       names: input.names,
+      items: input.items,
     });
     return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...query, id, updatedAt: new Date().toISOString() });
   } catch (err) {

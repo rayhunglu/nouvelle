@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { CheckCircle2, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, serviceGroups } from '../data/site'
+import { BOOKABLE, singleMinutes } from '../data/bookable'
 import { clearConsultService, getConsultService, setConsultService } from '../consult'
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
@@ -72,35 +73,14 @@ function Sent({ text }) {
 
 // Online booking: choose a package (60 / 90 min services) or a style (lashes), a visit type, a date and a time.
 // First visit and returning member pay the same price; a returning non-member pays the regular price.
-const BOOKABLE = {
-  'japanese-face-correction': 'packages',
-  'skinceuticals-cleanse-hydrate': 'packages',
-  'rejuran-brightening': 'packages',
-  'gua-sha': 'packages',
-  'acne-clearing': 'packages',
-  'classic-lashes': 'styles',
-  'hybrid-lashes': 'styles',
-  'lash-fills': 'styles',
-  'body-spa': 'packages',
-  'head-spa': 'packages',
-}
+// Which treatments can be booked, and their fixed lengths, are in data/bookable.js (the CRM's 服务项目管理 uses the same list).
 const treatmentByKey = (key) => categories.flatMap((c) => c.treatments).find((x) => x.key === key)
-
-// 医美 treatments (injectables, devices, IV drips) are booked straight from their name: no package to pick. The length is fixed per
-// treatment (injectables 30 minutes, except 水光针 / PRP 生发 / 童颜线 at 60; every device and IV drip 60) and the open times come from
-// Yingna's own schedule (src/controllers/availability.js keeps the same list).
-const MEDICAL_SLUGS = ['injectables', 'devices', 'iv-therapy']
-const MEDICAL_ONE_HOUR = ['skin-2', 'hair-2', 'injectables-5']
-const medicalMinutes = (key) => {
-  const slug = categories.find((c) => c.treatments.some((x) => x.key === key))?.slug
-  return slug === 'injectables' && !MEDICAL_ONE_HOUR.includes(key) ? 30 : 60
-}
-Object.assign(BOOKABLE, Object.fromEntries(categories.filter((c) => MEDICAL_SLUGS.includes(c.slug)).flatMap((c) => c.treatments.map((x) => [x.key, 'medical']))))
 const PACKAGE_MINUTES = [60, 90]
-const LASH_MINUTES = 120 // lash sets have no listed duration; start times leave two hours before closing
+// Lashes: every set takes 60 minutes; the lower lashes (下睫毛) and a fill (补睫毛) take 30. The same lengths are the CRM's defaults.
+const lashMinutes = (name) => (/下睫毛|补睫毛/.test(name?.zh || '') ? 30 : 60)
 const optionsFor = (key) => {
   const item = treatmentByKey(key)
-  if (BOOKABLE[key] === 'medical') return [{ name: item.name, first: '', member: '', return: '', minutes: medicalMinutes(key) }]
+  if (BOOKABLE[key] === 'single') return [{ name: item.name, first: '', member: '', return: '', minutes: singleMinutes(key) }]
   if (BOOKABLE[key] === 'packages') {
     return item.packages.map((pk, i) => ({
       name: pk.name,
@@ -117,7 +97,7 @@ const optionsFor = (key) => {
     first: `$${r.member}`,
     member: `$${r.member}`,
     return: `$${r.single}`,
-    minutes: LASH_MINUTES,
+    minutes: lashMinutes(r.name),
   }))
 }
 const VISITS = [
@@ -152,7 +132,7 @@ function bookingSummary(key, b, t) {
   const { opt, visit, price } = bookingInfo(key, b)
   return [
     `【${t({ en: 'Booking', zh: '预约' })}】${t(opt.name)}`,
-    BOOKABLE[key] === 'medical' && `${t({ en: 'Length', zh: '时长' })}: ${opt.minutes} ${t({ en: 'min', zh: '分钟' })}`,
+    BOOKABLE[key] === 'single' && `${t({ en: 'Length', zh: '时长' })}: ${opt.minutes} ${t({ en: 'min', zh: '分钟' })}`,
     price && `${t({ en: 'Visit', zh: '到访类型' })}: ${t(visit.label)}`,
     price && `${t({ en: 'Price', zh: '价格' })}: ${price}`,
     `${t({ en: 'Date', zh: '日期' })}: ${b.date} ${b.time}`,
@@ -183,7 +163,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
   const open = useOpenTimes(serviceKey, value.date, opt.minutes)
   const slots = open.status === 'error' ? slotsFor(opt.minutes) : open.slots
   const isStyles = BOOKABLE[serviceKey] === 'styles'
-  const isMedical = BOOKABLE[serviceKey] === 'medical'
+  const isMedical = BOOKABLE[serviceKey] === 'single'
   const set = (patch) => onChange({ ...value, ...patch })
   const choose = 'cursor-pointer rounded-2xl border px-4 py-3 text-left transition'
   const on = 'border-gold bg-gold/10'
@@ -245,7 +225,9 @@ function ServiceBooking({ serviceKey, value, onChange }) {
             <p className="px-1 py-3 text-sm text-muted" role="status">{t({ en: 'Checking available times…', zh: '正在查询可预约时间…' })}</p>
           ) : slots.length === 0 ? (
             <p className="rounded-2xl bg-ivory px-4 py-3 text-sm text-ink" role="status">
-              {open.reason === 'closed'
+              {open.reason === 'service-closed'
+                ? t({ en: 'This treatment is not open for online booking right now. Please call or send us a message.', zh: '这个项目暂时不开放网上预约，请致电或留言咨询。' })
+                : open.reason === 'closed'
                 ? t({ en: 'We are closed for this treatment on that day. Please choose another date.', zh: '这一天该项目不开放预约，请选择其他日期。' })
                 : open.reason === 'past' || open.reason === 'far'
                   ? t({ en: 'Please choose a date within the next three months.', zh: '请选择未来三个月内的日期。' })
