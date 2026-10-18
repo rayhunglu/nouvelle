@@ -86,7 +86,7 @@ export function Modal({ title, onClose, children, wide = false, loading = false,
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`w-full overflow-y-auto bg-ivory shadow-2xl sm:rounded-3xl sm:p-6 ${inset ? 'max-h-[82dvh] rounded-2xl p-4 text-sm [&_input:not([type=checkbox]):not([type=radio]):not([type=file])]:!py-2 [&_select]:!py-2 [&_textarea]:!py-2 [&_input]:!text-sm [&_select]:!text-sm [&_textarea]:!text-sm max-sm:[&_.btn-primary]:!py-2 max-sm:[&_.btn-ghost]:!py-2' : 'max-h-[92dvh] rounded-t-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]'} ${wide ? 'sm:max-w-2xl' : 'sm:max-w-lg'}`}
+        className={`w-full overflow-y-auto bg-ivory shadow-2xl sm:rounded-3xl sm:p-6 ${inset ? 'max-h-[82dvh] rounded-2xl p-4 text-sm [&_input:not([type=checkbox]):not([type=radio]):not([type=file])]:!py-2 [&_select]:!py-2 [&_textarea]:!py-2 max-sm:[&_.btn-primary]:!py-2 max-sm:[&_.btn-ghost]:!py-2' : 'max-h-[92dvh] rounded-t-3xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]'} ${inset ? (wide ? 'sm:max-w-xl' : 'sm:max-w-md') : (wide ? 'sm:max-w-2xl' : 'sm:max-w-lg')}`}
       >
         <div className={`flex items-center justify-between ${inset ? 'mb-3 sm:mb-5' : 'mb-5'}`}>
           <h2 className={`font-display ${inset ? 'text-xl sm:text-2xl' : 'text-2xl'}`}>{title}</h2>

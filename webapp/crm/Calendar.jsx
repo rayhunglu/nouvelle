@@ -208,7 +208,7 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
 // red "now" pointer is in view; days other than today open at the first booking, or 09:00.
 // The options of a booking (edit, check in / out, no-show, cancel, delete). Opened by a double click or right click on a
 // computer, and by tapping the booking on a phone, where it slides up from the bottom of the screen.
-function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, paidCount = () => 0 }) {
+function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, paidCount = () => 0, hasTopUp = () => false }) {
   if (!menu) return null
   const phone = touchLike()
   return (
@@ -246,7 +246,7 @@ function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, pai
               </div>
             </div>
           ) : (
-            <button role="menuitem" onClick={() => setMenu({ ...menu, ask: true })} className={`block w-full text-left text-rose-700 hover:bg-rose-50 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>删除预约</button>
+            <button role="menuitem" onClick={() => { if (hasTopUp(menu.a)) { const a = menu.a; setMenu(null); onDelete(a) } else setMenu({ ...menu, ask: true }) }} className={`block w-full text-left text-rose-700 hover:bg-rose-50 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>删除预约</button>
           ))}
           <button role="menuitem" onClick={() => setMenu(null)} className={`block w-full border-t border-ink/10 text-left text-muted hover:bg-sand/70 ${phone ? 'px-4 py-2' : 'px-3 py-2'}`}>关闭菜单</button>
         </div>
@@ -256,7 +256,7 @@ function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, pai
 
 const pad2 = (n) => String(n).padStart(2, '0')
 
-function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount = () => 0, blocks = [], onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, hourPx = 80, onZoom, scrollKey }) {
+function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount = () => 0, hasTopUp, blocks = [], onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, hourPx = 80, onZoom, scrollKey }) {
   const HOUR_PX = hourPx // this grid's current zoom (px per hour); shadows the default above
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 20000); return () => clearInterval(t) }, [])
@@ -469,7 +469,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
         </div>
       </div>
     )}
-    <ApptMenu menu={menu} setMenu={setMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} />
+    <ApptMenu menu={menu} setMenu={setMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} hasTopUp={hasTopUp} />
     <div ref={scroller} className="relative max-h-[calc(100svh-14rem)] min-h-[22rem] overflow-auto overscroll-contain" style={{ touchAction: onZoom ? 'pan-x pan-y' : undefined }}>
       {zoomTip && <span className="pointer-events-none sticky left-1/2 top-2 z-[40] float-right mr-3 rounded-full bg-ink/80 px-3 py-1 text-xs font-medium text-white">{zoomTip}</span>}
       <div className={`[--gut:2.75rem] sm:[--gut:3.5rem] ${columns.some((c) => c.beds !== undefined) ? 'sm:min-w-[var(--mw)]' : 'md:min-w-[var(--mw)]'}`} style={{ '--mw': `${Math.max(columns.length, 3) * 8 + 3.5}rem` }}>
@@ -886,7 +886,7 @@ function DayAgenda({ days, byDay, customerById, onEdit, onCreate, emptyHint }) {
 }
 
 // `modes` picks which views this instance offers (the Appointments page shows 'day' on its own and 'week'/'month' under Calendar).
-export default function CalendarView({ appointments, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount, blocks, onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, initialDate, onOpenDay, staff: staffProp, onStaff, modes = ['day', 'week', 'month'] }) {
+export default function CalendarView({ appointments, customerById, onEdit, onCreate, onMove, onDelete, onStatus, onResize, paidCount, hasTopUp, blocks, onEditBlock, onSaveBlock, onDeleteBlock, onSaveHours, initialDate, onOpenDay, staff: staffProp, onStaff, modes = ['day', 'week', 'month'] }) {
   const [mode, setMode] = useState(() => {
     try {
       const m = localStorage.getItem('crm.calMode')
@@ -1125,7 +1125,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
           {staffSelect}
         </div>
       )}
-      <ApptMenu menu={phoneMenu} setMenu={setPhoneMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} />
+      <ApptMenu menu={phoneMenu} setMenu={setPhoneMenu} customerById={customerById} onEdit={onEdit} onStatus={onStatus} onDelete={onDelete} paidCount={paidCount} hasTopUp={hasTopUp} />
       <div key={`${mode}-${keyOf(cursor)}`} className={slide > 0 ? 'cal-in-next' : slide < 0 ? 'cal-in-prev' : ''} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {mode === 'month' && (
         <>
@@ -1135,11 +1135,11 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
           </div>
         </>
       )}
-      {mode === 'day' && <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`day-${keyOf(cursor)}`} />}
+      {mode === 'day' && <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={roomColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} hasTopUp={hasTopUp} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`day-${keyOf(cursor)}`} />}
       {mode === 'week' && (
         <>
           {/* One column per day, Sunday to Saturday, at every width (on a phone the grid scrolls sideways). */}
-          <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`week-${keyOf(weekStart)}`} />
+          <TimeGrid hourPx={hourPx} onZoom={zoomTo} columns={weekColumns} customerById={customerById} onEdit={onEdit} onCreate={onCreate} onMove={onMove} onDelete={onDelete} onStatus={onStatus} onResize={onResize} paidCount={paidCount} hasTopUp={hasTopUp} blocks={blocks} onEditBlock={onEditBlock} onSaveBlock={onSaveBlock} onDeleteBlock={onDeleteBlock} onSaveHours={onSaveHours} scrollKey={`week-${keyOf(weekStart)}`} />
         </>
       )}
       </div>

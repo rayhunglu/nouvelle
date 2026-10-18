@@ -173,10 +173,12 @@ const Section = ({ title, children }) => (
 
 // The full record of one appointment, opened by tapping it in the customer's history: the booking, how it was settled, the member
 // card, and the before / after photos side by side. A floating card, not a full-width sheet.
-function ApptDetail({ appt, customer, fx, onClose }) {
+function ApptDetail({ appt, customer, fx, onClose, only }) {
+  // `only`: a payment that has no appointment (a product sale, a top-up): the record then has just the settlement and the member card.
+  const real = !!appt.id
   const { payments } = useCrm()
   const [view, setView] = useState(null) // id of the photo open in the big viewer
-  const mine = payments.filter((p) => p.appointmentId === appt.id)
+  const mine = real ? payments.filter((p) => p.appointmentId === appt.id) : (only ? [only] : [])
   const hidden = mine.some((p) => p.hidden) // the owner's account: an admin does not see it
   const pays = mine.filter((p) => !p.hidden)
   const staff = appt.staff || pays.find((p) => p.staff)?.staff
@@ -192,23 +194,24 @@ function ApptDetail({ appt, customer, fx, onClose }) {
   const perf = pays.reduce((n, p) => n + performanceOf(p, payments), 0)
   const tips = pays.reduce((n, p) => n + paidTip(p), 0)
 
-  const files = (fx.files || []).filter((f) => f.appointmentId === appt.id)
+  const files = real ? (fx.files || []).filter((f) => f.appointmentId === appt.id) : []
   const order = PHOTO_SETS.flatMap((set) => PHOTO_SIDES.map((side) => `${set}${side}`))
   const photos = files.filter((f) => photoLabelOf(f)).sort((x, y) => order.indexOf(photoLabelOf(x)) - order.indexOf(photoLabelOf(y)) || x.createdAt.localeCompare(y.createdAt))
     .map((f) => ({ ...f, caption: photoLabelOf(f).replace(/^(Before|After)/, '$1 ') }))
   const consent = files.filter((f) => !photoLabelOf(f))
 
   return (
-    <Modal inset title="预约记录" onClose={onClose}>
-      <Section title="预约信息">
+    <Modal inset title={real ? '预约记录' : '收款记录'} onClose={onClose}>
+      <Section title={real ? '预约信息' : '订单信息'}>
         <dl>
-          <Row k="项目内容"><b>{appt.service}</b></Row>
+          <Row k="客户">{customer?.name || '（已删除客户）'}</Row>
+          <Row k="项目内容"><b>{appt.service || '未选服务'}</b></Row>
           <Row k="时间">{fmtDateTime(appt.start)}</Row>
-          <Row k="时长">{appt.durationMin ? `${appt.durationMin} 分钟` : '—'}</Row>
-          <Row k="房间">{appt.room ? roomOf(appt.room).name : '未指定'}</Row>
+          {real && <Row k="时长">{appt.durationMin ? `${appt.durationMin} 分钟` : '—'}</Row>}
+          {real && <Row k="房间">{appt.room ? roomOf(appt.room).name : '未指定'}</Row>}
           <Row k="服务人员">{staff || '—'}</Row>
           <Row k="介绍人">{referrer || '—'}</Row>
-          <Row k="状态"><StatusBadge status={appt.status} /></Row>
+          {real && <Row k="状态"><StatusBadge status={appt.status} /></Row>}
           {appt.price > 0 && <Row k="预约价格">{money(appt.price)}</Row>}
           {appt.notes && <Row k="预约备注">{appt.notes}</Row>}
         </dl>
@@ -247,7 +250,7 @@ function ApptDetail({ appt, customer, fx, onClose }) {
         </dl>
       </Section>
 
-      <Section title="前后对比图">
+      {real && <Section title="前后对比图">
         <div className="mt-1 grid grid-cols-[auto_6.5rem_6.5rem] items-center justify-center gap-x-3 gap-y-1.5 text-center text-xs text-muted">
           <span />
           {PHOTO_SETS.map((set) => <span key={set}>{set}</span>)}
@@ -264,9 +267,9 @@ function ApptDetail({ appt, customer, fx, onClose }) {
           ))}
         </div>
         {fx.error && <p role="alert" className="mt-2 text-xs text-rose-700">{fx.error}</p>}
-      </Section>
+      </Section>}
 
-      <Section title="同意书">
+      {real && <Section title="同意书">
         <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted">{consent.length ? `${consent.length} 个文件` : '还没有上传'}</span>
           <label className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs text-muted hover:bg-ink/5 hover:text-ink">
@@ -286,12 +289,23 @@ function ApptDetail({ appt, customer, fx, onClose }) {
             ))}
           </ul>
         )}
-      </Section>
+      </Section>}
 
       <div className="mt-5 flex justify-end"><button type="button" onClick={onClose} className="btn-primary !py-2.5">关闭</button></div>
       {view && photos.some((p) => p.id === view) && <PhotoViewer customerId={fx.customerId} photos={photos} start={photos.findIndex((p) => p.id === view)} onClose={() => setView(null)} />}
     </Modal>
   )
+}
+
+// The order behind a payment (Finance page): its appointment record when it has one, otherwise just the settlement.
+export function OrderDetail({ payment, onClose }) {
+  const { appointments, customerById, serviceById } = useCrm()
+  const customer = customerById[payment.customerId]
+  const fx = useCustomerFiles(customer)
+  const appt = appointments.find((a) => a.id === payment.appointmentId)
+  const name = payment.serviceName || (payment.serviceIds || []).map((id) => serviceById?.[id]?.name).filter(Boolean).join('、')
+  const shown = appt || { id: null, customerId: payment.customerId, service: name, start: payment.datetime, staff: payment.staff, source: payment.referralSource }
+  return <ApptDetail appt={shown} customer={customer || { id: payment.customerId, name: '' }} fx={fx} only={payment} onClose={onClose} />
 }
 
 function CustomerForm({ customer, onClose }) {

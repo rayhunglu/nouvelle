@@ -16,7 +16,7 @@ import { relatedTo, withStaff } from './staff'
 import { defaultOpenStart, findClash, dayAppointments, hhmm, minutesOfDay } from './timeline'
 import { ROOMS, roomOf } from './rooms'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { CUSTOMER_SOURCES, STATUS, dayKey, fmtDay, fmtTime, googleCalendarUrl, money, toLocalInput } from './format'
+import { CUSTOMER_SOURCES, STATUS, cardBalance, dayKey, fmtDateTime, fmtDay, fmtTime, googleCalendarUrl, money, toLocalInput } from './format'
 import { openPicker } from '../lib/util'
 
 // Rooms whose service field follows a category of the public website (slug from webapp/data/site.js):
@@ -605,11 +605,26 @@ export default function Appointments() {
   }, [appointments, filter, staffFilter])
 
   // `asked` is true when the caller already confirmed (the calendar menu has its own in-page confirmation).
+  // Deleting a booking gives the member card back what the visit took. When the checkout also loaded money onto the card, the person
+  // chooses whether that top-up goes too (the dialog shows the card balance before and after); other bookings just ask once.
+  const [delAsk, setDelAsk] = useState(null) // { a, undo }
   const del = async (a, asked = false) => {
-    const n = payments.filter((p) => p.appointmentId === a.id).length
-    if (!asked && !window.confirm(`确定删除这个预约？${n ? `账目里它的 ${n} 笔记录也会一并删除。` : ''}`)) return
+    const rows = payments.filter((p) => p.appointmentId === a.id)
+    if (rows.some((p) => p.topUp > 0)) { setDelAsk({ a, undo: true }); return }
+    if (!asked && !window.confirm(`确定删除这个预约？${rows.length ? `账目里它的 ${rows.length} 笔记录也会一并删除。` : ''}`)) return
     setError('')
     try { await remove('appointments', a.id) } catch (err) { setError(err.message) }
+  }
+  const confirmDelete = async () => {
+    const { a, undo } = delAsk
+    setDelAsk(null)
+    setError('')
+    try { await remove('appointments', a.id, undo ? '?undoTopUp=1' : '') } catch (err) { setError(err.message) }
+  }
+  // The customer's card balance after deleting `a`: the same rules the server applies (a top-up stays unless it is undone too).
+  const balanceAfterDelete = (a, undo) => {
+    const rest = payments.filter((p) => p.appointmentId !== a.id).concat(undo ? [] : payments.filter((p) => p.appointmentId === a.id && p.topUp > 0).map((p) => ({ ...p, amount: 0, tipAmount: 0, giftUsed: '', paymentMethod: p.topUpMethod || 'cash', tipMethod: p.topUpMethod || 'cash' })))
+    return cardBalance(rest, a.customerId)
   }
 
   // The upload window (consent form + before photos at check in, after photos in service) only opens when something is still missing
@@ -700,6 +715,7 @@ export default function Appointments() {
           onResize={resize}
           onStatus={setStatus}
           paidCount={(a) => payments.filter((p) => p.appointmentId === a.id).length}
+          hasTopUp={(a) => payments.some((p) => p.appointmentId === a.id && p.topUp > 0)}
           blocks={blocks}
           onEditBlock={canBlock ? (k) => setEditing({ block: k }) : undefined}
           onSaveBlock={canBlock ? saveBlock : undefined}
@@ -771,6 +787,27 @@ export default function Appointments() {
         </>
       )}
 
+      {delAsk && (
+        <Modal inset title="删除预约" onClose={() => setDelAsk(null)}>
+          <p className="text-sm"><b>{customerById[delAsk.a.customerId]?.name || '客户'}</b> · {delAsk.a.service}（{fmtDateTime(delAsk.a.start)}）</p>
+          <p className="mt-2 text-sm text-muted">删除后无法恢复，账目里这个预约的记录会一起删除，这次消费用掉的会员卡余额和赠送项目会退回。</p>
+          <label className="mt-3 flex cursor-pointer items-start gap-2 rounded-xl bg-sand px-3 py-2.5 text-sm">
+            <input type="checkbox" checked={delAsk.undo} onChange={(e) => setDelAsk({ ...delAsk, undo: e.target.checked })} className="mt-0.5 h-4 w-4 accent-rose-600" />
+            <span>
+              <b>同时撤销这次的充值（{money(payments.filter((p) => p.appointmentId === delAsk.a.id).reduce((n, p) => n + (p.topUp || 0), 0))}）</b>
+              <span className="block text-xs text-muted">勾选：充值和赠送的余额也一起取消，会员卡余额相应减少。不勾选：充值保留。</span>
+            </span>
+          </label>
+          <dl className="mt-3 rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-ink/10">
+            <div className="flex justify-between"><dt className="text-muted">现在的会员卡余额</dt><dd>{money(cardBalance(payments, delAsk.a.customerId))}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">删除后的会员卡余额</dt><dd className="font-medium">{money(balanceAfterDelete(delAsk.a, delAsk.undo))}</dd></div>
+          </dl>
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => setDelAsk(null)} className="btn-ghost !py-2.5">取消</button>
+            <button type="button" onClick={confirmDelete} className="rounded-full bg-rose-600 px-5 py-2.5 text-sm text-white hover:bg-rose-700">确定删除</button>
+          </div>
+        </Modal>
+      )}
       {completing && <PaymentForm key={completing.id} fromAppointment={completing} payment={payments.find((p) => p.appointmentId === completing.id)} completeAppointment onClose={() => setCompleting(null)} />}
 
       {editing && editing.block && <BlockForm key={editing.block.id} block={editing.block} onClose={() => setEditing(null)} />}

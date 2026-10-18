@@ -23,8 +23,8 @@ export function CrmProvider({ children }) {
     return row
   }, [reload])
 
-  const remove = useCallback(async (kind, id) => {
-    await api(`/crm/${kind}/${id}`, { method: 'DELETE' })
+  const remove = useCallback(async (kind, id, query = '') => {
+    await api(`/crm/${kind}/${id}${query}`, { method: 'DELETE' })
     await reload()
   }, [reload])
 

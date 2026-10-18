@@ -22,6 +22,15 @@ export default function CrmLayout() {
     document.body.style.overflow = ''
   }, [])
 
+  // The page itself does not pinch-zoom in the CRM, so the bottom bar (预约 / 客户 / …) keeps its size; the appointment timeline has
+  // its own pinch zoom. The public website is not affected: the viewport is put back when leaving the CRM.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]')
+    const before = meta?.getAttribute('content')
+    meta?.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover')
+    return () => { if (meta && before) meta.setAttribute('content', before) }
+  }, [])
+
   if (user === undefined) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-gold" /></div>
   }
@@ -32,7 +41,7 @@ export default function CrmLayout() {
 
   return (
     <CrmProvider>
-      <div className="min-h-screen bg-[#f6f2ec] lg:flex">
+      <div className="min-h-screen bg-[#f6f2ec] lg:flex" style={{ touchAction: 'pan-x pan-y' }}>
         {/* Desktop sidebar */}
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-ink p-5 text-ivory lg:flex">
           <div className="px-3 py-4">

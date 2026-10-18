@@ -41,3 +41,9 @@ body {
 .cal-in-next { animation: cal-in-next 0.22s ease-out; }
 .cal-in-prev { animation: cal-in-prev 0.22s ease-out; }
 @media (prefers-reduced-motion: reduce) { .cal-in-next, .cal-in-prev { animation: none; } }
+
+/* On a touch screen, form fields are at least 16px: iOS Safari zooms the whole page in when a smaller field gets focus, which also
+   enlarges the CRM's fixed bottom bar. */
+@media (pointer: coarse) {
+  html input:not([type=checkbox]):not([type=radio]):not([type=file]), html select, html textarea { font-size: 16px !important; }
+}

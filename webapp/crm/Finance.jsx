@@ -8,6 +8,7 @@ import { projectKind } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
 import { dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 import { openPicker } from '../lib/util'
+import { OrderDetail } from './Customers'
 
 // First and last day (YYYY-MM-DD) of a month given as YYYY-MM.
 const monthRange = (key) => {
@@ -88,6 +89,7 @@ export default function Finance() {
   // What was settled: the appointment's service when the payment came from one, otherwise the services picked on the payment.
   const serviceNames = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean).join('、')
 
+  const [detailPay, setDetailPay] = useState(null) // payment whose order detail is open
   const [confirmDel, setConfirmDel] = useState(null) // payment waiting for the delete confirmation (an in-page dialog: the browser's own confirm box can be blocked)
   const del = async (p) => {
     setConfirmDel(null)
@@ -282,12 +284,12 @@ export default function Finance() {
           <ul className="max-h-[max(9rem,calc(100dvh-32.5rem))] divide-y divide-ink/10 overflow-y-auto lg:max-h-none">
             {rows.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-0.5 px-4 py-2">
-                <div className="min-w-0 flex-1 basis-56">
+                <button type="button" onClick={() => setDetailPay(p)} className="min-w-0 flex-1 basis-56 text-left" aria-label="查看订单详情">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
                     {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
-                </div>
+                </button>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>
                 <p className="w-24 text-right text-sm leading-tight">
                   <b className={`font-medium ${p.paymentMethod === 'unsettled' ? 'text-amber-600' : 'text-emerald-700'}`}>{money(p.amount)}</b>{p.paymentMethod === 'unsettled' && <span className="block text-xs text-amber-700">未结算 · 应收</span>}
@@ -303,6 +305,8 @@ export default function Finance() {
           </ul>
         )}
       </Card>
+
+      {detailPay && <OrderDetail payment={detailPay} onClose={() => setDetailPay(null)} />}
 
       {confirmDel && (
         <Modal title="删除收款记录" onClose={() => setConfirmDel(null)}>

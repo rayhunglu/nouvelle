@@ -6,7 +6,7 @@ const { isStaff, isHiddenFor, visibleRows } = require('../../middleware/crmAcces
 const lockedForAdmin = async (req, collection, id) => { const row = collection === 'payments' ? await store.get(collection, id) : null; return !!row && (await isHiddenFor(req, collection, row)) };
 
 // The five handlers every collection shares (list / get / create / update / remove). Each collection passes its own validator and hooks:
-//   validate(body) -> { error } | { data }      hooks: conflict(data, selfId), afterWrite(row, isNew, req, prev), beforeDelete(id)
+//   validate(body) -> { error } | { data }      hooks: conflict(data, selfId), afterWrite(row, isNew, req, prev), beforeDelete(id, req)
 function makeCrud(collection, validate, hooks = {}) {
   const list = wrap(async (req, res) => res.json(await visibleRows(req, collection, await store.list(collection))));
 
@@ -60,7 +60,7 @@ function makeCrud(collection, validate, hooks = {}) {
       if (!existing || !(await visibleRows(req, collection, [existing])).length) return res.status(404).json({ error: 'Not found' });
     }
     if (hooks.beforeDelete) {
-      const blocked = await hooks.beforeDelete(req.params.id);
+      const blocked = await hooks.beforeDelete(req.params.id, req);
       if (blocked) return res.status(409).json({ error: blocked });
     }
     if (!(await store.remove(collection, req.params.id))) return res.status(404).json({ error: 'Not found' });

@@ -99,16 +99,30 @@ async function roomConflict(data, selfId) {
   return `该房间在 ${t} 已有预约（${who ? who.name : '未知客户'} · ${clash.service}），时间冲突`;
 }
 
-// Payments tied to an appointment go away with it. A payment that also loaded money onto a member card keeps that
-// top-up (as a plain top-up record); only the service amount, tip and any gift redeemed are taken back.
-async function dropPaymentsOf(appointmentId) {
+// Payments tied to an appointment go away with it, so the member card gets back what the visit took (the amount, the tip, a gift
+// redeemed). A payment that also loaded money onto the card keeps that top-up as a plain top-up record, unless `undoTopUp` is set
+// (the person deleting it chose to undo the top-up too): then the whole payment goes and the card balance drops by it.
+async function dropPaymentsOf(appointmentId, undoTopUp = false) {
   for (const p of (await store.list('payments')).filter((x) => x.appointmentId === appointmentId)) {
-    if (p.topUp > 0) {
+    if (p.topUp > 0 && !undoTopUp) {
       await store.update('payments', p.id, { appointmentId: null, amount: 0, tipAmount: 0, giftUsed: '', serviceName: '', serviceIds: [], paymentMethod: p.topUpMethod || 'cash', tipMethod: p.topUpMethod || 'cash' });
     } else {
       await store.remove('payments', p.id);
     }
   }
+}
+
+// Undoing a top-up must not leave the customer's card below zero (the money was already spent on other visits).
+async function undoTopUpBlocked(appointmentId) {
+  const all = await store.list('payments');
+  const mine = all.filter((x) => x.appointmentId === appointmentId);
+  if (!mine.some((p) => p.topUp > 0)) return null;
+  const cardNet = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length - (p.paymentMethod === 'member_card' ? p.amount : 0) - ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0);
+  for (const customerId of new Set(mine.map((p) => p.customerId))) {
+    const remaining = all.filter((p) => p.customerId === customerId && p.appointmentId !== appointmentId).reduce((n, p) => n + cardNet(p), 0);
+    if (remaining < 0) return '撤销充值后，会员卡余额会变成负数（这笔充值已经被其他消费用掉了），请先处理那些消费';
+  }
+  return null;
 }
 
 // Editing an appointment carries over to the payment(s) settled on it, so 客户 / 总览 / 账目 follow the booking. The customer always
@@ -177,10 +191,12 @@ const crud = makeCrud('appointments', appointmentInput, {
       notifyStaff(row).catch((err) => console.error('staff notice failed:', err.message)); // in the background: the booking is already saved
     }
   },
-  async beforeDelete(id) {
+  async beforeDelete(id, req) {
     const a = await store.get('appointments', id);
+    const undoTopUp = !!req && req.query.undoTopUp === '1';
+    if (undoTopUp) { const blocked = await undoTopUpBlocked(id); if (blocked) return blocked; }
     if (a && a.googleEventId) await calendar.remove(a.googleEventId, a.googleCalendarId || calendar.defaultCalendarId()); // the calendar event goes too
-    await dropPaymentsOf(id); // so does deleting
+    await dropPaymentsOf(id, undoTopUp); // so does deleting
     await require('./customerFiles').removeAllOfAppointment(id); // and its documents in Drive
     return null;
   },
