@@ -510,7 +510,7 @@ export default function Customers() {
       </Card>
 
       {confirmDel && (
-        <Modal title="删除客户" onClose={() => setConfirmDel(null)}>
+        <Modal inset title="删除客户" onClose={() => setConfirmDel(null)}>
           <p className="text-sm">确定删除客户「<b>{confirmDel.name}</b>」？</p>
           <p className="mt-2 text-xs text-muted">
             同时会删除 TA 的 {appointments.filter((a) => a.customerId === confirmDel.id).length} 个预约和 {payments.filter((p) => p.customerId === confirmDel.id).length} 笔账目（收款）记录

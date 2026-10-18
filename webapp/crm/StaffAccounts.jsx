@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, CalendarOff, ChevronRight, Clock, ListChecks, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
+import { ArrowLeft, Bell, CalendarOff, ChevronRight, Clock, ListChecks, Users, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { Card, Empty, Field, Modal, PageTitle, inputCls } from './ui'
@@ -101,7 +101,7 @@ function ServiceSettings() {
     try { setItems(await api('/crm/service-settings', { method: 'PUT', body: { key, ...body } })) } catch (e) { setError(e.message) }
     setBusyKey('')
   }
-  const staffOf = (g, key) => items?.[key]?.staff ?? g.staff
+  const staffOf = (g, key) => items?.[key]?.staff ?? g.itemStaff?.[key] ?? g.staff
   const toggleStaff = (g, key, name) => {
     const cur = staffOf(g, key)
     save(key, { staff: cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name] })
@@ -205,6 +205,7 @@ export default function StaffAccounts() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [staffOpen, setStaffOpen] = useState(false) // 员工管理 is closed until its title is tapped
   useEffect(() => { api('/crm/users').then(setUsers).catch((e) => setError(e.message)) }, [])
 
   const add = async (e) => {
@@ -227,17 +228,25 @@ export default function StaffAccounts() {
       <PageTitle title="设置" sub="店铺营业时间，以及员工的登录账号、联系方式和出勤" />
       <ShopHours />
       <ServiceSettings />
-      <h2 className="mb-2 mt-8 text-sm font-medium">员工管理 <span className="font-normal text-muted">先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤</span></h2>
-      {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
-
-      <Card className="mb-6 p-4 sm:p-5">
-        <form onSubmit={add} className="flex max-w-md gap-2">
-          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="新员工的名字" maxLength={60} required />
-          <button className="btn-primary !py-2.5 shrink-0" disabled={busy}><Plus size={16} /> 添加员工</button>
-        </form>
-      </Card>
-
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* 员工管理: opens to the add-staff box and the people (Rina, Yingna, Dayu …), like the other settings above it. */}
+      <Card className="mb-2 mt-3 p-4 sm:p-5">
+        <button type="button" onClick={() => setStaffOpen((v) => !v)} aria-expanded={staffOpen} className="flex w-full items-center gap-2 text-left">
+          <Users size={16} className="shrink-0 text-gold" />
+          <h2 className="text-sm font-medium">员工管理</h2>
+          <span className="ml-auto truncate text-xs text-muted">{roster.join(' · ')}</span>
+          <ChevronRight size={16} className={`shrink-0 text-muted transition ${staffOpen ? 'rotate-90' : ''}`} />
+        </button>
+        {staffOpen && (
+          <div className="mt-3">
+            <p className="mb-3 text-xs text-muted">先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤</p>
+            {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
+            <div className="mb-4">
+              <form onSubmit={add} className="flex max-w-md gap-2">
+                <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="新员工的名字" maxLength={60} required />
+                <button className="btn-primary !py-2.5 shrink-0" disabled={busy}><Plus size={16} /> 添加员工</button>
+              </form>
+            </div>
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {roster.map((n) => {
           const accts = accountsOf(users, n)
           return (
@@ -252,6 +261,9 @@ export default function StaffAccounts() {
           )
         })}
       </ul>
+          </div>
+        )}
+      </Card>
     </>
   )
 }
@@ -343,7 +355,7 @@ export function StaffDetail() {
 
       {editing && <AccountForm user={editing === 'new' ? null : editing} staffName={name} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load() }} />}
       {confirmDel && (
-        <Modal title="删除账号" onClose={() => setConfirmDel(null)}>
+        <Modal inset title="删除账号" onClose={() => setConfirmDel(null)}>
           <p className="text-sm">确定删除「<b>{confirmDel.displayName || confirmDel.staffName}</b>」的登录账号（{confirmDel.username}）？</p>
           <p className="mt-2 text-xs text-muted">只删除登录账号，TA 的预约和账目记录不受影响。</p>
           <div className="flex justify-end gap-2 pt-5">
@@ -353,7 +365,7 @@ export function StaffDetail() {
         </Modal>
       )}
       {confirmRemove && (
-        <Modal title="从名单移除" onClose={() => setConfirmRemove(false)}>
+        <Modal inset title="从名单移除" onClose={() => setConfirmRemove(false)}>
           <p className="text-sm">确定把「<b>{name}</b>」从员工名单移除？</p>
           <p className="mt-2 text-xs text-muted">已有的预约和账目记录不受影响。如果 TA 还有登录账号，需要先删除账号。</p>
           <div className="flex justify-end gap-2 pt-5">
@@ -780,15 +792,18 @@ function AccountForm({ user, staffName, onClose, onSaved }) {
   }
 
   return (
-    <Modal title={user ? `设置 · ${user.displayName || user.staffName}` : '新增员工账号'} onClose={onClose} wide loading={busy}>
+    <Modal inset title={user ? `设置 · ${user.displayName || user.staffName}` : '新增员工账号'} onClose={onClose} wide loading={busy}>
       <form onSubmit={submit} className="space-y-4">
         {!user && <Field label="登录名 *"><input className={inputCls} value={f.username} onChange={set('username')} autoComplete="off" required autoFocus placeholder="例如 rina" /></Field>}
         <Field label="角色">
           <select className={inputCls} value={f.role} onChange={set('role')}>
-            <option value="staff">员工（按权限）</option>
-            <option value="admin">管理员（全部功能，看不到老板的账目）</option>
-            {(me.role === 'owner' || f.role === 'owner') && <option value="owner" disabled={me.role !== 'owner'}>老板（全部功能，看到所有人的账目）</option>}
+            <option value="owner" disabled={me.role !== 'owner'}>老板{me.role !== 'owner' ? '（只有老板能设置）' : ''}</option>
+            <option value="admin">管理员</option>
+            <option value="staff">员工</option>
           </select>
+          <span className="mt-1.5 block text-xs text-muted">
+            {f.role === 'owner' ? '老板：全部功能，看得到所有人的账目。' : f.role === 'admin' ? '管理员：全部功能，但看不到老板的账目。' : '员工：只看自己的预约和自己的账目，其他按下面勾选的权限。'}
+          </span>
         </Field>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="对应员工 *">

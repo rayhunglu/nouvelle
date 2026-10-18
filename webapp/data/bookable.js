@@ -13,6 +13,7 @@ export const BOOKABLE = {
   'lash-fills': 'styles',
   'body-spa': 'packages',
   'head-spa': 'packages',
+  'back-cupping': 'packages',
 }
 
 // 医美 treatments (injectables, devices, IV drips) are booked straight from their name: no package to pick. The length is fixed per
@@ -26,7 +27,8 @@ export const medicalMinutes = (key) => {
 }
 Object.assign(BOOKABLE, Object.fromEntries(categories.filter((c) => MEDICAL_SLUGS.includes(c.slug)).flatMap((c) => c.treatments.map((x) => [x.key, 'single']))))
 
-// 纹绣 is booked the same way: one treatment, a fixed length (the CRM's default).
+// 纹绣 is booked the same way (one treatment, a fixed length: the CRM's default), but it takes no room and has nobody fixed: the visitor
+// picks any time inside the shop's opening hours, so it is not part of 服务项目管理.
 export const TATTOO_MINUTES = { 'brow-shaping': 45, 'personalized-makeup': 60, 'ombre-brows': 120, 'lash-line-liner': 90, 'brow-removal': 60, 'eyeliner-removal': 60 }
 Object.assign(BOOKABLE, Object.fromEntries(Object.keys(TATTOO_MINUTES).map((k) => [k, 'single'])))
 export const singleMinutes = (key) => TATTOO_MINUTES[key] ?? medicalMinutes(key)
@@ -37,8 +39,7 @@ export const SERVICE_GROUPS = [
   { id: 'skincare', label: '护肤', slugs: ['skincare-experts'], staff: ['Rina'] },
   { id: 'medical', label: '医美', slugs: MEDICAL_SLUGS, staff: ['Yingna'] },
   { id: 'lash', label: '美睫', slugs: ['lash'], staff: ['Dayu'] },
-  { id: 'brow', label: '纹绣', slugs: ['microblading'], staff: [], hours: { startMin: 600, endMin: 1140 } }, // nobody fixed; bookable 10:00 – 19:00
-  { id: 'spa', label: 'Spa', slugs: ['spa-care'], staff: [] }, // nobody fixed: only the room counts
+  { id: 'spa', label: 'Spa', slugs: ['spa-care'], staff: [], itemStaff: { 'back-cupping': ['Rina'] } }, // nobody fixed (only the room counts), except the back cupping: Rina
 ]
 export const serviceList = () => SERVICE_GROUPS.map((g) => ({
   ...g,

@@ -309,7 +309,7 @@ export default function Finance() {
       {detailPay && <OrderDetail payment={detailPay} onClose={() => setDetailPay(null)} />}
 
       {confirmDel && (
-        <Modal title="删除收款记录" onClose={() => setConfirmDel(null)}>
+        <Modal inset title="删除收款记录" onClose={() => setConfirmDel(null)}>
           <p className="text-sm">确定删除这笔收款？</p>
           <p className="mt-2 text-sm"><b>{customerById[confirmDel.customerId]?.name || '（已删除客户）'}</b> · {serviceNames(confirmDel) || '未选服务'} · {money(confirmDel.amount)}</p>
           <p className="mt-2 text-xs text-muted">只删除这笔收款记录，客户资料保留；预约会保留痕迹，显示为划线、付款「未结算」。删除后无法恢复，营收、员工业绩和客户的会员卡余额会随之变化。</p>

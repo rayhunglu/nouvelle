@@ -147,7 +147,7 @@ export default function Header() {
           <ServiceDropdown label={t(ui.nav.skincare)} items={skincareItems} linkCls={linkCls} />
           <NavLink to="/treatments/lash" className={linkCls}>{t(ui.nav.lash)}</NavLink>
           <NavLink to="/treatments/microblading" className={linkCls}>{t(ui.nav.brow)}</NavLink>
-          <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} />
+          <ServiceDropdown label={t(ui.nav.spa)} items={spaItems} linkCls={linkCls} allTo="/treatments/spa-care" />
           <NavLink to="/gallery" className={linkCls}>{t(ui.nav.gallery)}</NavLink>
           <ServiceDropdown label={t(ui.nav.shop)} items={shopItems} linkCls={linkCls} to="/shop" allTo="/shop" allLabel={{ en: 'Select Brands · Quality Living', zh: '精选品牌 · 品质生活' }} />
           <NavLink to="/faq" className={linkCls}>{t(ui.nav.faq)}</NavLink>
@@ -180,7 +180,7 @@ export default function Header() {
             <MobileGroup label={t(ui.nav.skincare)} items={skincareItems} />
             <NavLink to="/treatments/lash" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.lash)}</NavLink>
             <NavLink to="/treatments/microblading" className="border-b border-ink/10 py-4 font-display text-xl">{t(ui.nav.brow)}</NavLink>
-            <MobileGroup label={t(ui.nav.spa)} items={spaItems} />
+            <MobileGroup label={t(ui.nav.spa)} items={spaItems} allTo="/treatments/spa-care" />
             {[['/gallery', ui.nav.gallery]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}

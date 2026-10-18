@@ -24,7 +24,10 @@ const SERVICE_ROOM = {
   'lash-fills': 'room3',
   'body-spa': 'room4',
   'head-spa': 'room4',
+  'back-cupping': 'room4', // 背部拔罐 is a spa treatment (头疗双人房 or 美容单人房, see ROOMS_FOR)
 };
+// Treatments that can be done in more than one room: a slot is open when any of these rooms is.
+const ROOMS_FOR = { 'back-cupping': ['room4', 'room1'] };
 
 // 医美 treatments (the website's injectables, devices and IV drips) are all done in 医美双人房 by Yingna, so her own time decides when they can
 // be booked, on top of the room. Every one is 60 minutes, except the injectables that take 30: the length is decided here, not by the
@@ -40,9 +43,9 @@ const MEDICAL_30 = ['injectables-1', 'injectables-2', 'injectables-3', 'injectab
 const MEDICAL_MINUTES = Object.fromEntries([...MEDICAL_60.map((k) => [k, 60]), ...MEDICAL_30.map((k) => [k, 30])]);
 for (const k of Object.keys(MEDICAL_MINUTES)) SERVICE_ROOM[k] = MEDICAL_ROOM;
 
-// 纹绣 (semi-permanent makeup and removal) is done in 美睫单人房, with a fixed length each (the CRM's default lengths).
+// 纹绣 (semi-permanent makeup and removal) takes no room and has nobody fixed: the visitor just picks a day and a time inside the shop's
+// opening hours (设置 → 店铺营业时间管理). Each has a fixed length (the CRM's default lengths).
 const TATTOO_MINUTES = { 'brow-shaping': 45, 'personalized-makeup': 60, 'ombre-brows': 120, 'lash-line-liner': 90, 'brow-removal': 60, 'eyeliner-removal': 60 };
-for (const k of Object.keys(TATTOO_MINUTES)) SERVICE_ROOM[k] = 'room3';
 const FIXED_MINUTES = { ...MEDICAL_MINUTES, ...TATTOO_MINUTES };
 
 // The people who can do a treatment (the defaults below; 设置 → 服务项目管理 overrides them per treatment, and can switch a treatment off).
@@ -50,13 +53,12 @@ const FIXED_MINUTES = { ...MEDICAL_MINUTES, ...TATTOO_MINUTES };
 // any room decide the times. 医美 is Yingna; 美睫 and 纹绣 are Dayu.
 const SKINCARE_KEYS = ['japanese-face-correction', 'skinceuticals-cleanse-hydrate', 'rejuran-brightening', 'gua-sha', 'acne-clearing'];
 const STAFF_FOR = {
-  ...Object.fromEntries(SKINCARE_KEYS.map((k) => [k, 'Rina'])), // 护肤 is Rina's (美容单人房); the spa has nobody fixed
+  ...Object.fromEntries(SKINCARE_KEYS.map((k) => [k, 'Rina'])), // 护肤 is Rina's (美容单人房); the spa has nobody fixed...
+  'back-cupping': 'Rina', // ...except the back cupping, which is Rina's
   ...Object.fromEntries(Object.keys(MEDICAL_MINUTES).map((k) => [k, MEDICAL_STAFF])),
   'classic-lashes': 'Dayu', 'hybrid-lashes': 'Dayu', 'lash-fills': 'Dayu',
-  // 纹绣 has nobody fixed: its times are the window below, not Dayu's attendance (设置 → 服务项目管理 can still pick people).
 };
-// A treatment's own bookable window (minutes since midnight) when 设置 → 服务项目管理 has none saved: 纹绣 10:00 – 19:00.
-const DEFAULT_WINDOW = Object.fromEntries(Object.keys(TATTOO_MINUTES).map((k) => [k, { startMin: 10 * 60, endMin: 19 * 60 }]));
+const DEFAULT_WINDOW = {}; // a treatment's own bookable window when 设置 → 服务项目管理 has none saved (none by default)
 
 // The instant (ms) at which the clinic's wall clock (America/Los_Angeles) shows `min` minutes after midnight on `day`.
 function clinicInstant(day, min) {
@@ -83,8 +85,9 @@ const getAvailability = wrap(async (req, res) => {
   const staffName = has(STAFF_FOR, service) ? STAFF_FOR[service] : null; // the default person (a list saved in 设置 replaces it)
   const minutes = fixed ? FIXED_MINUTES[service] : Math.round(Number(req.query.minutes) || 60);
   const room = has(SERVICE_ROOM, service) ? SERVICE_ROOM[service] : undefined;
+  const noRoom = has(TATTOO_MINUTES, service); // 纹绣: no room, no person
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`))) return res.status(400).json({ error: 'invalid date' });
-  if (!room) return res.status(400).json({ error: 'unknown service' });
+  if (!room && !noRoom) return res.status(400).json({ error: 'unknown service' });
   if (minutes < 15 || minutes > 480) return res.status(400).json({ error: 'invalid length' });
 
   const today = clinicDay(new Date());
@@ -94,37 +97,64 @@ const getAvailability = wrap(async (req, res) => {
 
   const settings = await store.list('settings');
   const hours = settings.find((x) => x.key === 'hours') || {};
+
+  if (noRoom) {
+    // Only the shop's own opening hours (and a block that closes the whole shop) limit the times.
+    const openAt = hours.openMin ?? DEFAULT_OPEN;
+    const closeAt = hours.closeMin ?? DEFAULT_CLOSE;
+    const shopBlocks = (await store.list('blocks')).filter((k) => k.room === '');
+    const earliestAt = Date.now() + LEAD_MIN * 60000;
+    const times = [];
+    for (let m = openAt; m + minutes <= closeAt; m += STEP) {
+      const s0 = clinicInstant(day, m);
+      const e0 = s0 + minutes * 60000;
+      if (s0 < earliestAt) continue;
+      if (shopBlocks.some((k) => s0 < Date.parse(k.start) + k.durationMin * 60000 && Date.parse(k.start) < e0)) continue;
+      times.push(hhmm(m));
+    }
+    return res.json({ date: day, minutes, slots: times, open: hhmm(openAt), close: hhmm(closeAt), reason: times.length ? undefined : 'full' });
+  }
+
   const sched = (settings.find((x) => x.key === 'schedule') || {}).staff;
-  const own = (hours.rooms && hours.rooms[room]) || {};
-  // The opening and closing time are the ones set in the CRM (设置 → 店铺营业时间管理, or the room's own); the website follows them.
-  let open = own.openMin ?? hours.openMin ?? DEFAULT_OPEN;
-  let close = own.closeMin ?? hours.closeMin ?? DEFAULT_CLOSE;
 
   // 设置 → 服务项目管理: a treatment can be switched off (nothing to book online), and has its own list of people who can do it.
   const cfg = (((settings.find((x) => x.key === 'services') || {}).items) || {})[service] || {};
   if (cfg.open === false) return res.json({ date: day, minutes, slots: [], reason: 'service-closed' });
   const operators = Array.isArray(cfg.staff) ? cfg.staff : (staffName ? [staffName] : []); // an empty list: nobody in particular, only the room counts
-  // The treatment's own bookable window narrows the room's opening hours (it can never open the room outside them).
+  // The treatment's own bookable window narrows the rooms' opening hours (it can never open a room outside them).
   const window = cfg.hours || DEFAULT_WINDOW[service] || null;
-  if (window) { open = Math.max(open, window.startMin); close = Math.min(close, window.endMin); }
 
-  // Without a list of people, the room's own staff decide when it is open (the old rule); with one, the people do.
-  const byStaff = operators.length || window ? null : roomByStaff(sched, room, day);
-  if (byStaff && byStaff.closed) return res.json({ date: day, minutes, slots: [], reason: 'closed' });
-  if ((hours.closedDays || []).some((d) => d.room === room && d.date === day)) return res.json({ date: day, minutes, slots: [], reason: 'closed' });
+  // The rooms it can be done in (most treatments have one; a back cupping can use either of two). A slot is open when at least one of
+  // them is open and free then. The opening and closing time are the CRM's (设置 → 店铺营业时间管理, or the room's own).
+  const roomIds = has(ROOMS_FOR, service) ? ROOMS_FOR[service] : [room];
+  const dayStart = clinicInstant(day, 0);
+  const dayEnd = dayStart + 36 * 3600000;
+  const allBlocks = await store.list('blocks');
+  const allAppts = (await store.list('appointments')).filter((a) => ACTIVE.includes(a.status));
+  const overlaps = (a, s, e) => s < Date.parse(a.start) + (a.durationMin || 60) * 60000 && Date.parse(a.start) < e;
+  const rooms = roomIds.map((id) => {
+    const own = (hours.rooms && hours.rooms[id]) || {};
+    let o = own.openMin ?? hours.openMin ?? DEFAULT_OPEN;
+    let c = own.closeMin ?? hours.closeMin ?? DEFAULT_CLOSE;
+    if (window) { o = Math.max(o, window.startMin); c = Math.min(c, window.endMin); }
+    // Without a list of people, the room's own staff decide when it is open (the old rule); with one, the people do.
+    const byStaff = operators.length || window ? null : roomByStaff(sched, id, day);
+    const closed = (byStaff && byStaff.closed) || (hours.closedDays || []).some((d) => d.room === id && d.date === day);
+    return {
+      id, open: o, close: c, byStaff, closed, cap: BEDS[id] || 1,
+      blocks: allBlocks.filter((k) => k.room === '' || k.room === id),
+      booked: allAppts.filter((a) => a.room === id && Date.parse(a.start) < dayEnd && Date.parse(a.start) + (a.durationMin || 60) * 60000 > dayStart),
+    };
+  }).filter((r) => !r.closed);
+  if (!rooms.length) return res.json({ date: day, minutes, slots: [], reason: 'closed' });
+  const open = Math.min(...rooms.map((r) => r.open));
+  const close = Math.max(...rooms.map((r) => r.close));
 
   // Someone from the list must be at work that day; a slot is open when at least one of them is free in it.
   const working = operators.filter((n) => worksOn(sched, n, day));
   if (operators.length && !working.length) return res.json({ date: day, minutes, slots: [], reason: 'closed' });
 
-  const dayStart = clinicInstant(day, 0);
-  const dayEnd = dayStart + 36 * 3600000;
-  const blocks = (await store.list('blocks')).filter((k) => (k.room === '' || k.room === room));
-  const allAppts = (await store.list('appointments')).filter((a) => ACTIVE.includes(a.status));
-  const booked = allAppts.filter((a) => a.room === room && Date.parse(a.start) < dayEnd && Date.parse(a.start) + (a.durationMin || 60) * 60000 > dayStart);
-  const cap = BEDS[room] || 1;
   const earliest = Date.now() + LEAD_MIN * 60000;
-  const overlaps = (a, s, e) => s < Date.parse(a.start) + (a.durationMin || 60) * 60000 && Date.parse(a.start) < e;
   // Is this person free from minute m to m + minutes: inside their hours, outside a part-day rest, and not booked in any room?
   const personFree = (name, m, s, e) => {
     const person = sched && sched[name];
@@ -134,17 +164,22 @@ const getAvailability = wrap(async (req, res) => {
     if (rest && m < rest.endMin && rest.startMin < m + minutes) return false;
     return !allAppts.some((a) => a.staff === name && overlaps(a, s, e));
   };
+  // Is this room open and free from minute m: inside its hours and staffed time, no block, a bed left?
+  const roomFree = (r, m, s, e) => {
+    if (m < r.open || m + minutes > r.close) return false;
+    if (r.byStaff && r.byStaff.startMin !== undefined && (m < r.byStaff.startMin || m + minutes > r.byStaff.endMin)) return false;
+    if (r.blocks.some((k) => s < Date.parse(k.start) + k.durationMin * 60000 && Date.parse(k.start) < e)) return false;
+    const used = r.booked.filter((a) => overlaps(a, s, e)).reduce((n, a) => n + (a.fullRoom && r.cap > 1 ? r.cap : 1), 0);
+    return used + 1 <= r.cap;
+  };
 
   const slots = [];
   for (let m = open; m + minutes <= close; m += STEP) {
-    if (byStaff && byStaff.startMin !== undefined && (m < byStaff.startMin || m + minutes > byStaff.endMin)) continue;
     const s = clinicInstant(day, m);
     const e = s + minutes * 60000;
-    if (working.length && !working.some((n) => personFree(n, m, s, e))) continue;
     if (s < earliest) continue;
-    if (blocks.some((k) => s < Date.parse(k.start) + k.durationMin * 60000 && Date.parse(k.start) < e)) continue;
-    const used = booked.filter((a) => overlaps(a, s, e)).reduce((n, a) => n + (a.fullRoom && cap > 1 ? cap : 1), 0);
-    if (used + 1 > cap) continue;
+    if (working.length && !working.some((n) => personFree(n, m, s, e))) continue;
+    if (!rooms.some((r) => roomFree(r, m, s, e))) continue;
     slots.push(hhmm(m));
   }
   res.json({ date: day, minutes, slots, open: hhmm(open), close: hhmm(close), reason: slots.length ? undefined : 'full' });

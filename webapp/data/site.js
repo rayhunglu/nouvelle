@@ -2880,6 +2880,94 @@ bodyHeadSpa.treatments.forEach((x, i) => {
   x.photo = { ...x.photo, zh: SPA_PHOTOS[i % SPA_PHOTOS.length] }
 })
 
+// Body & Head Spa item 03: Japanese-style back cupping (one photo for both languages; no price or length yet, so it is a consultation).
+bodyHeadSpa.treatments.push({
+  id: 'back-cupping',
+  key: 'back-cupping',
+  compact: true,
+  name: { en: 'Japanese Meridian · Back Cupping Therapy', zh: '日式经络 · 背部拔罐护理' },
+  short: { en: 'Gentle cupping for the back to ease tension and relax body and mind', zh: '温和负压拔罐，舒缓肩背紧绷、身心放松' },
+  subtitle: { en: '', zh: 'JAPANESE-STYLE BACK CUPPING THERAPY' },
+  image: { zh: '/images/treatments/shared/back-cupping.jpg', en: '/images/treatments/shared/back-cupping.jpg' },
+  body: {
+    en: 'Traditional cupping ideas meet modern spa care. Gentle negative pressure on the skin and surface tissues of the back helps soothe tight muscles and release everyday fatigue, for a deeply relaxing experience.',
+    zh: '融合传统拔罐理念与现代 SPA 舒缓护理，通过温和负压刺激背部肌肤及浅层组织，帮助舒缓肌肉紧绷，释放日常疲劳，享受深度放松体验。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: ['Soothe shoulders and back | Relaxes tight muscles', 'Boost circulation | Increases local blood flow', 'Ease fatigue | Soothes the discomfort of sitting for long hours', 'Relax body and mind | Releases stress and tension'],
+        zh: ['舒缓肩背｜放松紧绷肌肉', '促进循环｜增加局部血液流动', '缓解疲劳｜舒缓久坐带来的不适', '身心放松｜释放压力与紧张感'],
+      },
+    },
+    {
+      title: { en: 'Who it is for', zh: '适合人群' },
+      text: {
+        en: 'People who sit for long hours, carry tension in the neck, shoulders and back, feel muscle fatigue, or want to relax with a traditional approach to wellbeing.',
+        zh: '长期久坐、肩颈背部紧绷、肌肉疲劳，以及希望通过传统养护方式放松身心的人群。',
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Traditional cupping · Meridian soothing · Personalised care · Body-mind relaxation', zh: '传统拔罐 · 经络舒缓 · 个性化护理 · 身心放松' },
+    },
+  ],
+  // Two bookable lengths (30 / 60 minutes); first visit = member price, "was" = the returning non-member price.
+  packages: [
+    {
+      name: { en: 'Back Cupping Relaxation · 30 min', zh: '日式经络 · 背部舒缓拔罐 30 分钟' },
+      price: '$68',
+      was: '$88',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Back soothing', 'Meridian cupping', 'Relax and de-stress'],
+        zh: ['背部舒缓', '经络拔罐', '放松减压'],
+      },
+      steps: {
+        en: ['Soothing back massage · relaxes tight muscles', 'Meridian cupping on the back · local circulation care', 'Warm soothing · relaxing finish'],
+        zh: ['背部舒缓按摩 · 放松紧绷肌肉', '背部经络拔罐 · 局部循环养护', '温热舒缓 · 放松收尾'],
+      },
+      suited: {
+        en: 'People who feel tired from sitting, with a tight back, who want basic cupping care.',
+        zh: '久坐疲劳、背部紧绷，以及希望进行基础拔罐养护的人群。',
+      },
+    },
+    {
+      name: { en: 'Deep Cupping Therapy · 60 min', zh: '日式经络 · 深层调理拔罐 60 分钟' },
+      price: '$118',
+      was: '$138',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Neck, shoulder, waist and back soothing', 'Arm and underarm care', 'Deep cupping'],
+        zh: ['肩颈腰背舒缓', '双臂腋下护理', '深层拔罐'],
+      },
+      steps: {
+        en: [
+          'Deep back soothing · relaxes tight muscles',
+          'Meridian massage for the waist · eases fatigue',
+          'Neck and shoulder soothing · loosens stiffness and tension',
+          'Arm and underarm lymphatic soothing care',
+          'Meridian cupping on the back · local circulation care',
+          'Warm soothing · body-mind relaxing finish',
+        ],
+        zh: [
+          '背部深层舒缓 · 放松紧绷肌肉',
+          '腰部经络按摩 · 舒缓疲劳',
+          '肩颈舒缓 · 放松僵硬紧绷',
+          '双臂及腋下淋巴舒缓护理',
+          '背部经络拔罐 · 局部循环养护',
+          '温热舒缓 · 身心放松收尾',
+        ],
+      },
+      suited: {
+        en: 'People with a tight neck, shoulders, waist and back, tired from sitting, who want fuller meridian soothing and deep relaxation.',
+        zh: '肩颈腰背紧绷、久坐疲劳，以及希望获得更全面经络舒缓与深度放松的人群。',
+      },
+    },
+  ],
+})
+
 // Body spa: Japanese lymphatic drainage spa, in the same structured layout as the other updated cards.
 const bodySpa = bodyHeadSpa.treatments.find((x) => x.key === 'body-spa')
 for (const k of ['bullets', 'steps', 'facts', 'photo']) delete bodySpa[k]
