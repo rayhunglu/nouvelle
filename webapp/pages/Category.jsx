@@ -125,31 +125,39 @@ function GalleryDetail({ item }) {
 // Package cards (name, price, steps, who it's for, "Book now"): shared by the detail and photo layouts.
 function PackageCards({ item }) {
   const { t } = useLang()
-  if (!item.packages?.some((pk) => pk.price)) return null
+  if (!item.packages?.some((pk) => pk.price) && !item.packageCards) return null
   return (
           <div className="grid gap-5 sm:grid-cols-2">
             {item.packages.map((pk, i) => (
               <div key={i} className="flex flex-col rounded-[1.5rem] border border-ink/10 p-6">
                 <p className="font-display text-xl">{t(pk.name)}</p>
+                {pk.label && <p className="mt-1 text-xs tracking-wider text-muted">{pk.label}</p>}
                 <p className="mt-3 flex items-baseline gap-2">
-                  <span className="font-display text-4xl">{pk.price}</span>
+                  {pk.price && <span className="font-display text-4xl">{pk.price}</span>}
                   {pk.was && <span className="text-sm text-muted line-through">{pk.was}</span>}
                   {pk.tag && <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-xs text-gold">{t(pk.tag)}</span>}
                 </p>
                 <p className="mt-2 text-sm text-muted">{t(pk.perks).join(' · ')}</p>
-                <ol className="mt-5 space-y-3">
+                {pk.desc && <p className="mt-4 text-sm leading-relaxed">{t(pk.desc)}</p>}
+                {pk.steps && <ol className="mt-5 space-y-3">
                   {t(pk.steps).map((st, n) => (
                     <li key={st} className="flex gap-3 text-sm">
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold text-xs text-ivory">{n + 1}</span>
                       <span className="pt-0.5 leading-relaxed">{st}</span>
                     </li>
                   ))}
-                </ol>
+                </ol>}
+                {pk.area && (
+                  <p className="mt-5 text-sm leading-relaxed">
+                    <span className="font-medium">{t({ en: 'Treated areas: ', zh: '护理区域：' })}</span>{t(pk.area)}
+                  </p>
+                )}
                 {pk.suited && (
                   <p className="mt-5 text-sm leading-relaxed">
                     <span className="font-medium">{t({ en: 'Who it’s for: ', zh: '适合：' })}</span>{t(pk.suited)}
                   </p>
                 )}
+                {pk.note && <p className="mt-4 text-xs leading-relaxed text-muted">{t(pk.note)}</p>}
                 <div className="mt-auto pt-6">
                   <Link to={`/contact?package=${i}`} onClick={() => setConsultService(item.key)} className="btn-primary !w-full !justify-center">
                     {t({ en: 'Book now', zh: '马上预约' })} <ArrowRight size={16} />
@@ -361,7 +369,7 @@ function Treatment({ item, index }) {
           </ol>
         )}
         {item.note && <p className={`text-xs text-muted ${tight ? 'mt-4 leading-snug lg:mt-5' : `mt-6 leading-relaxed ${rich ? 'lg:mt-9' : ''}`} ${rich ? 'lg:text-sm' : ''}`}>{t(item.note)}</p>}
-        {item.packages && !item.packages.some((pk) => pk.price) && (
+        {item.packages && !item.packageCards && !item.packages.some((pk) => pk.price) && (
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {item.packages.map((pk, i) => (
               <Link key={i} to={`/contact?package=${i}`} onClick={() => setConsultService(item.key)} className="btn-primary !justify-between !px-5">
@@ -378,7 +386,7 @@ function Treatment({ item, index }) {
           </Link>
         </div>
       </div>
-      {item.packages?.some((pk) => pk.price) && <div className="lg:col-span-2"><PackageCards item={item} /></div>}
+      {(item.packageCards || item.packages?.some((pk) => pk.price)) && item.packages && <div className="lg:col-span-2"><PackageCards item={item} /></div>}
     </Reveal>
   )
 }

@@ -2885,7 +2885,7 @@ bodyHeadSpa.treatments.push({
   id: 'back-cupping',
   key: 'back-cupping',
   compact: true,
-  name: { en: 'Japanese Meridian · Back Cupping Therapy', zh: '日式经络 · 背部拔罐护理' },
+  name: { en: 'Japanese Meridian · Back Cupping Spa', zh: '日式经络 · 背部拔罐SPA' },
   short: { en: 'Gentle cupping for the back to ease tension and relax body and mind', zh: '温和负压拔罐，舒缓肩背紧绷、身心放松' },
   subtitle: { en: '', zh: 'JAPANESE-STYLE BACK CUPPING THERAPY' },
   image: { zh: '/images/treatments/shared/back-cupping.jpg', en: '/images/treatments/shared/back-cupping.jpg' },
@@ -2968,14 +2968,228 @@ bodyHeadSpa.treatments.push({
   ],
 })
 
+// Body & Head Spa item 04: Japanese body brightening with acid renewal (one photo for both languages; no price yet, so it is a consultation).
+// Two treatments of 60 minutes each are listed in the card; the key stays `body-peel` so links and photos keep working.
+bodyHeadSpa.treatments.push({
+  id: 'body-peel',
+  key: 'body-peel',
+  compact: true,
+  imageLeft: true,
+  name: { en: 'Japanese Body Brightening · Acid Renewal Spa', zh: '日式身体焕白 · 果酸嫩肤 SPA' },
+  short: { en: 'Japanese skin care with ZO Skin Health: brighter, smoother body skin', zh: '日式精致肌肤管理 × ZO，焕亮肤色、细腻嫩肤' },
+  subtitle: { en: '', zh: 'JAPANESE BODY BRIGHTENING & EXFOLIATING SPA' },
+  image: { zh: '/images/treatments/shared/body-peel.jpg', en: '/images/treatments/shared/body-peel.jpg' },
+  body: {
+    en: 'Japanese refined skin care meets the American professional brand ZO Skin Health. Gentle exfoliation, a professional acid peel and a nourishing body mask target dullness, roughness, keratosis pilaris ("chicken skin"), acne marks and uneven tone, improving skin texture for fine, silky, naturally radiant body skin.',
+    zh: '融合日式精致肌肤管理理念与美国专业护肤品牌 ZO Skin Health，通过温和角质护理、专业果酸焕肤及滋养体膜，针对身体暗沉、粗糙、鸡皮肤、痘印及肤色不均等问题，帮助改善肌肤质感，焕现细腻柔滑、自然透亮的身体肌肤。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: ['Brighter skin tone | Improves dullness and uneven tone', 'Refined, renewed skin | Clears dead skin and eases roughness', 'Fade acne marks | Improves pigmentation on the back and body', 'Silky hydration | Nourishes dry skin for a softer touch'],
+        zh: ['焕亮肤色｜改善暗沉与肤色不均', '细腻嫩肤｜代谢老废角质，改善粗糙', '淡化痘印｜改善背部及身体色素沉着', '柔滑保湿｜滋养干燥肌肤，提升柔嫩触感'],
+      },
+    },
+    {
+      title: { en: 'Treatments', zh: '护理项目' },
+      items: {
+        en: [
+          'Japanese Body Brightening · Deep Back Renewal · 60 min | Renews and nourishes the back, for acne marks, keratosis pilaris and rough dead skin.',
+          'Japanese Body Brightening · Soft Front Renewal · 60 min | For dullness and uneven skin on the chest, arms, abdomen and legs, leaving body skin fine and hydrated.',
+        ],
+        zh: [
+          '日式身体焕白 · 背部深层焕肤 60 分钟｜针对背部痘印、鸡皮肤及粗糙角质，进行背面肌肤焕新与滋养护理。',
+          '日式身体焕白 · 正面柔嫩焕肤 60 分钟｜针对胸前、手臂、腹部及腿部暗沉与肤质不均，打造细腻水润的身体肌肤。',
+        ],
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Refined Japanese care · ZO professional peel · Hokkaido milk nourishing body mask · Personalised body brightening', zh: '日式精致护理 · ZO 专业焕肤 · 北海道牛奶滋养体膜 · 个性化身体亮肤管理' },
+    },
+  ],
+  // Two bookable treatments of 60 minutes each; first visit = member price, "was" = the returning non-member price.
+  packageCards: true,
+  packages: [
+    {
+      name: { en: 'Japanese Body Brightening · Deep Back Renewal · 60 min', zh: '日式身体焕白 · 背部深层焕肤 60 分钟' },
+      price: '$158',
+      was: '$188',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Acne mark care', 'Dead skin renewal', 'Silky, brighter skin'],
+        zh: ['背部痘印管理', '角质焕新', '柔滑亮肤'],
+      },
+      steps: {
+        en: [
+          'Gentle cleansing · removes oil and dirt',
+          'ZO blue-jar scrub · smooths rough dead skin',
+          'Warm steam · softens aged keratin',
+          'ZO professional acid peel · improves dullness and acne marks',
+          'Post-peel cleansing and soothing · per product guidelines',
+          'Hokkaido milk nourishing body mask · hydrates and refines',
+          'Body moisturising repair · silky finish',
+        ],
+        zh: [
+          '温和清洁 · 去除油脂与污垢',
+          'ZO 蓝罐磨砂 · 改善粗糙角质',
+          '温热蒸汽 · 软化老废角质',
+          'ZO 专业焕肤刷酸 · 改善暗沉与痘印',
+          '焕肤后清洁与舒缓 · 按产品规范护理',
+          '北海道牛奶滋养体膜 · 补水嫩肤',
+          '身体保湿修护 · 柔滑收尾',
+        ],
+      },
+      area: { en: 'Back, nape, back of the arms, buttocks, back of the legs, calves and heels.', zh: '后背、后颈、双臂后侧、臀部、双腿后侧、小腿及脚跟。' },
+      suited: {
+        en: 'People with back acne marks, keratosis pilaris, built-up dead skin, rough skin or uneven tone.',
+        zh: '背部痘印、鸡皮肤、角质堆积、肌肤粗糙及肤色不均的人群。',
+      },
+    },
+    {
+      name: { en: 'Japanese Body Brightening · Soft Front Renewal · 60 min', zh: '日式身体焕白 · 正面柔嫩焕肤 60 分钟' },
+      price: '$158',
+      was: '$188',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: {
+        en: ['Body brightening', 'Smooths roughness', 'Hydrating renewal'],
+        zh: ['身体提亮', '改善粗糙', '水润焕肤'],
+      },
+      steps: {
+        en: [
+          'Gentle cleansing · purifies body skin',
+          'ZO blue-jar scrub · clears aged keratin',
+          'Warm steam · softens keratin',
+          'ZO professional acid peel · improves uneven tone',
+          'Post-peel cleansing and soothing · per product guidelines',
+          'Hokkaido milk nourishing body mask · moisturises and refines',
+          'Body moisturising repair · nourishing finish',
+        ],
+        zh: [
+          '温和清洁 · 净化身体肌肤',
+          'ZO 蓝罐磨砂 · 代谢老废角质',
+          '温热蒸汽 · 软化角质',
+          'ZO 专业焕肤刷酸 · 改善肤色不均',
+          '焕肤后清洁与舒缓 · 按产品规范护理',
+          '北海道牛奶滋养体膜 · 保湿嫩肤',
+          '身体保湿修护 · 滋润收尾',
+        ],
+      },
+      area: { en: 'Front of the neck, chest and collarbone, front of the arms, abdomen, front of the thighs, calves and tops of the feet.', zh: '前颈、胸前锁骨、双臂前侧、腹部、大腿前侧、小腿及脚背。' },
+      suited: {
+        en: 'People with dull or uneven body skin, arm keratosis pilaris or rough legs who want finer skin texture.',
+        zh: '身体暗沉、肤色不均、手臂鸡皮肤、腿部粗糙，以及希望改善肌肤细腻度的人群。',
+      },
+    },
+  ],
+})
+
+// Body & Head Spa item 05: Japanese meridian lymphatic gua sha (no price yet: the booking form says it is confirmed by phone).
+bodyHeadSpa.treatments.push({
+  id: 'lymph-gua-sha',
+  key: 'lymph-gua-sha',
+  compact: true,
+  imageLeft: true,
+  name: { en: 'Japanese Lymphatic Gua Sha Spa', zh: '日式淋巴刮痧 SPA' },
+  short: { en: 'Gua sha, meridian soothing and lymphatic massage for tight shoulders and back', zh: '刮痧、经络舒缓与淋巴按摩，放松肩颈背部' },
+  subtitle: { en: '', zh: 'JAPANESE LYMPHATIC GUA SHA SPA' },
+  image: { zh: '/images/treatments/shared/lymph-gua-sha.jpg', en: '/images/treatments/shared/lymph-gua-sha.jpg' },
+  body: {
+    en: 'Japanese refined body care meets traditional gua sha. Professional gua sha, meridian soothing and lymphatic massage target stiff shoulders and neck, a tight back, body fatigue and mild local puffiness, relaxing deep muscles, boosting local circulation and releasing stress for a lighter, more comfortable body and mind.',
+    zh: '融合日式精致身体护理理念与传统刮痧手法，通过专业刮痧、经络舒缓及淋巴按摩，针对肩颈僵硬、背部紧绷、身体疲劳及局部浮肿等问题，帮助放松深层肌肉、促进局部血液循环，释放身体压力，重拾轻盈舒适的身心状态。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: ['Meridian soothing | Relaxes a stiff, tight neck, shoulders and back', 'Circulation care | Boosts local blood flow and eases tightness', 'Light and soothing | Gentle lymphatic massage helps ease mild puffiness', 'Deep relaxation | Soothes everyday fatigue and releases stress'],
+        zh: ['经络舒缓｜放松肩颈背部紧绷与僵硬', '循环养护｜促进局部血液循环，改善紧绷感', '轻盈舒缓｜配合轻柔淋巴按摩，辅助缓解轻微浮肿', '深层放松｜舒缓日常疲劳，释放身心压力'],
+      },
+    },
+    {
+      title: { en: 'Treatments', zh: '护理项目' },
+      items: {
+        en: [
+          'Lymphatic · Back Soothing Gua Sha · 30 min | Focuses on neck, shoulder and back muscles; warm soothing and professional gua sha ease sitting fatigue and a tight back.',
+          'Lymphatic · Deep Lymphatic Gua Sha · 60 min | Complete care for the neck, shoulders, back, waist and arms, combining meridian gua sha with lymphatic massage to relax tight muscles.',
+        ],
+        zh: [
+          '日式淋巴 · 背部舒缓刮痧 30 分钟｜专注肩颈及背部肌肉放松，结合温热舒缓与专业刮痧手法，帮助缓解久坐疲劳、肩背紧绷，享受轻盈放松体验。',
+          '日式淋巴 · 深层淋巴刮痧 60 分钟｜针对肩颈、背部、腰部及双臂进行综合舒缓护理，融合经络刮痧与淋巴按摩，帮助放松紧绷肌肉，打造更完整的身体舒缓体验。',
+        ],
+      },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Refined Japanese care · Traditional meridian gua sha · Lymphatic soothing massage · Personalised body care', zh: '日式精致护理 · 传统经络刮痧 · 淋巴舒缓按摩 · 个性化身体养护' },
+    },
+  ],
+  // Two bookable lengths (30 / 60 minutes); first visit = member price, "was" = the returning non-member price.
+  packageCards: true,
+  packages: [
+    {
+      name: { en: 'Lymphatic · Back Soothing Gua Sha · 30 min', zh: '日式淋巴 · 背部舒缓刮痧 30 分钟' },
+      label: 'JAPANESE BACK GUA SHA RELAXATION · 30 MIN',
+      price: '$68',
+      was: '$88',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: { en: ['Meridian back soothing', 'Gua sha care', 'Relax and de-stress'], zh: ['背部经络舒缓', '刮痧调理', '放松减压'] },
+      steps: {
+        en: ['Aromatic calming · body-mind relaxation', 'Neck, shoulder and back massage · eases tight muscles', 'Meridian gua sha on the back · local circulation care', 'Warm soothing · relaxing finish'],
+        zh: ['芳香舒缓 · 身心放松', '肩颈背部按摩 · 舒缓紧绷肌肉', '背部经络刮痧 · 促进局部循环', '温热舒缓 · 放松收尾'],
+      },
+      suited: {
+        en: 'People tired from sitting, with a stiff neck and shoulders or a tight back, who want basic meridian gua sha and body relaxation.',
+        zh: '久坐疲劳、肩颈僵硬、背部紧绷，以及希望进行基础经络刮痧与身体放松的人群。',
+      },
+      note: { en: 'Note: gua sha may leave temporary redness or bruising; the pressure is adjusted to your comfort.', zh: '温馨提示：刮痧后可能出现暂时性泛红或瘀斑，护理力度将根据个人耐受情况调整。' },
+    },
+    {
+      name: { en: 'Lymphatic · Deep Lymphatic Gua Sha · 60 min', zh: '日式淋巴 · 深层淋巴刮痧 60 分钟' },
+      label: 'JAPANESE LYMPHATIC GUA SHA SPA · 60 MIN',
+      price: '$118',
+      was: '$138',
+      tag: { en: 'First-visit offer', zh: '初次体验' },
+      perks: { en: ['Neck, shoulder, waist and back soothing', 'Lymphatic massage', 'Deep gua sha'], zh: ['肩颈腰背舒缓', '淋巴按摩', '深层刮痧'] },
+      steps: {
+        en: [
+          'Aromatic calming · warm relaxation',
+          'Deep neck and shoulder massage · eases stiffness and tightness',
+          'Meridian back massage · relaxes tired muscles',
+          'Waist soothing care · releases tension',
+          'Arm and underarm lymphatic massage · light and soothing',
+          'Meridian gua sha for neck, shoulders, waist and back · local circulation care',
+          'Warm soothing · body-mind relaxing finish',
+        ],
+        zh: ['芳香舒缓 · 温热放松', '肩颈深层按摩 · 舒缓僵硬紧绷', '背部经络按摩 · 放松疲劳肌肉', '腰部舒缓护理 · 释放紧绷压力', '双臂及腋下淋巴按摩 · 轻盈舒缓', '肩颈腰背经络刮痧 · 促进局部循环', '温热舒缓 · 身心放松收尾'],
+      },
+      suited: {
+        en: 'People with a tight neck, shoulders, waist and back, long hours of sitting, body fatigue or mild puffiness who want fuller meridian gua sha and deep relaxation.',
+        zh: '肩颈腰背紧绷、长期久坐、身体疲劳、轻微浮肿，以及希望体验更全面经络刮痧与深度放松的人群。',
+      },
+      note: { en: 'Note: gua sha may leave temporary redness or bruising; the pressure is adjusted to your comfort.', zh: '温馨提示：刮痧后可能出现暂时性泛红或瘀斑，护理力度将根据个人耐受情况调整。' },
+    },
+  ],
+})
+
+// Display order: the body brightening (added fourth) is shown second, right after the first item; the scalp spa goes last.
+{
+  const list = bodyHeadSpa.treatments
+  const at = list.findIndex((x) => x.key === 'body-peel')
+  if (at > 1) list.splice(1, 0, list.splice(at, 1)[0])
+  const head = list.findIndex((x) => x.key === 'head-spa')
+  if (head >= 0) list.push(list.splice(head, 1)[0])
+}
+
 // Body spa: Japanese lymphatic drainage spa, in the same structured layout as the other updated cards.
 const bodySpa = bodyHeadSpa.treatments.find((x) => x.key === 'body-spa')
 for (const k of ['bullets', 'steps', 'facts', 'photo']) delete bodySpa[k]
 Object.assign(bodySpa, {
   compact: true,
-  name: { en: 'Japanese Lymphatic Drainage Spa', zh: '日式淋巴排毒 SPA' },
+  name: { en: 'Japanese Lymphatic Aromatherapy Oil Drainage Spa', zh: '日式淋巴芳香精油排毒 SPA' },
   short: { en: 'Gentle lymphatic drainage for a lighter, relaxed body', zh: '日式淋巴引流，舒缓消肿、全身放松' },
-  subtitle: { en: '', zh: 'JAPANESE LYMPHATIC DRAINAGE SPA' },
+  subtitle: { en: '', zh: 'JAPANESE LYMPHATIC AROMATHERAPY SPA' },
   image: { zh: SPA_PHOTOS[0], en: '/images/treatments/shared/body-spa.jpg' },
   body: {
     en: 'Refined Japanese massage technique meets professional body care. Gentle, rhythmic lymphatic drainage promotes relaxation and supports lymph return, easing everyday puffiness and tightness for a lighter, soothing inside-out experience.',

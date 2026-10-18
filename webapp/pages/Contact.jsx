@@ -76,7 +76,7 @@ function Sent({ text }) {
 // Which treatments can be booked, and their fixed lengths, are in data/bookable.js (the CRM's 服务项目管理 uses the same list).
 const treatmentByKey = (key) => categories.flatMap((c) => c.treatments).find((x) => x.key === key)
 const PACKAGE_MINUTES = [60, 90]
-const PACKAGE_MINUTES_FOR = { 'back-cupping': [30, 60] } // treatments whose two packages have other lengths
+const PACKAGE_MINUTES_FOR = { 'back-cupping': [30, 60], 'body-peel': [60, 60], 'lymph-gua-sha': [30, 60] } // treatments whose two packages have other lengths
 // Lashes: every set takes 60 minutes; the lower lashes (下睫毛) and a fill (补睫毛) take 30. The same lengths are the CRM's defaults.
 const lashMinutes = (name) => (/下睫毛|补睫毛/.test(name?.zh || '') ? 30 : 60)
 const optionsFor = (key) => {

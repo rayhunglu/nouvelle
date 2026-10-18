@@ -14,6 +14,8 @@ export const BOOKABLE = {
   'body-spa': 'packages',
   'head-spa': 'packages',
   'back-cupping': 'packages',
+  'body-peel': 'packages',
+  'lymph-gua-sha': 'packages',
 }
 
 // 医美 treatments (injectables, devices, IV drips) are booked straight from their name: no package to pick. The length is fixed per

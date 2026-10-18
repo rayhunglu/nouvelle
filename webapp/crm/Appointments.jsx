@@ -30,7 +30,7 @@ const ROOM_CATALOG = {
 const ROOM_DEFAULT_STAFF = { room1: 'Rina', room2: 'Yingna', room3: 'Dayu' }
 const priceOf = (p) => Number(String(p ?? '').replace(/[^\d.]/g, '')) || undefined
 // Website treatment headings that are not booked as such (only their packages are), so they stay out of the service list.
-const HIDDEN_SERVICES = new Set(['日式小颜徒手矫正', '修丽可水润修复护理', '中式古法面部刮痧', '瑞士瑞妍生机弹绷护理', '日式淋巴排毒 SPA', 'Nouvelle专业祛痘针清'])
+const HIDDEN_SERVICES = new Set(['日式小颜徒手矫正', '修丽可水润修复护理', '中式古法面部刮痧', '瑞士瑞妍生机弹绷护理', '日式淋巴芳香精油排毒 SPA', '日式身体焕白 · 果酸嫩肤 SPA', '日式经络 · 背部拔罐SPA', '日式淋巴刮痧 SPA', 'Nouvelle专业祛痘针清'])
 // Services left out of one room's list only.
 const SCALP_SPA = new Set(['日式头皮抗衰 SPA', '日式头皮 · 净澈焕活 SPA 60 分钟', '日式头皮 · 御龄深养 SPA 90 分钟'])
 const PICO_FRACTIONAL = new Set(['探索皮秒', 'CO₂ 点阵激光焕肤']) // 医美双人房 only
@@ -42,6 +42,9 @@ const HIDDEN_IN_ROOM = {
 }
 // Services the CRM offers that are not on the website: { after: the website service to follow, ... }.
 const EXTRA_SERVICES = [{ after: 'BTL 磁波塑肌燃脂', value: '热拉提', search: 'Thermage lift 热玛吉 拉提' }]
+
+// Services that have a fixed operator: picking one on a new booking fills in 负责员工 (still changeable by hand).
+const SERVICE_STAFF = [{ re: /拔罐/, staff: 'Rina' }] // 背部拔罐 is Rina's
 
 // Which room a service belongs in. `must` rooms are the only choice (the equipment / bed is there); the others are the
 // default for that kind of service and can still be changed. Anything else is up to whoever books it.
@@ -367,7 +370,9 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
     const roomChange = room !== f.room
       ? { room, fullRoom: !appt && !fullPicked ? (roomOf(room).beds || 1) > 1 : f.fullRoom && (roomOf(room).beds || 1) > 1, ...(!appt && !staffPicked && !lockStaff ? { staff: ROOM_DEFAULT_STAFF[room] || '' } : {}) }
       : {}
-    setF({ ...f, service: value, price, ...roomChange, ...(mins ? { durationMin: mins } : {}) })
+    const fixedStaff = SERVICE_STAFF.find((r) => r.re.test(value))?.staff
+    const staff = fixedStaff && !appt && !staffPicked && !lockStaff ? { staff: fixedStaff } : {}
+    setF({ ...f, service: value, price, ...roomChange, ...staff, ...(mins ? { durationMin: mins } : {}) })
   }
   // Picking another customer switches a website price between member and regular, unless the price was typed by hand.
   // Typed text that matches nobody becomes the new customer's details: a phone number, an email, or a name.

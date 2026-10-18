@@ -24,10 +24,12 @@ const SERVICE_ROOM = {
   'lash-fills': 'room3',
   'body-spa': 'room4',
   'head-spa': 'room4',
+  'body-peel': 'room4', // 日式身体焕白: also a spa treatment (see ROOMS_FOR), nobody fixed
+  'lymph-gua-sha': 'room4', // 淋巴刮痧: a spa treatment too (see ROOMS_FOR), nobody fixed
   'back-cupping': 'room4', // 背部拔罐 is a spa treatment (头疗双人房 or 美容单人房, see ROOMS_FOR)
 };
 // Treatments that can be done in more than one room: a slot is open when any of these rooms is.
-const ROOMS_FOR = { 'back-cupping': ['room4', 'room1'] };
+const ROOMS_FOR = { 'back-cupping': ['room4', 'room1'], 'body-peel': ['room4', 'room1'], 'lymph-gua-sha': ['room4', 'room1'] };
 
 // 医美 treatments (the website's injectables, devices and IV drips) are all done in 医美双人房 by Yingna, so her own time decides when they can
 // be booked, on top of the room. Every one is 60 minutes, except the injectables that take 30: the length is decided here, not by the
