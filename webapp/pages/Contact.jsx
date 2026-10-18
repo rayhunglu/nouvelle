@@ -7,6 +7,7 @@ import { clearConsultService, getConsultService, setConsultService } from '../co
 import { ui } from '../components/ui'
 import PageHeader from '../components/PageHeader'
 import Reveal from '../components/Reveal'
+import { openPicker } from '../lib/util'
 
 const field = 'w-full rounded-2xl border border-ink/10 bg-ivory px-4 py-3.5 outline-none transition focus:border-gold'
 
@@ -84,10 +85,22 @@ const BOOKABLE = {
   'head-spa': 'packages',
 }
 const treatmentByKey = (key) => categories.flatMap((c) => c.treatments).find((x) => x.key === key)
+
+// 医美 treatments (injectables, devices, IV drips) are booked straight from their name: no package to pick. The length is fixed per
+// treatment (injectables 30 minutes, except 水光针 / PRP 生发 / 童颜线 at 60; every device and IV drip 60) and the open times come from
+// Yingna's own schedule (src/controllers/availability.js keeps the same list).
+const MEDICAL_SLUGS = ['injectables', 'devices', 'iv-therapy']
+const MEDICAL_ONE_HOUR = ['skin-2', 'hair-2', 'injectables-5']
+const medicalMinutes = (key) => {
+  const slug = categories.find((c) => c.treatments.some((x) => x.key === key))?.slug
+  return slug === 'injectables' && !MEDICAL_ONE_HOUR.includes(key) ? 30 : 60
+}
+Object.assign(BOOKABLE, Object.fromEntries(categories.filter((c) => MEDICAL_SLUGS.includes(c.slug)).flatMap((c) => c.treatments.map((x) => [x.key, 'medical']))))
 const PACKAGE_MINUTES = [60, 90]
 const LASH_MINUTES = 120 // lash sets have no listed duration; start times leave two hours before closing
 const optionsFor = (key) => {
   const item = treatmentByKey(key)
+  if (BOOKABLE[key] === 'medical') return [{ name: item.name, first: '', member: '', return: '', minutes: medicalMinutes(key) }]
   if (BOOKABLE[key] === 'packages') {
     return item.packages.map((pk, i) => ({
       name: pk.name,
@@ -139,6 +152,7 @@ function bookingSummary(key, b, t) {
   const { opt, visit, price } = bookingInfo(key, b)
   return [
     `【${t({ en: 'Booking', zh: '预约' })}】${t(opt.name)}`,
+    BOOKABLE[key] === 'medical' && `${t({ en: 'Length', zh: '时长' })}: ${opt.minutes} ${t({ en: 'min', zh: '分钟' })}`,
     price && `${t({ en: 'Visit', zh: '到访类型' })}: ${t(visit.label)}`,
     price && `${t({ en: 'Price', zh: '价格' })}: ${price}`,
     `${t({ en: 'Date', zh: '日期' })}: ${b.date} ${b.time}`,
@@ -148,14 +162,14 @@ function bookingSummary(key, b, t) {
 // The times still open on a day, asked from the server (it knows the room's hours, closures and bookings).
 // status: 'idle' (no date yet) | 'loading' | 'ok' | 'error' (the lookup failed: the form falls back to the plain time list).
 function useOpenTimes(serviceKey, date, minutes) {
-  const [state, setState] = useState({ status: 'idle', slots: [], reason: '' })
+  const [state, setState] = useState({ status: 'idle', slots: [], reason: '', open: '', close: '' })
   useEffect(() => {
     if (!date) { setState({ status: 'idle', slots: [], reason: '' }); return undefined }
     const ctl = new AbortController()
     setState((cur) => ({ ...cur, status: 'loading' }))
     fetch(`/api/availability?${new URLSearchParams({ date, service: serviceKey, minutes: String(minutes) })}`, { signal: ctl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('lookup failed'))))
-      .then((d) => setState({ status: 'ok', slots: d.slots || [], reason: d.reason || '' }))
+      .then((d) => setState({ status: 'ok', slots: d.slots || [], reason: d.reason || '', open: d.open || '', close: d.close || '' }))
       .catch((err) => { if (err.name !== 'AbortError') setState({ status: 'error', slots: [], reason: '' }) })
     return () => ctl.abort()
   }, [serviceKey, date, minutes])
@@ -169,12 +183,20 @@ function ServiceBooking({ serviceKey, value, onChange }) {
   const open = useOpenTimes(serviceKey, value.date, opt.minutes)
   const slots = open.status === 'error' ? slotsFor(opt.minutes) : open.slots
   const isStyles = BOOKABLE[serviceKey] === 'styles'
+  const isMedical = BOOKABLE[serviceKey] === 'medical'
   const set = (patch) => onChange({ ...value, ...patch })
   const choose = 'cursor-pointer rounded-2xl border px-4 py-3 text-left transition'
   const on = 'border-gold bg-gold/10'
   const off = 'border-ink/10 bg-ivory hover:border-gold'
   return (
     <div className="space-y-5 rounded-[1.5rem] bg-sand p-5 sm:col-span-2 sm:p-6">
+      {isMedical && (
+        <p className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="font-display text-xl">{t(opt.name)}</span>
+          <span className="text-sm text-muted">{t({ en: 'About', zh: '预计时长' })} {opt.minutes} {t({ en: 'minutes', zh: '分钟' })}</span>
+        </p>
+      )}
+      {!isMedical && (
       <div>
         <p className="eyebrow mb-3">{isStyles ? t({ en: 'Style', zh: '选择款式' }) : t({ en: 'Package', zh: '选择套餐' })}</p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -192,6 +214,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
           ))}
         </div>
       </div>
+      )}
 
       {price && (
       <div>
@@ -210,7 +233,7 @@ function ServiceBooking({ serviceKey, value, onChange }) {
       <div className="space-y-4">
         <label className="block sm:max-w-xs">
           <span className="eyebrow mb-2 block">{t({ en: 'Date', zh: '预约日期' })}</span>
-          <input required type="date" min={todayStr()} value={value.date} onChange={(e) => set({ date: e.target.value, time: '' })} className={field} />
+          <input required type="date" min={todayStr()} value={value.date} onChange={(e) => set({ date: e.target.value, time: '' })} className={field}  onClick={openPicker} onFocus={openPicker} />
         </label>
         <div className="relative">
           <span className="eyebrow mb-2 block">{t({ en: 'Available times', zh: '可预约时间' })}</span>
@@ -250,7 +273,9 @@ function ServiceBooking({ serviceKey, value, onChange }) {
         <span className="text-sm text-muted">{t(opt.name)}{price ? ` · ${t(visitOf(value.visit).label)}` : ''}</span>
         {price ? <span className="font-display text-3xl">{price}</span> : <span className="text-sm text-muted">{t({ en: 'Price confirmed when we call you', zh: '价格由我们与您确认' })}</span>}
       </p>
-      <p className="text-xs text-muted">{t({ en: 'Open 10:00 am – 7:00 pm. Our team will confirm your appointment by phone or email.', zh: '营业时间 10:00 – 19:00，我们会通过电话或邮件与您确认预约。' })}</p>
+      <p className="text-xs text-muted">{open.open && open.close
+          ? t({ en: `Open ${open.open} – ${open.close} that day. Our team will confirm your appointment by phone or email.`, zh: `当天营业时间 ${open.open} – ${open.close}，我们会通过电话或邮件与您确认预约。` })
+          : t({ en: 'Open 10:00 am – 7:00 pm. Our team will confirm your appointment by phone or email.', zh: '营业时间 10:00 – 19:00，我们会通过电话或邮件与您确认预约。' })}</p>
     </div>
   )
 }
@@ -325,7 +350,7 @@ export default function Contact() {
 
       <section className="container-x grid gap-12 py-16 lg:grid-cols-12">
         <Reveal className="lg:col-span-7">
-          <h2 className="font-display text-3xl">{t({ en: 'Send a message', zh: '在线留言' })}</h2>
+          <h2 className="font-display text-3xl">{t({ en: 'Appointments & Inquiries', zh: '预约与咨询' })}</h2>
           {sent ? (
             <div className="mt-8"><Sent text={t({ en: 'Thank you — we’ll be in touch soon.', zh: '感谢留言，我们会尽快联系您。' })} /></div>
           ) : (

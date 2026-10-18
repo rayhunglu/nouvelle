@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const store = require('../services/store');
 const mailer = require('../services/mailer');
 const { RESET_HOURS, newToken, tokenMatches, linkFor } = require('../services/passwordReset');
-const { newCredentials, verifyPassword, verifyLegacyPassword, DUMMY_USER, MIN_PASSWORD, LOGIN_MAX_FAILS, LOCK_MS, sessionRevoked } = require('../services/users');
+const { roleOf, newCredentials, verifyPassword, verifyLegacyPassword, DUMMY_USER, MIN_PASSWORD, LOGIN_MAX_FAILS, LOCK_MS, sessionRevoked } = require('../services/users');
 
 // The built-in manager account exists only when CRM_ADMIN_USER and CRM_ADMIN_PASSWORD are both set (there is no default).
 // Normally managers are accounts with role "admin" in the database (see scripts/make-admin.cjs).
@@ -93,8 +93,8 @@ async function login(req, res, next) {
     if (err) return next(err);
     req.session.isLoggedIn = true;
     req.session.user = isAdmin
-      ? { username: ADMIN_USER, role: 'admin', builtin: true, loginAt: Date.now() }
-      : { username: staff.username, role: staff.role === 'admin' ? 'admin' : 'staff', loginAt: Date.now(), staffName: staff.staffName, displayName: staff.displayName || staff.staffName, permissions: staff.permissions || {} };
+      ? { username: ADMIN_USER, role: 'owner', builtin: true, loginAt: Date.now() }
+      : { username: staff.username, role: roleOf(staff.role), loginAt: Date.now(), staffName: staff.staffName, displayName: staff.displayName || staff.staffName, permissions: staff.permissions || {} };
     res.json({ user: req.session.user });
   });
 }
@@ -115,7 +115,7 @@ async function me(req, res, next) {
   try {
     const rec = (await store.list('users')).find((x) => x.username === u.username);
     if (!rec || rec.active === false || sessionRevoked(u, rec)) return req.session.destroy(() => res.status(401).json({ error: 'Not signed in' }));
-    req.session.user = { ...u, role: rec.role === 'admin' ? 'admin' : 'staff', staffName: rec.staffName, displayName: rec.displayName || rec.staffName, permissions: rec.permissions || {} };
+    req.session.user = { ...u, role: roleOf(rec.role), staffName: rec.staffName, displayName: rec.displayName || rec.staffName, permissions: rec.permissions || {} };
     return res.json({ user: req.session.user });
   } catch (err) {
     return next(err);

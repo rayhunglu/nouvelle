@@ -4,6 +4,7 @@ import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Field, Modal, inputCls } from './ui'
 import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftItems, giftLabel, giftsAllowed, money, toLocalInput } from './format'
+import { openPicker } from '../lib/util'
 
 // Dropdown of known people. "其他" reveals a text box for anyone not in the list.
 function PersonSelect({ value, onChange, groups, placeholder }) {
@@ -184,7 +185,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           </Field>
         </div>
 
-        <Field label="收款时间 *"><input className={inputCls} type="datetime-local" value={f.datetime} onChange={set('datetime')} required /></Field>
+        <Field label="收款时间 *"><input className={inputCls} type="datetime-local" value={f.datetime} onChange={set('datetime')} required  onClick={openPicker} onFocus={openPicker} /></Field>
 
         <div>
           <span className="mb-1.5 block text-xs font-medium text-muted">服务项目</span>

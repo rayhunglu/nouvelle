@@ -29,7 +29,7 @@ const getSummary = wrap(async (req, res) => {
   // Only settled payments count (the unsettled ones are excluded below), and a payment tied to an appointment counts only once
   // that appointment is completed (checked in and checked out); cancelled, no-show or not-yet-served bookings do not.
   const apptStatus = new Map((await store.list('appointments')).map((a) => [a.id, a.status]));
-  const payments = (await visibleRows(req, 'payments', await store.list('payments'))).filter((p) => !p.appointmentId || apptStatus.get(p.appointmentId) === 'completed');
+  const payments = (await visibleRows(req, 'payments', await store.list('payments'))).filter((p) => !p.hidden && (!p.appointmentId || apptStatus.get(p.appointmentId) === 'completed')); // `hidden` = the owner's payments, which an admin does not see
   const inMonth = (p, key) => monthKey(dateKey(p.datetime)) === key;
   const month = payments.filter((p) => inMonth(p, thisMonth));
 

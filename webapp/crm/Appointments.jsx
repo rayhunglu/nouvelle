@@ -11,12 +11,13 @@ import TimeAxis from './TimeAxis'
 import TimeWheel from './TimeWheel'
 import CheckInDocs, { docsMissing } from './CheckInDocs'
 import { durationFor } from './durations'
-import { withStaff } from './staff'
+import { relatedTo, withStaff } from './staff'
 
 import { defaultOpenStart, findClash, dayAppointments, hhmm, minutesOfDay } from './timeline'
 import { ROOMS, roomOf } from './rooms'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
 import { CUSTOMER_SOURCES, STATUS, dayKey, fmtDay, fmtTime, googleCalendarUrl, money, toLocalInput } from './format'
+import { openPicker } from '../lib/util'
 
 // Rooms whose service field follows a category of the public website (slug from webapp/data/site.js):
 // 美容单人房 offers 护肤项目 first (with its 60/90-minute packages), then 医美, 美睫 and Spa; 医美双人房 lists 医美 first (injectables, IV drips, devices), then 护肤, 美睫 and Spa; 美睫单人房 lists 美睫 first, then 护肤, 医美 and Spa; 头疗双人房 offers everything (Spa first). Add a room here to link another one.
@@ -250,7 +251,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
               {ROOMS.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </Field>
-          <Field label="日期 *"><input className={inputCls} type="date" value={date} onChange={(e) => e.target.value && setF({ ...f, start: `${e.target.value}T${f.start.slice(11, 16)}` })} required /></Field>
+          <Field label="日期 *"><input className={inputCls} type="date" value={date} onChange={(e) => e.target.value && setF({ ...f, start: `${e.target.value}T${f.start.slice(11, 16)}` })} required  onClick={openPicker} onFocus={openPicker} /></Field>
         </div>
         <Field label="时长">
           <select className={inputCls} value={durationMin} onChange={(e) => setF({ ...f, durationMin: Number(e.target.value) })}>
@@ -481,7 +482,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
           {catalog.length > 0 && <span className="mt-1.5 block text-xs text-gold">已链接官网项目：自动带出时长与价格（{manualPrice ? '手动价格' : TIERS.find(([k]) => k === tier)[1]}）</span>}
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="日期 *"><input className={inputCls} type="date" value={date} onChange={(e) => e.target.value && setF({ ...f, start: `${e.target.value}T${f.start.slice(11, 16)}` })} required /></Field>
+          <Field label="日期 *"><input className={inputCls} type="date" value={date} onChange={(e) => e.target.value && setF({ ...f, start: `${e.target.value}T${f.start.slice(11, 16)}` })} required  onClick={openPicker} onFocus={openPicker} /></Field>
           <Field label="时长">
             <select className={inputCls} value={durationMin} onChange={(e) => setF({ ...f, durationMin: Number(e.target.value) })}>
               {durations.map((m) => <option key={m} value={m}>{m >= 60 ? `${Math.floor(m / 60)} 小时${m % 60 ? ` ${m % 60} 分钟` : ''}` : `${m} 分钟`}</option>)}
@@ -581,7 +582,7 @@ export default function Appointments() {
   const location = useLocation()
   useEffect(() => { if (location.state?.day) changeView('day') }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const [filter, setFilter] = useState('upcoming')
-  const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows only their appointments, in every view
+  const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows every booking related to them (they serve it, or they referred the customer), in every view
   const [editing, setEditing] = useState(null)
   const [completing, setCompleting] = useState(null) // appointment being completed via the payment form
   const [docsFor, setDocsFor] = useState(null) // { appt, mode }: just checked in (consent form + before photos) or put in service (after photos)
@@ -589,7 +590,7 @@ export default function Appointments() {
 
   const groups = useMemo(() => {
     const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0)
-    let rows = staffFilter ? appointments.filter((a) => a.staff === staffFilter) : appointments
+    let rows = staffFilter ? appointments.filter((a) => relatedTo(a, staffFilter)) : appointments
     if (filter === 'upcoming') rows = rows.filter((a) => a.status === 'scheduled' && new Date(a.start) >= startOfToday)
     if (filter === 'completed') rows = rows.filter((a) => a.status === 'completed' || a.status === 'no-show')
     if (filter === 'cancelled') rows = rows.filter((a) => a.status === 'cancelled')
@@ -702,7 +703,7 @@ export default function Appointments() {
           blocks={blocks}
           onEditBlock={canBlock ? (k) => setEditing({ block: k }) : undefined}
           onSaveBlock={canBlock ? saveBlock : undefined}
-          onSaveHours={user?.role === 'admin' ? saveHours : undefined}
+          onSaveHours={user?.role === 'admin' || user?.role === 'owner' ? saveHours : undefined}
           initialDate={openDate}
           onOpenDay={(d) => { setView('day'); setOpenDate(d); try { localStorage.setItem('crm.apptView2', 'day') } catch { /* storage unavailable */ } }}
           onDeleteBlock={canBlock ? (k) => remove('blocks', k.id).catch((err) => setError(err.message)) : undefined}

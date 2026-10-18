@@ -2,10 +2,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Ban, Check, ChevronLeft, ChevronRight, LogIn, Play, X } from 'lucide-react'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
-import { Card } from './ui'
+import { Card, Field, Modal, inputCls } from './ui'
 import { dayKey, fmtTime } from './format'
 import { NO_ROOM, ROOMS, STAFF_COLOR, colorOf, roomOf } from './rooms'
-import { withStaff } from './staff'
+import { relatedTo, withStaff } from './staff'
+import { touchLike } from '../lib/util'
+import { openPicker } from '../lib/util'
 
 const HOUR_PX = 80 // default: 20px per 15-minute row (the time grid zooms between ZOOM_MIN and ZOOM_MAX)
 const ZOOM_MIN = 18
@@ -77,7 +79,7 @@ function Chip({ a, name, onEdit }) {
   )
 }
 
-function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, setSelected, onOpenDay, onSaveHours }) {
+function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, setSelected, onOpenDay, onSaveHours, hoursReq }) {
   const { isClosed } = useCrm()
   // Drag across days (mouse or trackpad) to pick a range, then open or close rooms for all of those days at once.
   const [range, setRange] = useState(null) // { a, b }: indexes into the grid's cells
@@ -98,11 +100,29 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
     window.addEventListener('pointercancel', end)
     return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end) }
   }, [dragging])
-  // With no days picked, the room buttons act on the whole month shown.
+  // The room open / close settings pop up in a dialog: after dragging across days, or from the 房间开放设置 button (the whole month at first).
+  // The dialog has its own from / to dates, so one day (same date twice) or any stretch can be chosen there too.
   const monthDays = days.filter((d) => d.getMonth() === cursor.getMonth())
-  const target = picked.length ? picked : monthDays
-  const applyRange = (value, roomIds) => {
-    onSaveHours({ closedBatch: { rooms: roomIds, value, days: target.map((d) => ({ date: keyOf(d), from: dayStart(d).toISOString(), to: dayEnd(d).toISOString() })) } })
+  const [hoursDlg, setHoursDlg] = useState(null) // { from, to } as YYYY-MM-DD, or null when closed
+  const [hoursBusy, setHoursBusy] = useState(false)
+  const [hoursError, setHoursError] = useState('')
+  useEffect(() => { if (!dragging && picked.length > 0) setHoursDlg({ from: keyOf(picked[0]), to: keyOf(picked[picked.length - 1]) }) }, [dragging]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (hoursReq && onSaveHours) setHoursDlg({ from: hoursReq.key, to: hoursReq.key }) }, [hoursReq]) // eslint-disable-line react-hooks/exhaustive-deps
+  const openMonthHours = () => setHoursDlg({ from: keyOf(monthDays[0]), to: keyOf(monthDays[monthDays.length - 1]) })
+  const closeHours = () => { setHoursDlg(null); setRange(null); setHoursError('') }
+  const toDate = (key) => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d) }
+  const dlgDays = (() => {
+    if (!hoursDlg || !hoursDlg.from || !hoursDlg.to) return []
+    const out = []
+    for (let d = toDate(hoursDlg.from); d <= toDate(hoursDlg.to) && out.length < 400; d = addDays(d, 1)) out.push(d)
+    return out
+  })()
+  const target = dlgDays
+  const applyRange = async (value, roomIds) => {
+    if (!target.length) { setHoursError('请选择开始和结束日期'); return }
+    setHoursBusy(true); setHoursError('')
+    try { await onSaveHours({ closedBatch: { rooms: roomIds, value, days: target.map((d) => ({ date: keyOf(d), from: dayStart(d).toISOString(), to: dayEnd(d).toISOString() })) } }) } catch (err) { setHoursError(err.message) }
+    setHoursBusy(false)
   }
   const label = (d) => `${d.getMonth() + 1}月${d.getDate()}日`
 
@@ -121,7 +141,7 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
               key={k}
               onPointerDown={(e) => { if (!onSaveHours || e.pointerType === 'touch' || e.button !== 0 || e.target.closest('button')) return; justPicked.current = false; setRange({ a: i, b: i }); setDragging(true) }}
               onPointerEnter={() => { if (dragging) { justPicked.current = true; setRange((r) => (r ? { ...r, b: i } : r)) } }}
-              onClick={() => { if (justPicked.current) { justPicked.current = false; return } setRange(null); setSelected(k); if (onOpenDay) { onOpenDay(d); return } if (window.matchMedia('(min-width: 640px)').matches) { const s = new Date(d); s.setHours(10, 0, 0, 0); onCreate(s.toISOString()) } }}
+              onClick={() => { if (justPicked.current) { justPicked.current = false; return } setRange(null); setSelected(k); if (onSaveHours) { setHoursDlg({ from: k, to: k }); return } if (onOpenDay) { onOpenDay(d); return } if (window.matchMedia('(min-width: 640px)').matches) { const s = new Date(d); s.setHours(10, 0, 0, 0); onCreate(s.toISOString()) } }}
               className={`min-h-[4.5rem] cursor-pointer border-b border-r border-ink/5 p-1 transition hover:bg-sand/60 sm:min-h-[7.5rem] sm:p-1.5 ${i % 7 === 6 ? 'border-r-0' : ''} ${inMonth ? '' : 'bg-ink/[0.03]'} ${selected === k ? 'bg-gold/10' : ''} ${i >= lo && i <= hi && hi > lo ? 'bg-gold/25 ring-1 ring-inset ring-gold/60' : ''} ${dragging ? 'select-none' : ''}`}
             >
               <div className="flex justify-center sm:justify-start">
@@ -143,17 +163,20 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
           )
         })}
       </div>
-      {onSaveHours && !dragging && (
-        <div className="border-t border-ink/10 bg-sand/50 px-4 py-3 text-sm">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <p>
-              {picked.length > 0
-                ? <><b>{label(picked[0])} – {label(picked[picked.length - 1])}</b>（共 {picked.length} 天）<span className="ml-2 text-xs text-muted">选房间，把这几天一起设为开放或关闭</span></>
-                : <><b>{cursor.getFullYear()}年{cursor.getMonth() + 1}月 整月</b>（{monthDays.length} 天）<span className="ml-2 text-xs text-muted">直接选房间会设置整个月；想只设几天，先在上面的日历里按住拖选日期</span></>}
-            </p>
-            {picked.length > 0 && <button type="button" onClick={() => setRange(null)} className="rounded-full border border-ink/15 bg-white px-3 py-1 text-xs hover:bg-sand">取消选择</button>}
+      {onSaveHours && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink/10 bg-sand/50 px-4 py-2.5 text-sm">
+          <span className="text-xs text-muted">想关闭或开放房间：在日历上按住拖选几天，或点右边的按钮</span>
+          <button type="button" onClick={openMonthHours} className="rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-sm hover:bg-sand">房间开放设置</button>
+        </div>
+      )}
+      {onSaveHours && hoursDlg && (
+        <Modal inset title="房间开放 / 关闭" onClose={closeHours} loading={hoursBusy} loadingText="保存中…">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="开始日期"><input className={inputCls} type="date" value={hoursDlg.from} max={hoursDlg.to || undefined} onChange={(e) => setHoursDlg((h) => ({ ...h, from: e.target.value, to: h.to && e.target.value > h.to ? e.target.value : h.to }))}  onClick={openPicker} onFocus={openPicker} /></Field>
+            <Field label="结束日期（同一天就是只设一天）"><input className={inputCls} type="date" value={hoursDlg.to} min={hoursDlg.from || undefined} onChange={(e) => setHoursDlg((h) => ({ ...h, to: e.target.value }))}  onClick={openPicker} onFocus={openPicker} /></Field>
           </div>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <p className="mt-3 text-sm">{target.length > 0 ? <><b>{label(target[0])}{target.length > 1 ? ` – ${label(target[target.length - 1])}` : ''}</b>（共 {target.length} 天）</> : <span className="text-muted">请选择日期</span>}<span className="ml-2 text-xs text-muted">选房间，把这些天设为关闭或开放</span></p>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {[...ROOMS, { id: 'all', name: '全部房间', dot: 'bg-ink' }].map((r) => {
               const ids = r.id === 'all' ? ROOMS.map((x) => x.id) : [r.id]
               const closedDays = target.filter((d) => ids.every((id) => isClosed(id, keyOf(d)))).length
@@ -161,14 +184,20 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
                 <li key={r.id} className="rounded-xl border border-ink/10 bg-white px-3 py-2">
                   <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium"><i className={`h-2.5 w-2.5 rounded-full ${r.dot}`} />{r.name}{closedDays > 0 && <span className="ml-auto text-[0.65rem] font-normal text-muted">已关 {closedDays} 天</span>}</p>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <button type="button" onClick={() => applyRange(true, ids)} className="rounded-lg bg-stone-200 py-1 text-xs text-stone-800 hover:bg-stone-300">关闭</button>
-                    <button type="button" onClick={() => applyRange(false, ids)} className="rounded-lg bg-emerald-100 py-1 text-xs text-emerald-900 hover:bg-emerald-200">开放</button>
+                    <button type="button" onClick={() => applyRange(true, ids)} disabled={!target.length} className="rounded-lg bg-stone-200 py-1.5 text-xs text-stone-800 hover:bg-stone-300 disabled:opacity-50">关闭</button>
+                    <button type="button" onClick={() => applyRange(false, ids)} disabled={!target.length} className="rounded-lg bg-emerald-100 py-1.5 text-xs text-emerald-900 hover:bg-emerald-200 disabled:opacity-50">开放</button>
                   </div>
                 </li>
               )
             })}
           </ul>
-        </div>
+          {hoursError && <p role="alert" className="mt-3 text-sm text-rose-700">{hoursError}</p>}
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+            {target.length === 1 && onOpenDay && <button type="button" onClick={() => { const d = target[0]; closeHours(); onOpenDay(d) }} className="btn-ghost !py-2.5">查看这天的预约</button>}
+            {target.length === 1 && <button type="button" onClick={() => { const d = new Date(target[0]); d.setHours(10, 0, 0, 0); closeHours(); onCreate(d.toISOString()) }} className="btn-ghost !py-2.5">新增预约</button>}
+            <button type="button" onClick={closeHours} className="btn-primary !py-2.5">完成</button>
+          </div>
+        </Modal>
       )}
     </>
   )
@@ -181,7 +210,7 @@ function MonthView({ cursor, byDay, customerById, onEdit, onCreate, selected, se
 // computer, and by tapping the booking on a phone, where it slides up from the bottom of the screen.
 function ApptMenu({ menu, setMenu, customerById, onEdit, onStatus, onDelete, paidCount = () => 0 }) {
   if (!menu) return null
-  const phone = window.innerWidth < 640
+  const phone = touchLike()
   return (
 
       <div className={`fixed inset-0 z-50 ${phone ? 'flex items-end justify-center bg-ink/30 px-8 pb-[max(1rem,env(safe-area-inset-bottom))]' : ''}`} onClick={(e) => { if (e.target === e.currentTarget) setMenu(null) }} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}>
@@ -723,7 +752,7 @@ function TimeGrid({ columns, customerById, onEdit, onCreate, onMove, onDelete, o
                     onClick={(e) => {
                       e.stopPropagation()
                       if (justDragged.current) { justDragged.current = false; return } // the click that ends a drag is not a click
-                      if (window.innerWidth < 640) { setMenu({ a, x: e.clientX, y: e.clientY }); return } // on a phone a tap shows the options (edit, check in, delete...)
+                      if (touchLike()) { setMenu({ a, x: e.clientX, y: e.clientY }); return } // on a phone or iPad a tap shows the options (edit, check in, delete...)
                       if (e.detail === 0 || lastPointer.current === 'touch') { onEdit(a); return }
                       // A single mouse click opens the full editor; waiting a moment lets a double click open the menu instead.
                       clearTimeout(clickTimer.current)
@@ -867,7 +896,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const [cursor, setCursor] = useState(() => (initialDate ? new Date(initialDate) : new Date()))
   // Month view / day list: on a phone, tapping a booking shows its options (edit, check in / out, cancel, delete) instead of opening the editor.
   const [phoneMenu, setPhoneMenu] = useState(null)
-  const openAppt = (appt) => { if (window.innerWidth < 640) setPhoneMenu({ a: appt, x: 0, y: 0 }); else onEdit(appt) }
+  const openAppt = (appt) => { if (touchLike()) setPhoneMenu({ a: appt, x: 0, y: 0 }); else onEdit(appt) }
   const [selected, setSelected] = useState(() => keyOf(new Date()))
   const [hiddenRooms, setHiddenRooms] = useState(() => new Set())
   // The staff filter is shared with the list view when the page passes it in; otherwise it is local to this calendar.
@@ -895,7 +924,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   }, [appointments])
 
   const visible = useMemo(
-    () => appointments.filter((a) => !hiddenRooms.has(a.room || '') && (!staff || a.staff === staff)),
+    () => appointments.filter((a) => !hiddenRooms.has(a.room || '') && relatedTo(a, staff)),
     [appointments, hiddenRooms, staff],
   )
   const byDay = useMemo(() => {
@@ -915,16 +944,21 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const step = (dir) => { setSlide(dir); setCursor((c) => (mode === 'month' ? new Date(c.getFullYear(), c.getMonth() + dir, 1) : addDays(c, dir * (mode === 'week' ? 7 : 1)))) }
   // In the week / month calendar, 当日 jumps to today's day timeline; in the day view it just returns to today.
   // The title at the top left opens a month picker: choose a year and a month to jump there (the same day of the month, or its last day).
+  // It opens on the month of the shown day: pick a day there to go straight to it, or tap the month title for the year / month list.
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear())
-  const jumpToMonth = (year, month) => {
-    const daysIn = new Date(year, month + 1, 0).getDate()
-    const next = new Date(year, month, mode === 'month' ? 1 : Math.min(cursor.getDate(), daysIn))
-    setSlide(next > cursor ? 1 : -1)
-    setCursor(next)
-    setSelected(keyOf(next))
+  const [pickerMonth, setPickerMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1)) // first of the month being looked at
+  const [pickerMonths, setPickerMonths] = useState(false) // showing the 12 months of a year instead of the days
+  const openPicker = () => { setPickerMonth(new Date(cursor.getFullYear(), cursor.getMonth(), 1)); setPickerYear(cursor.getFullYear()); setPickerMonths(false); setPickerOpen((o) => !o) }
+  const [hoursReq, setHoursReq] = useState(null) // asks the month view to open its room open / close dialog for one day
+  const pickDate = (d) => {
+    if (mode === 'month' && onSaveHours) setHoursReq({ key: keyOf(d), n: Date.now() })
+    setSlide(d > cursor ? 1 : -1)
+    setCursor(d)
+    setSelected(keyOf(d))
     setPickerOpen(false)
   }
+  const jumpPickerToMonth = (year, month) => { setPickerMonth(new Date(year, month, 1)); setPickerMonths(false) }
   const goToday = () => {
     if (mode !== 'day' && onOpenDay) { onOpenDay(new Date()); return }
     setSlide(0); setCursor(new Date()); setSelected(keyOf(new Date()))
@@ -1007,28 +1041,59 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
         <div className="relative flex shrink-0 items-center">
           <button onClick={() => step(-1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="上一页"><ChevronLeft size={15} /></button>
           <button onClick={() => step(1)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-sand sm:h-8 sm:w-8" aria-label="下一页"><ChevronRight size={16} /></button>
-          <button type="button" onClick={() => { setPickerYear(cursor.getFullYear()); setPickerOpen((o) => !o) }} aria-expanded={pickerOpen} aria-haspopup="dialog" title="选择月份"
+          <button type="button" onClick={openPicker} aria-expanded={pickerOpen} aria-haspopup="dialog" title="选择日期"
             className="rounded-lg px-1.5 py-0.5 font-display text-[0.95rem] hover:bg-sand sm:text-lg"><h2 className="inline">{label}</h2></button>
           {pickerOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setPickerOpen(false)} />
-              <div role="dialog" aria-label="选择月份" className="absolute left-0 top-full z-40 mt-2 w-64 rounded-2xl border border-ink/10 bg-white p-3 shadow-xl">
-                <div className="mb-2 flex items-center justify-between">
-                  <button type="button" onClick={() => setPickerYear((y) => y - 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="上一年"><ChevronLeft size={16} /></button>
-                  <span className="font-display text-base">{pickerYear} 年</span>
-                  <button type="button" onClick={() => setPickerYear((y) => y + 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="下一年"><ChevronRight size={16} /></button>
-                </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {Array.from({ length: 12 }, (_, m) => {
-                    const here = pickerYear === cursor.getFullYear() && m === cursor.getMonth()
-                    const now = new Date()
-                    const thisMonth = pickerYear === now.getFullYear() && m === now.getMonth()
-                    return (
-                      <button type="button" key={m} onClick={() => jumpToMonth(pickerYear, m)} aria-pressed={here}
-                        className={`rounded-xl py-2 text-sm transition ${here ? 'bg-ink text-ivory' : thisMonth ? 'bg-sand font-medium hover:bg-sand/70' : 'hover:bg-sand'}`}>{m + 1} 月</button>
-                    )
-                  })}
-                </div>
+              <div role="dialog" aria-label="选择日期" className="absolute left-0 top-full z-40 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-ink/10 bg-white p-3 shadow-xl">
+                {pickerMonths ? (
+                  <>
+                    <div className="mb-2 flex items-center justify-between">
+                      <button type="button" onClick={() => setPickerYear((y) => y - 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="上一年"><ChevronLeft size={16} /></button>
+                      <span className="font-display text-base">{pickerYear} 年</span>
+                      <button type="button" onClick={() => setPickerYear((y) => y + 1)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="下一年"><ChevronRight size={16} /></button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {Array.from({ length: 12 }, (_, m) => {
+                        const here = pickerYear === pickerMonth.getFullYear() && m === pickerMonth.getMonth()
+                        const now = new Date()
+                        const thisMonth = pickerYear === now.getFullYear() && m === now.getMonth()
+                        return (
+                          <button type="button" key={m} onClick={() => jumpPickerToMonth(pickerYear, m)} aria-pressed={here}
+                            className={`rounded-xl py-2 text-sm transition ${here ? 'bg-ink text-ivory' : thisMonth ? 'bg-sand font-medium hover:bg-sand/70' : 'hover:bg-sand'}`}>{m + 1} 月</button>
+                        )
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-2 flex items-center justify-between">
+                      <button type="button" onClick={() => setPickerMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="上个月"><ChevronLeft size={16} /></button>
+                      <button type="button" onClick={() => { setPickerYear(pickerMonth.getFullYear()); setPickerMonths(true) }} title="选择年份和月份" className="rounded-lg px-2 py-1 font-display text-base hover:bg-sand">{pickerMonth.getFullYear()} 年 {pickerMonth.getMonth() + 1} 月</button>
+                      <button type="button" onClick={() => setPickerMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))} className="grid h-8 w-8 place-items-center rounded-full hover:bg-sand" aria-label="下个月"><ChevronRight size={16} /></button>
+                    </div>
+                    <div className="grid grid-cols-7 text-center text-[0.7rem] text-muted">{WEEKDAYS.map((w) => <span key={w} className="py-1">{w}</span>)}</div>
+                    <div className="grid grid-cols-7 gap-y-0.5">
+                      {Array.from({ length: pickerMonth.getDay() }, (_, i) => <span key={`b${i}`} />)}
+                      {Array.from({ length: new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() + 1, 0).getDate() }, (_, i) => {
+                        const d = new Date(pickerMonth.getFullYear(), pickerMonth.getMonth(), i + 1)
+                        const k = keyOf(d)
+                        const here = k === keyOf(cursor)
+                        const isToday = k === today
+                        const has = (byDay.get(k) || []).length > 0
+                        return (
+                          <button type="button" key={k} onClick={() => pickDate(d)} aria-pressed={here} aria-label={`${d.getMonth() + 1}月${d.getDate()}日`}
+                            className={`relative mx-auto grid h-9 w-9 place-items-center rounded-full text-sm transition ${here ? 'bg-ink text-ivory' : isToday ? 'bg-sand font-semibold hover:bg-sand/70' : 'hover:bg-sand'}`}>
+                            {i + 1}
+                            {has && <i className={`absolute bottom-1 h-1 w-1 rounded-full ${here ? 'bg-ivory' : 'bg-gold'}`} />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button type="button" onClick={() => pickDate(new Date())} className="mt-2 w-full rounded-xl border border-ink/15 py-1.5 text-sm hover:bg-sand">今天</button>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -1064,7 +1129,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
       <div key={`${mode}-${keyOf(cursor)}`} className={slide > 0 ? 'cal-in-next' : slide < 0 ? 'cal-in-prev' : ''} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {mode === 'month' && (
         <>
-          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={openAppt} onCreate={onCreate} selected={selected} setSelected={setSelected} onOpenDay={onOpenDay} onSaveHours={onSaveHours} />
+          <MonthView cursor={cursor} byDay={byDay} customerById={customerById} onEdit={openAppt} onCreate={onCreate} selected={selected} setSelected={setSelected} onOpenDay={onOpenDay} onSaveHours={onSaveHours} hoursReq={hoursReq} />
           <div className="border-t border-ink/10 sm:hidden">
             <DayAgenda days={[new Date(`${selected}T12:00:00`)]} byDay={byDay} customerById={customerById} onEdit={openAppt} onCreate={onCreate} emptyHint="这天没有预约，点日期新增" />
           </div>

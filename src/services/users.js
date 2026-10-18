@@ -41,4 +41,9 @@ const LOCK_MS = 15 * 60 * 1000;
 // A password change (or reset) sets session_epoch; sessions that signed in before it are no longer valid.
 const sessionRevoked = (sessionUser, record) => Boolean(record && record.session_epoch && (sessionUser.loginAt || 0) < Date.parse(record.session_epoch));
 
-module.exports = { newCredentials, verifyPassword, verifyLegacyPassword, DUMMY_USER, MIN_PASSWORD, LOGIN_MAX_FAILS, LOCK_MS, sessionRevoked };
+// Account levels: 老板 owner (everything, including every staff member's accounts), 管理员 admin (every function, but not the owner's
+// accounts) and 员工 staff (own bookings and own accounts, widened by permissions).
+const ROLES = ['owner', 'admin', 'staff'];
+const roleOf = (r) => (ROLES.includes(r) ? r : 'staff');
+
+module.exports = { ROLES, roleOf, newCredentials, verifyPassword, verifyLegacyPassword, DUMMY_USER, MIN_PASSWORD, LOGIN_MAX_FAILS, LOCK_MS, sessionRevoked };

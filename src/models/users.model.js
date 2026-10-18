@@ -44,7 +44,7 @@ async function createUser(input) {
       username: { required: true, type: 'string', nonEmpty: true, min: 3, max: 30 },
       encrypt_key: { required: true, type: 'string', nonEmpty: true },
       hash_key: { required: true, type: 'string', nonEmpty: true },
-      role: { required: true, type: 'string', enum: ['admin', 'staff'] },
+      role: { required: true, type: 'string', enum: ['owner', 'admin', 'staff'] },
       email: { required: true, type: 'string', nonEmpty: true, max: 160, pattern: PATTERN.email },
       reset_token: { required: true, type: 'string' }, // '' when no link is pending
       reset_expires: { required: true, type: 'string' },
@@ -88,7 +88,7 @@ async function updateUser(id, input) {
     const error = validateInput(input, {
       encrypt_key: { type: 'string', nonEmpty: true },
       hash_key: { type: 'string', nonEmpty: true },
-      role: { type: 'string', enum: ['admin', 'staff'] },
+      role: { type: 'string', enum: ['owner', 'admin', 'staff'] },
       email: { type: 'string', nonEmpty: true, max: 160, pattern: PATTERN.email },
       reset_token: { type: 'string' },
       reset_expires: { type: 'string' },

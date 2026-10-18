@@ -7,6 +7,7 @@ import PaymentForm from './PaymentForm'
 import { projectKind } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
 import { dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
+import { openPicker } from '../lib/util'
 
 // First and last day (YYYY-MM-DD) of a month given as YYYY-MM.
 const monthRange = (key) => {
@@ -18,11 +19,13 @@ const monthRange = (key) => {
 // (the 介绍人 of the payment). The payment keeps its own staff member; this only adds it to the referrer's view.
 const REFERRER_LINKS = { medical: ['Rina'], lash: ['Yingna', 'Rina'] }
 // Clicking into a date box opens its calendar straight away (where the browser supports it).
-const openPicker = (e) => { try { e.target.showPicker() } catch { /* not allowed here: the box still works by typing */ } }
 const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
 
 export default function Finance() {
-  const { payments, appointments, customerById, serviceById, remove, roster } = useCrm()
+  const { payments: allPayments, appointments, customerById, serviceById, remove, roster } = useCrm()
+  // `hidden` payments are the owner's, which an admin may not see: they stay out of every list, total and export. The full list is only
+  // kept for the member-card rules (a top-up recorded under the owner still counts for the customer's 2000 / 2200 rate).
+  const payments = useMemo(() => allPayments.filter((p) => !p.hidden), [allPayments])
   const { can } = useAuth()
   const seeAllStaff = can('viewAllFinance') // the staff filter only matters when other staff's payments are visible
   const canDelete = can('deletePayments')
@@ -47,7 +50,8 @@ export default function Finance() {
     }
   }, [location, appointments, navigate])
 
-  const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])], [payments, roster])
+  const hiddenStaff = useMemo(() => new Set(allPayments.filter((p) => p.hidden).map((p) => p.staff)), [allPayments]) // the owner: not shown to an admin
+  const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])].filter((n) => !hiddenStaff.has(n)), [payments, roster, hiddenStaff])
   const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
   const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
@@ -74,7 +78,7 @@ export default function Finance() {
     for (const p of payments.filter((x) => inMonth(x) && counted(x))) {
       const k = p.staff || '未指定'
       const cur = m.get(k) || { name: k, count: 0, revenue: 0, tips: 0 }
-      if (p.paymentMethod !== 'unsettled') cur.count += 1; cur.revenue += performanceOf(p, payments); cur.tips += paidTip(p)
+      if (p.paymentMethod !== 'unsettled') cur.count += 1; cur.revenue += performanceOf(p, allPayments); cur.tips += paidTip(p)
       m.set(k, cur)
     }
     return [...m.values()].sort((a, b) => b.revenue - a.revenue)
@@ -109,12 +113,12 @@ export default function Finance() {
     const lashFactor = (p) => (sameName(referrerOf(p), 'Yingna') || sameName(referrerOf(p), 'Rina') ? 0.4 * 0.3 : sameName(referrerOf(p), 'Dayu') ? 0.3 * 0.3 : 0)
     const lash = inPeriod.filter((p) => kind(p) === 'lash' && lashFactor(p) > 0)
     const who = (p) => customerById[p.customerId]?.name || ''
-    const serviceTotal = service.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const serviceTotal = service.reduce((n, p) => n + performanceOf(p, allPayments), 0)
     const serviceTips = service.reduce((n, p) => n + paidTip(p), 0)
     const serviceTipsNoCash = service.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
-    const medicalRows = medical.map((p) => [performanceOf(p, payments), r2(performanceOf(p, payments) * 0.1)])
+    const medicalRows = medical.map((p) => [performanceOf(p, allPayments), r2(performanceOf(p, allPayments) * 0.1)])
     const medicalTotal = medicalRows.reduce((n, r) => n + r[1], 0)
-    const lashRows = lash.map((p) => [performanceOf(p, payments), lashFactor(p), r2(performanceOf(p, payments) * lashFactor(p))])
+    const lashRows = lash.map((p) => [performanceOf(p, allPayments), lashFactor(p), r2(performanceOf(p, allPayments) * lashFactor(p))])
     const lashTotal = lashRows.reduce((n, r) => n + r[2], 0)
     const lashPerformance = lashRows.reduce((n, r) => n + r[0], 0)
     // Days: every calendar day from the start date to the end date (the first to the last payment when no dates are set).
@@ -139,7 +143,7 @@ export default function Finance() {
       [{ value: exportTitle, fontWeight: 'bold' }],
       title('一、Rina 服务业绩'),
       head(['收款时间', '客户', '服务项目', '金额（员工业绩）', '小费', '小费付款方式', '介绍人', '员工']),
-      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, payments), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
+      ...service.map((p) => [fmtDateTime(p.datetime), who(p), serviceNames(p), performanceOf(p, allPayments), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff]),
       band(BROWN, ['合计', '', '', r2(serviceTotal), r2(serviceTips)], 4),
       band(BROWN, ['小费总额（剔除现金支付）', '', '', '', r2(serviceTipsNoCash)], 4),
       [],
@@ -171,10 +175,10 @@ export default function Finance() {
     const r2 = (n) => Math.round(n * 100) / 100
     const list = countedRows.filter((p) => p.staff === 'Dayu').sort((a, b) => a.datetime.localeCompare(b.datetime))
     const factor = (p) => (sameName(referrerOf(p), 'Yingna') || sameName(referrerOf(p), 'Rina') ? 0.6 : 0.7)
-    const perf = list.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const perf = list.reduce((n, p) => n + performanceOf(p, allPayments), 0)
     const tipTotal = list.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = list.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
-    const payTotal = list.reduce((n, p) => n + performanceOf(p, payments) * factor(p), 0)
+    const payTotal = list.reduce((n, p) => n + performanceOf(p, allPayments) * factor(p), 0)
     const afterTax = payTotal * 0.94 // 税后薪资 = 当笔薪资总额 × 0.94
     const bold = (v) => ({ value: v, fontWeight: 'bold' })
     const yellow = (v) => ({ value: v, backgroundColor: '#fff2a8', fontWeight: 'bold' }) // the final pay row is light yellow
@@ -183,8 +187,8 @@ export default function Finance() {
       [bold(exportTitle)],
       ['收款时间', '客户', '服务项目', '介绍人', '金额（员工业绩）', '系数', '当笔薪资', '小费', '小费付款方式', '员工'].map(bold),
       ...list.map((p) => [
-        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), referrerOf(p), performanceOf(p, payments), factor(p),
-        r2(performanceOf(p, payments) * factor(p)), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), p.staff,
+        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), referrerOf(p), performanceOf(p, allPayments), factor(p),
+        r2(performanceOf(p, allPayments) * factor(p)), paidTip(p), methodLabel(p.tipMethod || p.paymentMethod), p.staff,
       ]),
       [],
       // 合计 row sits under its columns (员工业绩, 当笔薪资, 小费); the tip without cash goes on the next row under 小费.
@@ -198,7 +202,7 @@ export default function Finance() {
   const exportCsv = () => {
     if (staffFilter === 'Rina') return exportRinaCsv()
     if (staffFilter === 'Dayu') return exportDayuCsv()
-    const total = countedRows.reduce((n, p) => n + performanceOf(p, payments), 0)
+    const total = countedRows.reduce((n, p) => n + performanceOf(p, allPayments), 0)
     const tipTotal = countedRows.reduce((n, p) => n + paidTip(p), 0)
     const tipNoCash = countedRows.reduce((n, p) => n + ((p.tipMethod || p.paymentMethod) === 'cash' ? 0 : paidTip(p)), 0)
     // Oldest first, from the start date down to the end date.
@@ -212,7 +216,7 @@ export default function Finance() {
       [exportTitle],
       ['收款时间', '客户', '服务项目', '金额（员工业绩）', '实收金额', '小费', '付款方式', '小费付款方式', '介绍人', '员工'],
       ...sorted.map((p) => [
-        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, payments), paidAmount(p), paidTip(p),
+        fmtDateTime(p.datetime), customerById[p.customerId]?.name || '', serviceNames(p), performanceOf(p, allPayments), paidAmount(p), paidTip(p),
         methodLabel(p.paymentMethod), methodLabel(p.tipMethod || p.paymentMethod), referrerOf(p), p.staff,
       ]),
       [],
@@ -287,7 +291,7 @@ export default function Finance() {
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>
                 <p className="w-24 text-right text-sm leading-tight">
                   <b className={`font-medium ${p.paymentMethod === 'unsettled' ? 'text-amber-600' : 'text-emerald-700'}`}>{money(p.amount)}</b>{p.paymentMethod === 'unsettled' && <span className="block text-xs text-amber-700">未结算 · 应收</span>}
-                  {p.paymentMethod !== 'unsettled' && performanceOf(p, payments) !== p.amount && <span className="block text-xs text-muted">业绩 {money(performanceOf(p, payments))}</span>}
+                  {p.paymentMethod !== 'unsettled' && performanceOf(p, allPayments) !== p.amount && <span className="block text-xs text-muted">业绩 {money(performanceOf(p, allPayments))}</span>}
                   {p.tipAmount > 0 && <span className="block text-xs text-muted">小费 {money(p.tipAmount)}{p.tipMethod && p.tipMethod !== p.paymentMethod ? `（${methodLabel(p.tipMethod)}）` : ''}</span>}
                 </p>
                 <div className="flex gap-1">

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
-import { CalendarDays, ExternalLink, LayoutDashboard, Loader2, LogOut, ShieldCheck, Users, Wallet } from 'lucide-react'
+import { CalendarDays, ExternalLink, LayoutDashboard, Loader2, LogOut, Settings, Users, Wallet } from 'lucide-react'
 import { useAuth } from '../auth'
 import { CrmProvider } from './data'
 
@@ -11,7 +11,7 @@ const nav = [
   { to: '/crm/finance', label: '账目', icon: Wallet },
 ]
 // Only the store manager manages logins for the operators.
-const adminNav = [{ to: '/crm/staff', label: '员工管理', icon: ShieldCheck }]
+const adminNav = [{ to: '/crm/staff', label: '设置', icon: Settings }]
 
 export default function CrmLayout() {
   const { user, logout } = useAuth()
@@ -26,7 +26,7 @@ export default function CrmLayout() {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-gold" /></div>
   }
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  const isAdmin = user.role === 'admin'
+  const isAdmin = user.role === 'admin' || user.role === 'owner' // both levels manage the store
   const items = isAdmin ? [...nav, ...adminNav] : nav
   if (!isAdmin && location.pathname.startsWith('/crm/staff')) return <Navigate to="/crm/appointments" replace />
 
@@ -57,7 +57,7 @@ export default function CrmLayout() {
           <div className="mt-auto space-y-1 border-t border-ivory/10 pt-4">
             <NavLink to="/" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ivory/60 hover:text-ivory"><ExternalLink size={18} /> 返回网站</NavLink>
             <button onClick={logout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ivory/60 hover:text-ivory">
-              <LogOut size={18} /> 退出（{isAdmin ? '店长' : user.displayName || user.username}）
+              <LogOut size={18} /> 退出（{user.role === 'owner' ? '老板' : isAdmin ? '管理员' : user.displayName || user.username}）
             </button>
           </div>
         </aside>

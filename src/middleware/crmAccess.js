@@ -1,9 +1,10 @@
 const store = require('../services/store');
-const { sessionRevoked } = require('../services/users');
+const { sessionRevoked, roleOf } = require('../services/users');
 const { wrap } = require('../controllers/crm/common');
 
 // ---- roles ----
-// 店长 (role 'admin') sees and does everything. 操作师 (role 'staff') starts with the minimum: their own appointments and
+// 老板 (role 'owner') sees and does everything. 管理员 (role 'admin') can use every function too, but cannot see the owner's accounts
+// (the payments recorded under the owner's staff name). 店长 below means those two levels. 操作师 (role 'staff') starts with the minimum: their own appointments and
 // payments and the customers tied to them, create and update only, no deleting, no account management. The manager can
 // widen that per account with these permissions (stored on the account, applied on every request).
 const PERMISSIONS = [
@@ -27,9 +28,9 @@ const loadPermissions = wrap(async (req, res, next) => {
   if (u.builtin) { req.perms = all; return next(); }
   const rec = (await store.list('users')).find((x) => x.username === u.username);
   if (!rec || rec.active === false || sessionRevoked(u, rec)) return req.session.destroy(() => res.status(401).json({ error: 'Authentication required' }));
-  u.role = rec.role === 'admin' ? 'admin' : 'staff'; // a manager account can be demoted (or promoted) while signed in
+  u.role = roleOf(rec.role); // an account can be demoted (or promoted) while signed in
   u.staffName = rec.staffName;
-  req.perms = u.role === 'admin' ? all : cleanPerms(rec.permissions);
+  req.perms = u.role !== 'staff' ? all : cleanPerms(rec.permissions);
   return next();
 });
 
@@ -73,7 +74,28 @@ const cleanOrphansOnce = wrap(async (req, res, next) => {
 
 // What a staff member may see: their own bookings and payments, and the customers connected to them, unless the
 // account was given the matching "see all" permission.
+// The staff names of the owner account(s): their payments are the ones an admin may not see.
+async function ownerStaffNames() {
+  return new Set((await store.list('users')).filter((u) => u.role === 'owner').map((u) => u.staffName).filter(Boolean));
+}
+// What an admin gets of a payment recorded under an owner: only what the member card sums and the 2000/2200 rule need (top-ups,
+// gifts, card payments), flagged `hidden`; the screens leave hidden rows out of every list, total and export.
+function redactPayment(p) {
+  const card = p.paymentMethod === 'member_card';
+  const tipCard = (p.tipMethod || p.paymentMethod) === 'member_card';
+  return {
+    id: p.id, hidden: true, appointmentId: p.appointmentId || null, customerId: p.customerId, datetime: p.datetime, createdAt: p.createdAt,
+    paymentMethod: p.paymentMethod, tipMethod: p.tipMethod || p.paymentMethod, amount: card ? p.amount : 0, tipAmount: tipCard ? p.tipAmount || 0 : 0,
+    topUp: p.topUp || 0, topUpMethod: p.topUpMethod || '', topUpGifts: p.topUpGifts || [], giftUsed: p.giftUsed || '', staff: p.staff, serviceIds: [], serviceName: '', referralSource: '', notes: '',
+  };
+}
+const isHiddenFor = async (req, collection, row) => collection === 'payments' && req.session.user.role === 'admin' && (await ownerStaffNames()).has(row.staff);
+
 async function visibleRows(req, collection, rows) {
+  if (collection === 'payments' && req.session.user.role === 'admin') {
+    const owners = await ownerStaffNames();
+    return owners.size ? rows.map((p) => (owners.has(p.staff) ? redactPayment(p) : p)) : rows;
+  }
   if (!isStaff(req)) return rows;
   const { staffName, username } = req.session.user;
   if (collection === 'appointments') return req.perms.viewAllAppointments ? rows : rows.filter((r) => r.staff === staffName);
@@ -89,4 +111,4 @@ async function visibleRows(req, collection, rows) {
   return rows;
 }
 
-module.exports = { PERMISSIONS, isStaff, adminOnly, cleanPerms, loadPermissions, staffGate, cleanOrphansOnce, visibleRows };
+module.exports = { PERMISSIONS, isStaff, isHiddenFor, adminOnly, cleanPerms, loadPermissions, staffGate, cleanOrphansOnce, visibleRows };

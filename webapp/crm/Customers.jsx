@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Camera, ChevronLeft, ChevronRight, Download, FileText, Mail, MessageCircle, Pencil, Phone, Plus, ImagePlus, Search, Trash2, Upload, X } from 'lucide-react'
 import { api } from '../api'
 import { uploadCustomerFile } from './files'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { MEMBER_TIERS, cardBalance, fmtDateTime, giftItems, giftLabel, money, paidAmount, paidTip, tierOf } from './format'
+import { MEMBER_TIERS, cardBalance, fmtDateTime, giftItems, giftLabel, methodLabel, money, paidAmount, paidTip, performanceOf, tierOf } from './format'
+import { roomOf } from './rooms'
 
 function TierBadge({ c }) {
   const { payments } = useCrm()
@@ -136,93 +137,167 @@ const PHOTO_SIDES = ['正面', '左面', '右面']
 const PHOTO_SETS = ['Before', 'After']
 const photoLabelOf = (f) => { const m = f.name.match(/_(Before|After)(正面|左面|右面)\.[^.]+$/); return m ? m[1] + m[2] : '' }
 
-// One appointment record's documents: before / after photos (front, left, right) and the 同意书.
-function ApptFiles({ appt, fx }) {
-  const [view, setView] = useState(null) // id of the photo open in the big viewer
-  const mine = (fx.files || []).filter((f) => f.appointmentId === appt.id)
-  const order = PHOTO_SETS.flatMap((set) => PHOTO_SIDES.map((side) => `${set}${side}`))
-  // Every photo of the record in the order before front/left/right, after front/left/right: what the viewer swipes through.
-  const photos = mine.filter((f) => photoLabelOf(f)).sort((a, b) => order.indexOf(photoLabelOf(a)) - order.indexOf(photoLabelOf(b)) || a.createdAt.localeCompare(b.createdAt))
-    .map((f) => ({ ...f, caption: photoLabelOf(f).replace(/^(Before|After)/, '$1 ') }))
-  const consent = mine.filter((f) => !photoLabelOf(f))
-  const pick = (label) => (e) => { const f = e.target.files[0]; e.target.value = ''; fx.upload(appt, label, f) }
+// One before / after photo slot: the latest photo as a thumbnail (tap = big viewer), or two entrances to add one:
+// the top half opens the back camera, the bottom half the photo library.
+function PhotoTile({ appt, fx, lab, last, count, onOpen }) {
+  const busy = fx.busyKey === `${appt.id}|${lab}`
+  const pick = (e) => { const f = e.target.files[0]; e.target.value = ''; fx.upload(appt, lab, f) }
   return (
-    <div className="mt-2 border-t border-ink/5 pt-2">
-      <div className="mb-2 grid grid-cols-2 gap-3">
-      {PHOTO_SETS.map((set) => (
-        <div key={set} className="min-w-0">
-          <p className="mb-1 text-xs text-muted">{set} 照片</p>
-          <div className="flex gap-1.5">
-            {PHOTO_SIDES.map((side) => {
-              const lab = `${set}${side}`
-              const list = photos.filter((f) => photoLabelOf(f) === lab)
-              const last = list.at(-1)
-              const busy = fx.busyKey === `${appt.id}|${lab}`
-              return (
-                <div key={lab} className="min-w-0 flex-1 text-center">
-                  <div className="relative aspect-square overflow-hidden rounded-lg border border-dashed border-ink/20 bg-white">
-                    {last ? <Thumb key={last.id} customerId={fx.customerId} file={last} onOpen={() => setView(last.id)} /> : busy ? (
-                      <span className="grid h-full w-full place-items-center text-[0.65rem] text-muted">上传中…</span>
-                    ) : (
-                      // Two entrances: the top half opens the back camera, the bottom half the photo library.
-                      <div className="grid h-full w-full grid-rows-2 divide-y divide-dashed divide-ink/20">
-                        <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`拍照 ${set} ${side}`}>
-                          <Camera size={15} />
-                          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={pick(lab)} />
-                        </label>
-                        <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`上传 ${set} ${side}`}>
-                          <ImagePlus size={15} />
-                          <input type="file" accept="image/*" className="hidden" onChange={pick(lab)} />
-                        </label>
-                      </div>
-                    )}
-                    {last && busy && <span className="absolute inset-0 grid place-items-center bg-white/70 text-[0.65rem]">上传中…</span>}
-                  </div>
-                  <p className="mt-0.5 text-[0.65rem] text-muted">
-                    {side}
-                    {last && (
-                      <span className="ml-1 text-gold">
-                        {list.length > 1 ? `（${list.length}）` : ''}
-                        <label className="cursor-pointer hover:underline">拍<input type="file" accept="image/*" capture="environment" className="hidden" onChange={pick(lab)} /></label>
-                        <span className="text-muted"> · </span>
-                        <label className="cursor-pointer hover:underline">传<input type="file" accept="image/*" className="hidden" onChange={pick(lab)} /></label>
-                      </span>
-                    )}
-                  </p>
-                </div>
-              )
-            })}
-          </div>
+    <div className="relative aspect-square overflow-hidden rounded-lg border border-dashed border-ink/20 bg-white">
+      {last ? <Thumb key={last.id} customerId={fx.customerId} file={last} onOpen={onOpen} /> : busy ? (
+        <span className="grid h-full w-full place-items-center text-[0.65rem] text-muted">上传中…</span>
+      ) : (
+        <div className="grid h-full w-full grid-rows-2 divide-y divide-dashed divide-ink/20">
+          <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`拍照 ${lab}`}><Camera size={15} /><input type="file" accept="image/*" capture="environment" className="hidden" onChange={pick} /></label>
+          <label className="grid cursor-pointer place-items-center text-muted hover:bg-sand/60" aria-label={`上传 ${lab}`}><ImagePlus size={15} /><input type="file" accept="image/*" className="hidden" onChange={pick} /></label>
         </div>
-      ))}
-      </div>
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted">同意书{fx.files ? `（${consent.length}）` : ''}</span>
-        <label className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2 py-1 text-xs text-muted hover:bg-ink/5 hover:text-ink">
-          <Upload size={12} /> {fx.busyKey === `${appt.id}|同意书` ? '上传中…' : '上传同意书'}
-          <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" onChange={pick('同意书')} />
-        </label>
-      </div>
-      {consent.length > 0 && (
-        <ul className="mt-1 space-y-0.5">
-          {consent.map((f) => (
-            <li key={f.id} className="flex items-center gap-2 text-xs">
-              <FileText size={12} className="shrink-0 text-muted" />
-              <span className="min-w-0 flex-1 truncate">{f.name}<span className="text-muted"> · {fmtSize(f.size)}</span></span>
-              <button type="button" onClick={() => fx.download(f)} aria-label="下载" className="rounded-full p-1.5 text-muted hover:bg-ink/5 hover:text-ink"><Download size={13} /></button>
-              {fx.canDelete && <button type="button" onClick={() => fx.del(f)} aria-label="删除" className="rounded-full p-1.5 text-muted hover:bg-rose-50 hover:text-rose-700"><Trash2 size={13} /></button>}
-            </li>
-          ))}
-        </ul>
       )}
-      {view && photos.some((p) => p.id === view) && <PhotoViewer customerId={fx.customerId} photos={photos} start={photos.findIndex((p) => p.id === view)} onClose={() => setView(null)} />}
+      {last && busy && <span className="absolute inset-0 grid place-items-center bg-white/70 text-[0.65rem]">上传中…</span>}
+      {last && count > 1 && <span className="absolute right-1 top-1 rounded-full bg-ink/70 px-1.5 text-[0.6rem] text-white">{count}</span>}
     </div>
+  )
+}
+
+const Row = ({ k, children }) => (
+  <div className="flex items-baseline justify-between gap-4 py-1.5 text-sm">
+    <dt className="shrink-0 text-muted">{k}</dt>
+    <dd className="min-w-0 break-words text-right">{children}</dd>
+  </div>
+)
+const Section = ({ title, children }) => (
+  <section className="mt-5 first:mt-0">
+    <h3 className="mb-1 border-b border-ink/10 pb-1 text-xs font-medium tracking-wide text-muted">{title}</h3>
+    {children}
+  </section>
+)
+
+// The full record of one appointment, opened by tapping it in the customer's history: the booking, how it was settled, the member
+// card, and the before / after photos side by side. A floating card, not a full-width sheet.
+function ApptDetail({ appt, customer, fx, onClose }) {
+  const { payments } = useCrm()
+  const [view, setView] = useState(null) // id of the photo open in the big viewer
+  const mine = payments.filter((p) => p.appointmentId === appt.id)
+  const hidden = mine.some((p) => p.hidden) // the owner's account: an admin does not see it
+  const pays = mine.filter((p) => !p.hidden)
+  const staff = appt.staff || pays.find((p) => p.staff)?.staff
+  const referrer = pays.find((p) => p.referralSource)?.referralSource || appt.source
+  const when = pays.reduce((m, p) => (p.datetime > m ? p.datetime : m), '')
+  const upto = when ? payments.filter((p) => p.datetime <= when) : payments
+  const balanceAfter = cardBalance(upto, customer.id)
+  const balanceNow = cardBalance(payments, customer.id)
+  const giftsAfter = giftItems(upto, customer.id)
+  const giftsNow = giftItems(payments, customer.id)
+  const giftText = (g) => (Object.keys(g).length ? Object.entries(g).map(([id, n]) => `${giftLabel(id)} ×${n}`).join('、') : '无')
+  const total = pays.reduce((n, p) => n + paidAmount(p), 0)
+  const perf = pays.reduce((n, p) => n + performanceOf(p, payments), 0)
+  const tips = pays.reduce((n, p) => n + paidTip(p), 0)
+
+  const files = (fx.files || []).filter((f) => f.appointmentId === appt.id)
+  const order = PHOTO_SETS.flatMap((set) => PHOTO_SIDES.map((side) => `${set}${side}`))
+  const photos = files.filter((f) => photoLabelOf(f)).sort((x, y) => order.indexOf(photoLabelOf(x)) - order.indexOf(photoLabelOf(y)) || x.createdAt.localeCompare(y.createdAt))
+    .map((f) => ({ ...f, caption: photoLabelOf(f).replace(/^(Before|After)/, '$1 ') }))
+  const consent = files.filter((f) => !photoLabelOf(f))
+
+  return (
+    <Modal inset title="预约记录" onClose={onClose}>
+      <Section title="预约信息">
+        <dl>
+          <Row k="项目内容"><b>{appt.service}</b></Row>
+          <Row k="时间">{fmtDateTime(appt.start)}</Row>
+          <Row k="时长">{appt.durationMin ? `${appt.durationMin} 分钟` : '—'}</Row>
+          <Row k="房间">{appt.room ? roomOf(appt.room).name : '未指定'}</Row>
+          <Row k="服务人员">{staff || '—'}</Row>
+          <Row k="介绍人">{referrer || '—'}</Row>
+          <Row k="状态"><StatusBadge status={appt.status} /></Row>
+          {appt.price > 0 && <Row k="预约价格">{money(appt.price)}</Row>}
+          {appt.notes && <Row k="预约备注">{appt.notes}</Row>}
+        </dl>
+      </Section>
+
+      <Section title="结算">
+        {hidden ? <p className="py-1.5 text-sm text-muted">账目不可见</p> : pays.length === 0 ? <p className="py-1.5 text-sm text-muted">还没有结算记录</p> : (
+          <>
+            {pays.map((p) => (
+              <dl key={p.id} className="mb-2 rounded-xl bg-white px-3 py-1 ring-1 ring-ink/10">
+                <Row k="付款方式">{methodLabel(p.paymentMethod)}</Row>
+                {p.amount > 0 && <Row k="金额">{money(p.amount)}{p.paymentMethod === 'unsettled' ? '（未收）' : ''}</Row>}
+                {p.paymentMethod !== 'unsettled' && performanceOf(p, payments) !== p.amount && <Row k="员工业绩">{money(performanceOf(p, payments))}</Row>}
+                {(p.tipAmount || 0) > 0 && <Row k="小费">{money(p.tipAmount)}（{methodLabel(p.tipMethod || p.paymentMethod)}）</Row>}
+                {(p.topUp || 0) > 0 && <Row k="本次充值">{money(p.topUp)}（{methodLabel(p.topUpMethod)}）</Row>}
+                {(p.topUpGifts || []).length > 0 && <Row k="充值赠送">{p.topUpGifts.map((g) => (g === 'cash200' ? '$200 余额' : giftLabel(g))).join('、')}</Row>}
+                {p.giftUsed && <Row k="使用赠送项目">{giftLabel(p.giftUsed)}</Row>}
+                <Row k="收款时间">{fmtDateTime(p.datetime)}</Row>
+                {p.notes && <Row k="备注">{p.notes}</Row>}
+              </dl>
+            ))}
+            <dl className="border-t border-ink/10 pt-1">
+              <Row k="实收合计"><b>{money(total)}</b>{perf !== total && <span className="text-muted">（员工业绩 {money(perf)}）</span>}</Row>
+              {tips > 0 && <Row k="小费合计">{money(tips)}</Row>}
+            </dl>
+          </>
+        )}
+      </Section>
+
+      <Section title="会员卡">
+        <dl>
+          {when && <Row k="本次结算后余额">{money(balanceAfter)}</Row>}
+          <Row k="当前余额"><b>{money(balanceNow)}</b></Row>
+          {when && <Row k="本次结算后赠送项目">{giftText(giftsAfter)}</Row>}
+          <Row k="余的赠送项目（当前）">{giftText(giftsNow)}</Row>
+        </dl>
+      </Section>
+
+      <Section title="前后对比图">
+        <div className="mt-1 grid grid-cols-[auto_6.5rem_6.5rem] items-center justify-center gap-x-3 gap-y-1.5 text-center text-xs text-muted">
+          <span />
+          {PHOTO_SETS.map((set) => <span key={set}>{set}</span>)}
+          {PHOTO_SIDES.map((side) => (
+            <Fragment key={side}>
+              <span>{side}</span>
+              {PHOTO_SETS.map((set) => {
+                const lab = `${set}${side}`
+                const list = photos.filter((f) => photoLabelOf(f) === lab)
+                const last = list.at(-1)
+                return <PhotoTile key={lab} appt={appt} fx={fx} lab={lab} last={last} count={list.length} onOpen={() => setView(last.id)} />
+              })}
+            </Fragment>
+          ))}
+        </div>
+        {fx.error && <p role="alert" className="mt-2 text-xs text-rose-700">{fx.error}</p>}
+      </Section>
+
+      <Section title="同意书">
+        <div className="flex items-center justify-between py-1">
+          <span className="text-sm text-muted">{consent.length ? `${consent.length} 个文件` : '还没有上传'}</span>
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-full px-2.5 py-1 text-xs text-muted hover:bg-ink/5 hover:text-ink">
+            <Upload size={12} /> {fx.busyKey === `${appt.id}|同意书` ? '上传中…' : '上传同意书'}
+            <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" onChange={(e) => { const f = e.target.files[0]; e.target.value = ''; fx.upload(appt, '同意书', f) }} />
+          </label>
+        </div>
+        {consent.length > 0 && (
+          <ul className="space-y-0.5">
+            {consent.map((f) => (
+              <li key={f.id} className="flex items-center gap-2 text-xs">
+                <FileText size={12} className="shrink-0 text-muted" />
+                <span className="min-w-0 flex-1 truncate">{f.name}<span className="text-muted"> · {fmtSize(f.size)}</span></span>
+                <button type="button" onClick={() => fx.download(f)} aria-label="下载" className="rounded-full p-1.5 text-muted hover:bg-ink/5 hover:text-ink"><Download size={13} /></button>
+                {fx.canDelete && <button type="button" onClick={() => fx.del(f)} aria-label="删除" className="rounded-full p-1.5 text-muted hover:bg-rose-50 hover:text-rose-700"><Trash2 size={13} /></button>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <div className="mt-5 flex justify-end"><button type="button" onClick={onClose} className="btn-primary !py-2.5">关闭</button></div>
+      {view && photos.some((p) => p.id === view) && <PhotoViewer customerId={fx.customerId} photos={photos} start={photos.findIndex((p) => p.id === view)} onClose={() => setView(null)} />}
+    </Modal>
   )
 }
 
 function CustomerForm({ customer, onClose }) {
   const { save, appointments, payments } = useCrm()
   const fx = useCustomerFiles(customer)
+  const [detailId, setDetailId] = useState(null) // the appointment record opened from the history
   const [f, setF] = useState({
     name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
     tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: customer?.memberTier || (customer?.member ? 'member' : ''),
@@ -294,13 +369,16 @@ function CustomerForm({ customer, onClose }) {
             <ul className="divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
               {history.map((a) => {
                 // What this booking cost: its payments (a payment still unsettled is shown as owed), and who served.
-                const pays = payments.filter((p) => p.appointmentId === a.id)
+                const allPays = payments.filter((p) => p.appointmentId === a.id)
+                const hiddenPay = allPays.some((p) => p.hidden) // the owner's account: an admin does not see it
+                const pays = allPays.filter((p) => !p.hidden)
                 const paid = pays.reduce((n, p) => n + paidAmount(p), 0)
                 const owed = pays.filter((p) => p.paymentMethod === 'unsettled').reduce((n, p) => n + p.amount, 0)
                 const tip = pays.reduce((n, p) => n + paidTip(p), 0)
                 const staff = a.staff || pays.find((p) => p.staff)?.staff
                 return (
-                  <li key={a.id} className="px-4 py-2.5 text-sm">
+                  <li key={a.id} className="text-sm">
+                    <button type="button" onClick={() => setDetailId(a.id)} className="block w-full px-4 py-2.5 text-left transition hover:bg-sand/50" aria-label={`查看 ${a.service} 的详细记录`}>
                     <div className="flex items-center justify-between gap-3">
                     <div className={`min-w-0 ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}>
                       <p className="truncate font-medium">{a.service}</p>
@@ -309,13 +387,13 @@ function CustomerForm({ customer, onClose }) {
                     </div>
                     <div className="shrink-0 text-right">
                       <p className={`text-sm font-medium ${pays.length === 0 || a.paymentDeleted ? 'text-muted' : ''}`}>
-                        {pays.length === 0 ? '未记账' : paid > 0 ? `消费 ${money(paid)}` : owed > 0 ? `未结算 ${money(owed)}` : '消费 $0'}
+                        {hiddenPay ? '账目不可见' : pays.length === 0 ? '未记账' : paid > 0 ? `消费 ${money(paid)}` : owed > 0 ? `未结算 ${money(owed)}` : '消费 $0'}
                       </p>
                       {tip > 0 && <p className="text-xs text-muted">小费 {money(tip)}</p>}
                       <span className="mt-1 inline-flex items-center gap-2">{a.paymentDeleted && <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">付款：未结算</span>}<StatusBadge status={a.status} /></span>
                     </div>
                     </div>
-                    <ApptFiles appt={a} fx={fx} />
+                    </button>
                   </li>
                 )
               })}
@@ -323,6 +401,7 @@ function CustomerForm({ customer, onClose }) {
           )}
         </div>
       )}
+      {detailId && appointments.find((x) => x.id === detailId) && <ApptDetail appt={appointments.find((x) => x.id === detailId)} customer={customer} fx={fx} onClose={() => setDetailId(null)} />}
       {/* 取消 / 保存 sit at the very bottom, under the history and the documents (they belong to the form above via its id). */}
       {fx.error && <p role="alert" className="mt-4 text-right text-sm text-rose-700">{fx.error}</p>}
       {error && <p role="alert" className="mt-4 text-right text-sm text-rose-700">{error}</p>}

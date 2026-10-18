@@ -16,7 +16,7 @@ const hoursOut = (row) => ({
 const getSettings = wrap(async (req, res) => res.json(hoursOut(await hoursRow())));
 
 // Body: { all: { openMin | closeMin } } sets the clinic-wide time and clears every room's own value for it;
-//       { room: 'room2', openMin | closeMin } changes that room only;
+//       { room: 'room2', openMin | closeMin } changes that room only; { room: 'room2', reset: true } makes it follow the clinic again;
 //       { closed: { room, date, from, to, value } } closes / opens a room for that one day;
 //       { closedBatch: { rooms, days: [{ date, from, to }], value } } the same for several rooms and days at once.
 const putSettings = wrap(async (req, res) => {
@@ -61,6 +61,10 @@ const putSettings = wrap(async (req, res) => {
       next[k] = v;
       for (const id of Object.keys(next.rooms)) { delete next.rooms[id][k]; if (!Object.keys(next.rooms[id]).length) delete next.rooms[id]; }
     }
+  } else if (b.room && b.reset === true) {
+    // { room, reset: true }: the room goes back to following the clinic-wide time.
+    if (!ROOM_IDS.includes(b.room)) return res.status(400).json({ error: 'unknown room' });
+    delete next.rooms[b.room];
   } else if (b.room) {
     if (!ROOM_IDS.includes(b.room)) return res.status(400).json({ error: 'unknown room' });
     next.rooms[b.room] = next.rooms[b.room] || {};

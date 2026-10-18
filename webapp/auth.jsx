@@ -27,8 +27,8 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  // The store manager can do everything; an operator only what the manager ticked for their account.
-  const can = useCallback((key) => user?.role === 'admin' || !!user?.permissions?.[key], [user])
+  // The owner and the admins can do everything; an operator only what the manager ticked for their account.
+  const can = useCallback((key) => user?.role === 'admin' || user?.role === 'owner' || !!user?.permissions?.[key], [user])
 
   return <AuthContext.Provider value={{ user, can, login, logout }}>{children}</AuthContext.Provider>
 }

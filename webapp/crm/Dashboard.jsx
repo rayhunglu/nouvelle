@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarCheck, Check, HandCoins, MessageCircle, Phone, TrendingUp, Users } from 'lucide-react'
 import { api } from '../api'
 import { useCrm } from './data'
 import { Card, PageTitle, StatCard, StatusBadge } from './ui'
-import { fmtTime, money } from './format'
+import { countsForPerformance, dayKey, fmtTime, money, performanceOf } from './format'
 
 function ApptRow({ a, name }) {
   return (
@@ -70,6 +70,22 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
 
+  // Revenue here is the staff performance (员工业绩) of each visit, the same figure the Finance page uses, not the money that moved:
+  // a member-card top-up is not revenue, and a visit paid from the card counts at its performance value. Unsettled payments and
+  // visits that are not checked out yet do not count.
+  const revenueByMonth = useMemo(() => {
+    const apptById = Object.fromEntries(appointments.map((a) => [a.id, a]))
+    const sums = {}
+    const counts = {}
+    for (const p of payments) {
+      if (p.hidden || p.paymentMethod === 'unsettled' || !countsForPerformance(p, apptById)) continue
+      const key = dayKey(p.datetime).slice(0, 7)
+      sums[key] = (sums[key] || 0) + performanceOf(p, payments)
+      if (p.amount > 0) counts[key] = (counts[key] || 0) + 1 // a pure card top-up is not a visit
+    }
+    return { sums, counts }
+  }, [appointments, payments])
+
   // Refetch when appointments/transactions change so the numbers stay current, and again whenever the page comes back into view
   // or every minute, so bookings other staff made (or a day that rolled over) show up without reloading.
   useEffect(() => {
@@ -98,6 +114,9 @@ export default function Dashboard() {
 
   if (!summary) return <p className="text-sm text-muted">加载中…</p>
   const name = (a) => customerById[a.customerId]?.name || '（已删除客户）'
+  const thisMonth = dayKey(new Date().toISOString()).slice(0, 7)
+  const monthRevenue = Math.round((revenueByMonth.sums[thisMonth] || 0) * 100) / 100
+  const months = summary.months.map((m) => ({ ...m, revenue: Math.round((revenueByMonth.sums[m.month] || 0) * 100) / 100 }))
 
   return (
     <>
@@ -106,7 +125,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <StatCard compact icon={CalendarCheck} label="今日预约" value={summary.today.length} />
         <StatCard compact icon={Users} label="客户 · 今日 / 总数" value={`${summary.todayCustomers} / ${summary.customers}`} />
-        <StatCard compact icon={TrendingUp} label="本月营收" value={money(summary.month.revenue)} hint={`${summary.month.count} 笔`} />
+        <StatCard compact icon={TrendingUp} label="本月营收" value={money(monthRevenue)} hint={`${revenueByMonth.counts[thisMonth] || 0} 笔`} />
         <StatCard compact icon={HandCoins} label="本月小费" value={money(summary.month.tips)} />
       </div>
 
@@ -141,7 +160,7 @@ export default function Dashboard() {
               <span className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full bg-ink/25" />小费</span>
             </div>
           </div>
-          <Bars months={summary.months} />
+          <Bars months={months} />
         </Card>
       </div>
     </>

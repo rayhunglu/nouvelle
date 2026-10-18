@@ -1,13 +1,17 @@
 const store = require('../../services/store');
 const crypto = require('crypto');
-const { newCredentials, MIN_PASSWORD } = require('../../services/users');
+const { newCredentials, MIN_PASSWORD, roleOf } = require('../../services/users');
 const mailer = require('../../services/mailer');
 const { SET_HOURS, newToken, linkFor } = require('../../services/passwordReset');
 const { PATTERN } = require('../../lib/validate');
 const { wrap, str } = require('./common');
 const { cleanPerms } = require('../../middleware/crmAccess');
 
-// Staff accounts (store manager only).
+// Staff accounts (owner and admin only). Only an owner can make someone an owner, and only an owner can change or delete an
+// owner's account: an admin cannot reach the owner's login.
+const RANK = { staff: 0, admin: 1, owner: 2 };
+const isOwner = (req) => req.session.user.role === 'owner';
+const NOT_OWNER = { error: '只有老板可以设置或修改老板账号' };
 const ADMIN_NAME = (process.env.CRM_ADMIN_USER || '').toLowerCase(); // '' when the built-in admin is off
 const publicUser = ({ passwordHash, encrypt_key, hash_key, reset_token, reset_expires, session_epoch, login_fails, login_locked_until, ...rest }) => ({ ...rest, pendingPassword: !!reset_token && new Date(reset_expires).getTime() > Date.now(), permissions: cleanPerms(rest.permissions) });
 
@@ -19,6 +23,7 @@ const create = wrap(async (req, res) => {
   const username = str(b.username, 30);
   const staffName = str(b.staffName, 60);
   const email = str(b.email, 160);
+  if (roleOf(b.role) === 'owner' && !isOwner(req)) return res.status(403).json(NOT_OWNER);
   if (!/^[A-Za-z0-9_.-]{3,30}$/.test(username)) return res.status(400).json({ error: '登录名需 3-30 位，只能用字母、数字、_ . -' });
   if (!PATTERN.email.test(email)) return res.status(400).json({ error: '请填写正确的邮箱，设置密码的链接会寄到这里' });
   if (!staffName) return res.status(400).json({ error: '请选择员工' });
@@ -27,7 +32,7 @@ const create = wrap(async (req, res) => {
   const link = newToken(SET_HOURS);
   // Until the link is used the account has a random password nobody knows.
   const row = await store.create('users', {
-    username, role: b.role === 'admin' ? 'admin' : 'staff', ...newCredentials(crypto.randomBytes(32).toString('hex')), email, reset_token: link.reset_token, reset_expires: link.reset_expires, session_epoch: '', login_fails: 0, login_locked_until: '',
+    username, role: roleOf(b.role), ...newCredentials(crypto.randomBytes(32).toString('hex')), email, reset_token: link.reset_token, reset_expires: link.reset_expires, session_epoch: '', login_fails: 0, login_locked_until: '',
     staffName, displayName: str(b.displayName, 60) || staffName, active: true, permissions: cleanPerms(b.permissions),
   });
   const mail = await mailer.sendPasswordLink({ to: email, name: row.displayName, link: linkFor(req, link.token), kind: 'new' });
@@ -41,8 +46,9 @@ const update = wrap(async (req, res) => {
   if (!target) return res.status(404).json({ error: 'Not found' });
   // Nobody can lock themselves out by demoting or disabling their own account.
   const self = target.username === req.session.user.username;
-  if (self && (('role' in b && b.role !== 'admin' && target.role === 'admin') || b.active === false)) return res.status(400).json({ error: '不能降级或停用自己的账号' });
-  if ('role' in b) patch.role = b.role === 'admin' ? 'admin' : 'staff';
+  if ((target.role === 'owner' || ('role' in b && roleOf(b.role) === 'owner')) && !isOwner(req)) return res.status(403).json(NOT_OWNER);
+  if (self && (('role' in b && RANK[roleOf(b.role)] < RANK[roleOf(target.role)]) || b.active === false)) return res.status(400).json({ error: '不能降级或停用自己的账号' });
+  if ('role' in b) patch.role = roleOf(b.role);
   if ('staffName' in b) { patch.staffName = str(b.staffName, 60); if (!patch.staffName) return res.status(400).json({ error: '请选择员工' }); }
   if ('displayName' in b) patch.displayName = str(b.displayName, 60);
   if ('permissions' in b) patch.permissions = cleanPerms(b.permissions);
@@ -76,6 +82,7 @@ const update = wrap(async (req, res) => {
 const remove = wrap(async (req, res) => {
   const target = await store.get('users', req.params.id);
   if (target && target.username === req.session.user.username) return res.status(400).json({ error: '不能删除自己的账号' });
+  if (target && target.role === 'owner' && !isOwner(req)) return res.status(403).json(NOT_OWNER);
   if (!(await store.remove('users', req.params.id))) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });

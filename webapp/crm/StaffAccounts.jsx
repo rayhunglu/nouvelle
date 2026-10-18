@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Bell, CalendarOff, ChevronRight, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
+import { ArrowLeft, Bell, CalendarOff, ChevronRight, Clock, KeyRound, Plus, Trash2, UserCheck, UserX, X } from 'lucide-react'
 import { api } from '../api'
+import { useAuth } from '../auth'
 import { Card, Empty, Field, Modal, PageTitle, inputCls } from './ui'
 import { DEFAULT_ROOM_STAFF } from './staff'
 import { ROOMS } from './rooms'
@@ -19,11 +20,68 @@ export const PERMISSION_OPTIONS = [
   { key: 'deleteCustomers', label: '删除客户', hint: '会连带删除该客户的预约和账目' },
 ]
 
-// ---- 员工管理 (store manager only) ----
+// ---- 设置 (owner and admin only): the shop's opening hours, then the staff ----
 // The list of staff comes first. Adding a name (or tapping one) opens that person's own page: login account, contact details
 // and alerts, and attendance.
 
 const accountsOf = (users, name) => (users || []).filter((u) => u.staffName === name)
+
+// 店铺营业时间管理: when the shop opens and closes. The rooms follow it (each room can still have its own time): the grey stretches on
+// the appointment timeline and the times a visitor can book on the website both come from these hours.
+function ShopHours() {
+  const { hours, reload } = useCrm()
+  const [expanded, setExpanded] = useState(false) // closed until the title is tapped
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const save = async (body) => {
+    setBusy(true); setError('')
+    try { await api('/crm/settings', { method: 'PUT', body }); await reload() } catch (e) { setError(e.message) }
+    setBusy(false)
+  }
+  const timeSelect = (value, onChange, label, from, to) => (
+    <select value={value} onChange={(e) => onChange(Number(e.target.value))} disabled={busy} aria-label={label} className={`${inputCls} !w-auto !px-3 !py-1.5 text-sm`}>
+      {QUARTERS.slice(from, to).map((m) => <option key={m} value={m}>{hm(m)}</option>)}
+    </select>
+  )
+  return (
+    <Card className="mb-2 p-4 sm:p-5">
+      <button type="button" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} className="flex w-full items-center gap-2 text-left">
+        <Clock size={16} className="shrink-0 text-gold" />
+        <h2 className="text-sm font-medium">店铺营业时间管理</h2>
+        <span className="ml-auto text-xs text-muted">全店 {hm(hours.openMin)} – {hm(hours.closeMin)}</span>
+        <ChevronRight size={16} className={`shrink-0 text-muted transition ${expanded ? 'rotate-90' : ''}`} />
+      </button>
+      {expanded && (
+      <div className="mt-3">
+      <p className="mb-4 text-xs text-muted">设置几点开门、几点关门。所有房间的预约时间轴会跟着变（营业时间以外是灰色，不能预约），官网客人能选的预约时间也按这里的时间。</p>
+      {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">{error}</p>}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <span className="font-medium">全店</span>
+        <span className="text-muted">开门</span>{timeSelect(hours.openMin, (v) => save({ all: { openMin: v } }), '全店开门时间', 0, -1)}
+        <span className="text-muted">关门</span>{timeSelect(hours.closeMin, (v) => save({ all: { closeMin: v } }), '全店关门时间', 1)}
+      </div>
+      <p className="mt-1.5 text-xs text-muted">改全店的时间，会让所有房间一起改，包括下面单独设置过的房间。</p>
+      <ul className="mt-4 divide-y divide-ink/10 rounded-xl border border-ink/10 bg-white">
+        {ROOMS.map((r) => {
+          const own = hours.rooms?.[r.id] || {}
+          const open = own.openMin ?? hours.openMin
+          const close = own.closeMin ?? hours.closeMin
+          const custom = own.openMin !== undefined || own.closeMin !== undefined
+          return (
+            <li key={r.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5 text-sm">
+              <span className="flex min-w-[8rem] items-center gap-2 font-medium"><i className={`h-2.5 w-2.5 rounded-full ${r.dot}`} />{r.name}</span>
+              <span className="text-muted">开门</span>{timeSelect(open, (v) => save({ room: r.id, openMin: v }), `${r.name} 开门时间`, 0, -1)}
+              <span className="text-muted">关门</span>{timeSelect(close, (v) => save({ room: r.id, closeMin: v }), `${r.name} 关门时间`, 1)}
+              {custom ? <button type="button" onClick={() => save({ room: r.id, reset: true })} disabled={busy} className="rounded-full border border-ink/15 px-2.5 py-1 text-xs hover:bg-sand">改回跟随全店</button> : <span className="text-xs text-muted">跟随全店</span>}
+            </li>
+          )
+        })}
+      </ul>
+      </div>
+      )}
+    </Card>
+  )
+}
 
 export default function StaffAccounts() {
   const { roster, reload } = useCrm()
@@ -51,7 +109,9 @@ export default function StaffAccounts() {
 
   return (
     <>
-      <PageTitle title="员工管理" sub="先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤" />
+      <PageTitle title="设置" sub="店铺营业时间，以及员工的登录账号、联系方式和出勤" />
+      <ShopHours />
+      <h2 className="mb-2 mt-8 text-sm font-medium">员工管理 <span className="font-normal text-muted">先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤</span></h2>
       {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
 
       <Card className="mb-6 p-4 sm:p-5">
@@ -69,7 +129,7 @@ export default function StaffAccounts() {
               <Link to={`/crm/staff/${encodeURIComponent(n)}`} className="block rounded-2xl border border-ink/10 bg-white p-4 transition hover:border-gold hover:shadow-sm">
                 <p className="flex items-center gap-2 font-medium">{n}<ChevronRight size={16} className="ml-auto text-muted" /></p>
                 <p className="mt-1 text-xs text-muted">
-                  {users === null ? '加载中…' : accts.length === 0 ? '还没有登录账号' : accts.map((u) => `${u.username}${u.role === 'admin' ? '（管理员）' : ''}${u.pendingPassword ? ' · 待设置密码' : ''}${u.active === false ? ' · 已停用' : ''}`).join('、')}
+                  {users === null ? '加载中…' : accts.length === 0 ? '还没有登录账号' : accts.map((u) => `${u.username}${u.role === 'owner' ? '（老板）' : u.role === 'admin' ? '（管理员）' : ''}${u.pendingPassword ? ' · 待设置密码' : ''}${u.active === false ? ' · 已停用' : ''}`).join('、')}
                 </p>
               </Link>
             </li>
@@ -82,6 +142,7 @@ export default function StaffAccounts() {
 
 // One person's page: their login accounts, contact details / alerts, and attendance.
 export function StaffDetail() {
+  const me = useAuth().user
   const { name } = useParams()
   const { roster, reload } = useCrm()
   const navigate = useNavigate()
@@ -140,7 +201,7 @@ export function StaffDetail() {
               {accts.map((u) => (
                 <li key={u.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4">
                   <div className="min-w-0 flex-1 basis-48">
-                    <p className="truncate font-medium">{u.displayName || u.staffName}{u.active === false && <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">已停用</span>}{u.role === 'admin' && <span className="ml-2 rounded-full bg-plum/15 px-2 py-0.5 text-xs text-plum-deep">管理员</span>}{u.pendingPassword && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">待设置密码</span>}</p>
+                    <p className="truncate font-medium">{u.displayName || u.staffName}{u.active === false && <span className="ml-2 rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">已停用</span>}{(u.role === 'admin' || u.role === 'owner') && <span className="ml-2 rounded-full bg-plum/15 px-2 py-0.5 text-xs text-plum-deep">{u.role === 'owner' ? '老板' : '管理员'}</span>}{u.pendingPassword && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">待设置密码</span>}</p>
                     <p className="text-xs text-muted">登录名 {u.username}{u.email ? ` · ${u.email}` : ' · 未填邮箱'}</p>
                     <p className="mt-1 flex flex-wrap gap-1">
                       {PERMISSION_OPTIONS.filter((o) => u.permissions?.[o.key]).map((o) => <span key={o.key} className="rounded-full bg-gold/15 px-2 py-0.5 text-[0.68rem] text-gold">{o.label}</span>)}
@@ -148,9 +209,9 @@ export function StaffDetail() {
                     </p>
                   </div>
                   <div className="flex gap-1">
-                    <button onClick={() => setEditing(u)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="设置权限和密码" title="设置权限和密码"><KeyRound size={16} /></button>
-                    <button onClick={() => toggle(u)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label={u.active === false ? '启用' : '停用'} title={u.active === false ? '启用' : '停用'}>{u.active === false ? <UserCheck size={16} /> : <UserX size={16} />}</button>
-                    <button onClick={() => setConfirmDel(u)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除账号" title="删除账号"><Trash2 size={16} /></button>
+                    <button disabled={u.role === 'owner' && me.role !== 'owner'} onClick={() => setEditing(u)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="设置权限和密码" title="设置权限和密码"><KeyRound size={16} /></button>
+                    <button disabled={u.role === 'owner' && me.role !== 'owner'} onClick={() => toggle(u)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label={u.active === false ? '启用' : '停用'} title={u.active === false ? '启用' : '停用'}>{u.active === false ? <UserCheck size={16} /> : <UserX size={16} />}</button>
+                    <button disabled={u.role === 'owner' && me.role !== 'owner'} onClick={() => setConfirmDel(u)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除账号" title="删除账号"><Trash2 size={16} /></button>
                   </div>
                 </li>
               ))}
@@ -288,7 +349,6 @@ function ScheduleManager({ only }) {
   const { schedule, reload, roster: all } = useCrm()
   const roster = useMemo(() => (only ? [only] : all), [only, all])
   const [error, setError] = useState('')
-  const [draft, setDraft] = useState({}) // per staff: { date, kind }
 
   const get = (name) => ({
     weekdays: schedule[name]?.weekdays ?? [0, 1, 2, 3, 4, 5, 6], off: schedule[name]?.off ?? [], on: schedule[name]?.on ?? [],
@@ -353,7 +413,6 @@ function ScheduleManager({ only }) {
       <ul className={only ? 'grid gap-4' : 'grid gap-4 lg:grid-cols-3'}>
         {roster.map((name) => {
           const s = get(name)
-          const dr = draft[name] || { date: '', kind: 'off' }
           return (
             <li key={name} className={only ? '' : 'rounded-2xl border border-ink/10 bg-white p-4'}>
               {!only && <p className="mb-3 font-medium">{name}</p>}
@@ -420,8 +479,6 @@ function ScheduleManager({ only }) {
                 on={s.on}
                 onHours={s.onHours}
                 restHours={s.restHours}
-                kind={dr.kind || 'off'}
-                onKind={(k) => setDraft({ ...draft, [name]: { ...dr, kind: k } })}
                 onConfirm={(kind, dates, times) => {
                   // A date is rest (whole day), part-day rest, or an extra working day: never two at once.
                   const off = new Set(s.off.filter((d) => !dates.includes(d)))
@@ -463,13 +520,13 @@ function ScheduleManager({ only }) {
 
 // A small month calendar for rest days and extra working days. Click days (or press and drag across a stretch) to select them,
 // optionally give the times (an extra work day with its own hours, or a rest that covers only part of the day), then press 确认.
-function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm, onClear }) {
+function RestPicker({ name, off, on, onHours, restHours, onConfirm, onClear }) {
   const [month, setMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1) })
-  const [picked, setPicked] = useState([]) // 'YYYY-MM-DD' strings selected but not yet confirmed
-  const [drag, setDrag] = useState(null) // { a, b } cell indexes while the mouse is down
+  const [drag, setDrag] = useState(null) // { a, b } cell indexes while a finger / the mouse is down
+  const dragRef = useRef(null)
+  const [dlg, setDlg] = useState(null) // the dates just chosen ('YYYY-MM-DD'), waiting for rest or overtime
   const [startMin, setStartMin] = useState('') // '' = the whole day (rest) / the usual hours (extra work)
   const [endMin, setEndMin] = useState('')
-  const dragging = useRef(false)
   const first = new Date(month.getFullYear(), month.getMonth(), 1)
   const start = new Date(first); start.setDate(1 - first.getDay())
   const cells = Array.from({ length: 42 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d })
@@ -478,29 +535,36 @@ function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm
   const hasTimes = startMin !== '' && endMin !== ''
   const timesError = (startMin !== '') !== (endMin !== '') ? '出勤和退勤时间要一起选' : hasTimes && Number(endMin) - Number(startMin) < 15 ? '退勤时间要晚于出勤时间' : ''
 
+  // Tap a day, or press and drag across several (mouse or finger): when the press ends, a small window asks 休息 or 加班 for them.
+  // The cell under the pointer is found from its position, so a dragging finger works too.
   useEffect(() => {
-    const end = () => {
-      if (!dragging.current) return
-      dragging.current = false
-      setDrag((cur) => {
-        if (cur) {
-          const dates = cells.slice(Math.min(cur.a, cur.b), Math.max(cur.a, cur.b) + 1).map(ymd)
-          // Selecting is a toggle: a stretch that is entirely selected already is deselected.
-          setPicked((p) => (dates.every((d) => p.includes(d)) ? p.filter((d) => !dates.includes(d)) : [...new Set([...p, ...dates])].sort()))
-        }
-        return null
-      })
+    const cellAt = (x, y) => { const el = document.elementFromPoint(x, y)?.closest('[data-day]'); return el ? Number(el.dataset.i) : -1 }
+    const move = (e) => {
+      const cur = dragRef.current
+      if (!cur) return
+      const i = cellAt(e.clientX, e.clientY)
+      if (i >= 0 && i !== cur.b) { dragRef.current = { ...cur, b: i }; setDrag(dragRef.current) }
     }
+    const end = () => {
+      const cur = dragRef.current
+      if (!cur) return
+      dragRef.current = null
+      setDrag(null)
+      setStartMin(''); setEndMin('')
+      setDlg(cells.slice(Math.min(cur.a, cur.b), Math.max(cur.a, cur.b) + 1).map(ymd))
+    }
+    window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
     window.addEventListener('pointercancel', end)
-    return () => { window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end) }
+    return () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', end); window.removeEventListener('pointercancel', end) }
   })
 
-  const confirm = () => {
-    if (!picked.length || timesError) return
-    onConfirm(kind, picked, hasTimes ? { startMin: Number(startMin), endMin: Number(endMin) } : null)
-    setPicked([]); setStartMin(''); setEndMin('')
+  const choose = (kind) => {
+    if (!dlg || timesError) return
+    onConfirm(kind, dlg, hasTimes ? { startMin: Number(startMin), endMin: Number(endMin) } : null)
+    setDlg(null)
   }
+  const marked = dlg ? dlg.filter((d) => off.includes(d) || on.includes(d) || restHours[d]) : []
   const timeOptions = (from, to) => QUARTERS.slice(from, to).map((m) => <option key={m} value={m}>{hm(m)}</option>)
 
   return (
@@ -511,11 +575,7 @@ function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm
           <span className="w-20 text-center font-medium">{month.getFullYear()}年{month.getMonth() + 1}月</span>
           <button type="button" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="grid h-6 w-6 place-items-center rounded-full hover:bg-sand" aria-label="下个月">›</button>
         </div>
-        <div className="flex rounded-full bg-sand p-0.5" role="group" aria-label="标记类型">
-          {[['off', '休息'], ['on', '加班']].map(([k, l]) => (
-            <button key={k} type="button" onClick={() => onKind(k)} aria-pressed={kind === k} className={`whitespace-nowrap rounded-full px-2.5 py-0.5 ${kind === k ? 'bg-white font-medium shadow-sm' : 'text-muted'}`}>{l}</button>
-          ))}
-        </div>
+        <span className="text-muted">点日期，或按住拖过几天</span>
       </div>
       <div className="grid grid-cols-7 text-center text-muted">{WEEK.map((w) => <span key={w} className="py-0.5">{w}</span>)}</div>
       <div className="grid select-none grid-cols-7 gap-px" style={{ touchAction: 'none' }} aria-label={`${name} 休息日期`}>
@@ -525,14 +585,14 @@ function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm
           const isOff = off.includes(k)
           const isOn = on.includes(k)
           const isPart = !!restHours[k]
-          const preview = (i >= lo && i <= hi) || picked.includes(k)
+          const preview = i >= lo && i <= hi
           return (
             <button
               key={k}
               type="button"
               data-day={k}
-              onPointerDown={(e) => { if (e.button !== 0) return; e.preventDefault(); dragging.current = true; setDrag({ a: i, b: i }) }}
-              onPointerEnter={() => { if (dragging.current) setDrag((cur) => (cur ? { ...cur, b: i } : cur)) }}
+              data-i={i}
+              onPointerDown={(e) => { if (e.button !== 0) return; e.preventDefault(); dragRef.current = { a: i, b: i }; setDrag(dragRef.current) }}
               title={isPart ? `${hm(restHours[k].startMin)}–${hm(restHours[k].endMin)} 休息` : isOn && onHours[k] ? `加班 ${hm(onHours[k].startMin)}–${hm(onHours[k].endMin)}` : undefined}
               className={`grid h-7 place-items-center rounded-md text-[0.7rem] tabular-nums transition ${preview ? 'bg-gold/40 ring-1 ring-gold' : isOff ? 'bg-rose-200 font-medium text-rose-900' : isPart ? 'bg-rose-100 font-medium text-rose-800 ring-1 ring-inset ring-rose-300' : isOn ? 'bg-emerald-200 font-medium text-emerald-900' : inMonth ? 'hover:bg-sand' : 'text-muted/50 hover:bg-sand'} ${k === ymd(new Date()) ? 'underline underline-offset-2' : ''}`}
               aria-label={niceDate(k)}
@@ -541,40 +601,43 @@ function RestPicker({ name, off, on, onHours, restHours, kind, onKind, onConfirm
           )
         })}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <label className="block"><span className="mb-0.5 block text-muted">出勤时间</span>
-          <select value={startMin} onChange={(e) => setStartMin(e.target.value)} aria-label="所选日期的出勤时间" className={`${inputCls} !px-2 !py-1 text-xs`}>
-            <option value="">{kind === 'off' ? '全天休息' : '同平时'}</option>
-            {timeOptions(0, -1)}
-          </select>
-        </label>
-        <label className="block"><span className="mb-0.5 block text-muted">退勤时间</span>
-          <select value={endMin} onChange={(e) => setEndMin(e.target.value)} aria-label="所选日期的退勤时间" className={`${inputCls} !px-2 !py-1 text-xs`}>
-            <option value="">{kind === 'off' ? '全天休息' : '同平时'}</option>
-            {timeOptions(1)}
-          </select>
-        </label>
-      </div>
-      <p className="mt-1 text-muted">
-        {kind === 'off'
-          ? (hasTimes ? `只在 ${hm(Number(startMin))}–${hm(Number(endMin))} 休息，其余时间照常上班。` : '不选时间 = 整天休息；选了时间 = 只在这段时间休息。')
-          : (hasTimes ? `加班日的出勤时间 ${hm(Number(startMin))}–${hm(Number(endMin))}。` : '不选时间 = 按平时的出勤时间加班；选了时间 = 这天用这个出勤时间。')}
-      </p>
-      {timesError && <p className="mt-1 text-rose-700">{timesError}</p>}
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="text-muted">{picked.length ? `已选 ${picked.length} 天：${picked.length <= 3 ? picked.map((d) => d.slice(5).replace('-', '/')).join('、') : `${picked[0].slice(5).replace('-', '/')} … ${picked[picked.length - 1].slice(5).replace('-', '/')}`}` : '点日期或按住拖动来选择'}</span>
-        <span className="ml-auto flex gap-1.5">
-          {picked.length > 0 && <button type="button" onClick={() => setPicked([])} className="rounded-lg border border-ink/15 px-2.5 py-1 hover:bg-sand">清除选择</button>}
-          {picked.some((d) => off.includes(d) || on.includes(d) || restHours[d]) && <button type="button" onClick={() => { onClear(picked); setPicked([]) }} className="rounded-lg border border-rose-300 px-2.5 py-1 text-rose-700 hover:bg-rose-50">取消所选的标记</button>}
-          <button type="button" onClick={confirm} disabled={!picked.length || !!timesError} className="rounded-lg bg-ink px-3 py-1 text-ivory disabled:opacity-40">确认</button>
-        </span>
-      </div>
       <p className="mt-1.5 text-muted"><span className="inline-block h-2 w-2 rounded-sm bg-rose-300 align-middle" /> 休息 <span className="ml-1 inline-block h-2 w-2 rounded-sm bg-rose-100 align-middle ring-1 ring-rose-300" /> 部分时段休息 <span className="ml-1 inline-block h-2 w-2 rounded-sm bg-emerald-300 align-middle" /> 加班</p>
+      {dlg && (
+        <Modal inset title="休息 或 加班" onClose={() => setDlg(null)}>
+          <p className="text-sm"><b>{name}</b>　{dlg.length === 1 ? niceDate(dlg[0]) : `${niceDate(dlg[0])} – ${niceDate(dlg[dlg.length - 1])}（共 ${dlg.length} 天）`}</p>
+          {marked.length > 0 && <p className="mt-1 text-xs text-muted">已有标记：{marked.map((d) => `${d.slice(5).replace('-', '/')} ${restHours[d] ? '部分时段休息' : off.includes(d) ? '休息' : '加班'}`).join('、')}</p>}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Field label="出勤时间（可不选）">
+              <select value={startMin} onChange={(e) => setStartMin(e.target.value)} aria-label="所选日期的出勤时间" className={inputCls}>
+                <option value="">不指定</option>
+                {timeOptions(0, -1)}
+              </select>
+            </Field>
+            <Field label="退勤时间（可不选）">
+              <select value={endMin} onChange={(e) => setEndMin(e.target.value)} aria-label="所选日期的退勤时间" className={inputCls}>
+                <option value="">不指定</option>
+                {timeOptions(1)}
+              </select>
+            </Field>
+          </div>
+          <p className="mt-2 text-xs text-muted">不选时间：休息 = 整天休息，加班 = 按平时的出勤时间。选了时间：休息 = 只在这段时间休息，加班 = 这几天用这个出勤时间。</p>
+          {timesError && <p role="alert" className="mt-1 text-xs text-rose-700">{timesError}</p>}
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button type="button" onClick={() => choose('off')} disabled={!!timesError} className="rounded-xl bg-rose-100 py-3 text-sm font-medium text-rose-900 hover:bg-rose-200 disabled:opacity-40">休息</button>
+            <button type="button" onClick={() => choose('on')} disabled={!!timesError} className="rounded-xl bg-emerald-100 py-3 text-sm font-medium text-emerald-900 hover:bg-emerald-200 disabled:opacity-40">加班</button>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            {marked.length > 0 ? <button type="button" onClick={() => { onClear(dlg); setDlg(null) }} className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50">取消所选的标记</button> : <span />}
+            <button type="button" onClick={() => setDlg(null)} className="btn-ghost !py-2">取消</button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
 
 function AccountForm({ user, staffName, onClose, onSaved }) {
+  const me = useAuth().user
   const { roster } = useCrm()
   const [f, setF] = useState({ username: user?.username || '', role: user?.role || 'staff', email: user?.email || '', password: '', staffName: user?.staffName || staffName || roster[0] || '', displayName: user?.displayName || '' })
   const [perms, setPerms] = useState(() => Object.fromEntries(PERMISSION_OPTIONS.map((o) => [o.key, !!user?.permissions?.[o.key]])))
@@ -607,7 +670,8 @@ function AccountForm({ user, staffName, onClose, onSaved }) {
         <Field label="角色">
           <select className={inputCls} value={f.role} onChange={set('role')}>
             <option value="staff">员工（按权限）</option>
-            <option value="admin">管理员（全部权限）</option>
+            <option value="admin">管理员（全部功能，看不到老板的账目）</option>
+            {(me.role === 'owner' || f.role === 'owner') && <option value="owner" disabled={me.role !== 'owner'}>老板（全部功能，看到所有人的账目）</option>}
           </select>
         </Field>
         <div className="grid gap-4 sm:grid-cols-3">
