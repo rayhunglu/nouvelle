@@ -184,7 +184,7 @@ function Detail({ item, index }) {
             {item.photo && !item.poster && !item.posters && (
               <img src={t(item.photo)} alt={t(item.name)} loading="lazy" className="mt-6 aspect-[4/3] w-full rounded-[1.5rem] bg-sand object-cover" />
             )}
-            {(item.posters ?? (item.poster ? [item.poster] : [])).map((src) => (
+            {(item.posters ?? (item.poster ? [t(item.poster)] : [])).map((src) => (
               <a key={src} href={src} target="_blank" rel="noreferrer" className="mt-6 block overflow-hidden rounded-[1.5rem] bg-sand">
                 <img src={src} alt={t(item.name)} loading="lazy" className="w-full" />
               </a>
@@ -208,7 +208,7 @@ function Detail({ item, index }) {
           {item.photo && !item.poster && !item.posters && (
             <img src={t(item.photo)} alt={t(item.name)} loading="lazy" className="mt-0 aspect-[4/3] w-full rounded-[1.5rem] bg-sand object-cover" />
           )}
-          {(item.posters ?? (item.poster ? [item.poster] : [])).map((src) => (
+          {(item.posters ?? (item.poster ? [t(item.poster)] : [])).map((src) => (
             <a key={src} href={src} target="_blank" rel="noreferrer" className="mt-0 block overflow-hidden rounded-[1.5rem] bg-sand">
               <img src={src} alt={t(item.name)} loading="lazy" className="w-full" />
             </a>
@@ -314,8 +314,8 @@ function Treatment({ item, index }) {
             <div className="mt-6"><ConsultLink item={item} /></div>
           </div>
           {item.poster && (
-            <a href={item.poster} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[1.5rem] bg-ivory">
-              <img src={item.poster} alt={t(item.name)} loading="lazy" className="w-full" />
+            <a href={t(item.poster)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[1.5rem] bg-ivory">
+              <img src={t(item.poster)} alt={t(item.name)} loading="lazy" className="w-full" />
             </a>
           )}
         </div>
@@ -327,8 +327,8 @@ function Treatment({ item, index }) {
     <Reveal as="article" id={item.key} className={`scroll-mt-28 grid items-center gap-10 py-12 ${tight ? `lg:gap-12 ${flip ? 'lg:grid-cols-[1fr_1.1fr]' : 'lg:grid-cols-[1.1fr_1fr]'}` : 'lg:grid-cols-2 lg:gap-16'}`}>
       <div className={`overflow-hidden rounded-[2rem] bg-sand ${flip ? 'lg:order-2' : ''}`}>
         {item.poster ? (
-          <a href={item.poster} target="_blank" rel="noreferrer" className="block">
-            <img src={item.poster} alt={t(item.name)} loading="lazy" className="w-full" />
+          <a href={t(item.poster)} target="_blank" rel="noreferrer" className="block">
+            <img src={t(item.poster)} alt={t(item.name)} loading="lazy" className="w-full" />
           </a>
         ) : (
           <img src={t(item.image)} alt={t(item.name)} loading="lazy" className={`w-full object-cover ${tight ? 'aspect-[4/3] lg:aspect-[5/4]' : 'aspect-[4/3]'}`} />

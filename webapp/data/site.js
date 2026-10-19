@@ -1769,7 +1769,7 @@ const collagenStimulator = {
   },
 }
 
-// Added to the Injectables category as the seventh card (see below): neck collagen dermal filler (one poster for both languages).
+// Added to the Injectables category as the seventh card (see below): neck collagen dermal filler (its own poster for each language).
 const collagenFiller = {
   id: 'collagen-filler',
   key: 'collagen-filler',
@@ -1993,7 +1993,7 @@ categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key ==
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-4').poster = '/images/treatments/shared/contour-guide-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-5').poster = '/images/treatments/shared/instalift-ad-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-stimulator').poster = '/images/treatments/shared/collagen-premium-poster.jpg'
-categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-filler').poster = '/images/treatments/shared/collagen-filler-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-filler').poster = { zh: '/images/treatments/shared/collagen-filler-poster.jpg', en: '/images/treatments/shared/collagen-filler-poster-en.jpg' } // the English site has its own poster
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'skin-2').poster = '/images/treatments/shared/skin-booster-luxury-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hair-2').poster = '/images/treatments/shared/prp-aesthetic-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'body-3').poster = '/images/treatments/shared/fat-reduction-poster.jpg'

@@ -50,7 +50,7 @@ export default function Featured() {
             <Link to={to} className="group block">
               <div className="overflow-hidden rounded-2xl bg-sand shadow-sm">
                 <img
-                  src={BANNERS[item.key] || item.poster || t(item.image)}
+                  src={BANNERS[item.key] || (item.poster && t(item.poster)) || t(item.image)}
                   alt={t(title)}
                   loading="lazy"
                   className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-105"
