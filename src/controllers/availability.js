@@ -41,7 +41,7 @@ const MEDICAL_60 = [
   'skin-1', 'skin-3', 'skin-4', 'skin-5', 'skin-7', 'acne-microneedling', 'skin-8', 'hair-3', 'body-1', 'body-2', 'wellness-1', // 仪器类
   'iv-therapy-1', 'iv-therapy-2', 'hormone-stem-cell-2', 'stem-cell', // 点滴类
 ]
-const MEDICAL_30 = ['injectables-1', 'injectables-2', 'injectables-3', 'injectables-4', 'collagen-stimulator', 'body-3', 'wellness-2', 'hormone-stem-cell-1', 'tirzepatide'];
+const MEDICAL_30 = ['injectables-1', 'injectables-2', 'injectables-3', 'injectables-4', 'collagen-stimulator', 'collagen-filler', 'body-3', 'wellness-2', 'hormone-stem-cell-1', 'tirzepatide'];
 const MEDICAL_MINUTES = Object.fromEntries([...MEDICAL_60.map((k) => [k, 60]), ...MEDICAL_30.map((k) => [k, 30])]);
 for (const k of Object.keys(MEDICAL_MINUTES)) SERVICE_ROOM[k] = MEDICAL_ROOM;
 

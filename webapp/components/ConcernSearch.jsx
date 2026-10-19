@@ -55,7 +55,7 @@ const face = [
   { zh: '小脸・轮廓', en: 'Face slimming', to: '/treatments/skincare-experts#japanese-face-correction', dot: [63.5, 62.0], label: [78, 82.5] },
 ]
 const body = [
-  { zh: '颈部', en: 'Neck', to: '/treatments/injectables#injectables-1', dot: [45.7, 19.5], label: [22, 18.5], side: 'l' },
+  { zh: '颈部', en: 'Neck', to: '/treatments/injectables#collagen-filler', dot: [45.7, 19.5], label: [22, 18.5], side: 'l' },
   { zh: '手臂', en: 'Arms', to: '/treatments/injectables#body-3', dot: [38.4, 27.0], label: [22, 27.0], side: 'l' },
   { zh: '腹部', en: 'Abdomen', to: '/treatments/injectables#body-3', dot: [47.3, 40.0], label: [22, 40.0], side: 'l' },
   { zh: '肩膀', en: 'Shoulders', to: '/treatments/injectables#injectables-1', // 肉毒

@@ -1769,6 +1769,40 @@ const collagenStimulator = {
   },
 }
 
+// Added to the Injectables category as the seventh card (see below): neck collagen dermal filler (one poster for both languages).
+const collagenFiller = {
+  id: 'collagen-filler',
+  key: 'collagen-filler',
+  name: { en: 'Collagen Dermal Filler', zh: '胶原蛋白填充注射' },
+  image: '/images/treatments/shared/collagen-filler-poster.jpg',
+  subtitle: { en: '', zh: 'COLLAGEN DERMAL FILLER' },
+  body: {
+    en: 'Professional collagen filler injections refine fine lines, local hollows and volume loss on the face and neck, helping to smooth skin texture and contours for a natural, soft, full and youthful look.',
+    zh: '通过专业胶原蛋白填充注射，针对面部及颈部细纹、局部凹陷与容量流失进行精细化改善，帮助修饰肌肤纹理与轮廓，呈现自然柔和、饱满精致的年轻状态。',
+  },
+  sections: [
+    {
+      title: { en: 'Key benefits', zh: '主要功效' },
+      items: {
+        en: ['Improve fine lines | Softens neck lines and shallow surface wrinkles', 'Fill hollows | Improves local volume loss and hollowing', 'Smooth skin texture | Refines texture and boosts evenness', 'Fine contouring | Improves local contours for soft lines', 'Natural rejuvenation | Focuses on a natural, harmonious, refined look'],
+        zh: ['改善细纹｜柔化颈纹及局部浅表皱纹', '填充凹陷｜改善局部容量不足与肌肤凹陷', '平滑肤质｜修饰肌肤纹理，提升平整度', '精细塑形｜改善局部轮廓，呈现柔和线条', '自然年轻化｜注重自然协调的精致美感'],
+      },
+    },
+    {
+      title: { en: 'Treatment areas', zh: '适用部位' },
+      text: { en: 'Neck lines | Facial fine lines | Local hollows | Shallow facial wrinkles', zh: '颈部横纹｜面部细纹｜局部凹陷｜面部浅表皱纹' },
+    },
+    {
+      title: { en: 'Highlights', zh: '项目特点' },
+      text: { en: 'Precise injection · Fine filling · Personalised design · Natural harmony', zh: '精准注射 · 精细填充 · 个性化设计 · 自然协调' },
+    },
+  ],
+  note: {
+    en: 'The exact treatment areas depend on the approved indications of the product used and on a professional assessment. The treatment plan, product choice, dose and areas are determined after an in-person assessment by a qualified medical professional.',
+    zh: '具体适用部位取决于所使用产品的获批适应证及专业评估。治疗方案、产品选择、注射剂量及适用部位需由专业医疗人员面诊评估后确定。',
+  },
+}
+
 // Added to the Devices category as the sixth card (see below).
 const acneMicroneedling = {
   id: 'acne-microneedling',
@@ -1851,7 +1885,9 @@ export const categories = [
     treatments: [
       ...pick('injectables-1', 'injectables-2', 'injectables-3', 'injectables-4'),
       collagenStimulator,
-      ...pick('skin-2', 'injectables-5', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
+      ...pick('skin-2'),
+      collagenFiller,
+      ...pick('injectables-5', 'hair-2', 'body-3', 'wellness-2', 'hormone-stem-cell-1'),
       tirzepatide,
     ],
   },
@@ -1957,6 +1993,7 @@ categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key ==
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-4').poster = '/images/treatments/shared/contour-guide-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'injectables-5').poster = '/images/treatments/shared/instalift-ad-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-stimulator').poster = '/images/treatments/shared/collagen-premium-poster.jpg'
+categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'collagen-filler').poster = '/images/treatments/shared/collagen-filler-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'skin-2').poster = '/images/treatments/shared/skin-booster-luxury-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'hair-2').poster = '/images/treatments/shared/prp-aesthetic-poster.jpg'
 categories.find((c) => c.slug === 'injectables').treatments.find((x) => x.key === 'body-3').poster = '/images/treatments/shared/fat-reduction-poster.jpg'
