@@ -28,8 +28,8 @@ export default function ShopHome() {
         <Reveal className="max-w-3xl">
           <p className="font-display text-2xl font-light sm:text-3xl">
             {t({
-              en: 'Contact us for more product information and how to buy.',
-              zh: '联系我们，了解更多产品信息及购买方式。',
+              en: 'Contact us to enquire about buying and enjoy member-price offers.',
+              zh: '联系我们，咨询购买即可享受会员价优惠。',
             })}
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

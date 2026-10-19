@@ -17,7 +17,11 @@ for (const c of categories) {
 
 export const projectKind = (serviceName) => {
   const name = String(serviceName || '')
+  if (name.includes(' + ')) return name.split(' + ').map(projectKind).find(Boolean) || null // several services booked together: the first one that has a kind
   if (byName.has(name)) return byName.get(name)
   if (/睫/.test(name)) return 'lash'
   return null
 }
+
+// The kind recorded on a booking for a service typed by hand (项目类别): 医美 and 美睫 count like the website's own, the rest is null.
+export const kindOfCategory = (category) => (category === 'medical' || category === 'lash' ? category : null)

@@ -4,7 +4,7 @@ import { Download, HandCoins, Pencil, Plus, Receipt, Trash2, TrendingUp } from '
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
-import { projectKind } from './projectKind'
+import { projectKind as projectKindOfName, kindOfCategory } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
 import { dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 import { openPicker } from '../lib/util'
@@ -59,8 +59,9 @@ export default function Finance() {
   // 介绍人 of a payment = the 客户来源 of its appointment. What was typed in the payment's own 介绍人 box (if anything) wins.
   const referrerOf = (p) => p.referralSource || apptById[p.appointmentId]?.source || ''
   // The service a payment settled, by name (the same text the list shows), to tell 医美 from 美睫.
+  const projectKind = (name, p) => projectKindOfName(name) || kindOfCategory(apptById[p.appointmentId]?.category) || kindOfCategory((apptById[p.appointmentId]?.items || []).find((x) => kindOfCategory(x.category))?.category) // a service typed by hand uses the kind chosen on its booking
   const serviceNameOf = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
-  const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p))]?.includes(staff) && sameName(referrerOf(p), staff)
+  const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p), p)]?.includes(staff) && sameName(referrerOf(p), staff)
   const rows = useMemo(
     () => payments
       .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || referredTo(p, staffFilter)))
@@ -109,7 +110,7 @@ export default function Finance() {
   const exportRinaCsv = async () => {
     const r2 = (n) => Math.round(n * 100) / 100
     const inPeriod = payments.filter((p) => inMonth(p) && counted(p) && p.paymentMethod !== 'unsettled').sort((a, b) => a.datetime.localeCompare(b.datetime))
-    const kind = (p) => projectKind(serviceNameOf(p))
+    const kind = (p) => projectKind(serviceNameOf(p), p)
     const service = inPeriod.filter((p) => p.staff === 'Rina' && !kind(p))
     const medical = inPeriod.filter((p) => kind(p) === 'medical' && (p.staff === 'Rina' || sameName(referrerOf(p), 'Rina')))
     const lashFactor = (p) => (sameName(referrerOf(p), 'Yingna') || sameName(referrerOf(p), 'Rina') ? 0.4 * 0.3 : sameName(referrerOf(p), 'Dayu') ? 0.3 * 0.3 : 0)

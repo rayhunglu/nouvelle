@@ -11,7 +11,7 @@ async function appointmentInput(b) {
   const start = new Date(b.start);
   if (!b.customerId || !(await store.get('customers', b.customerId))) return { error: 'valid customerId is required' };
   if (Number.isNaN(start.getTime())) return { error: 'valid start datetime is required' };
-  const service = str(b.service, 160);
+  const service = str(b.service, 400);
   if (!service) return { error: 'service is required' };
   const durationMin = num(b.durationMin || 60);
   const price = b.price === '' || b.price == null ? 0 : num(b.price);
@@ -26,6 +26,13 @@ async function appointmentInput(b) {
       // A booking can take a whole double room (both beds); stored only when sent so other edits never reset it.
       ...('fullRoom' in b ? { fullRoom: b.fullRoom === true } : {}),
       // Where the customer came from; stored only when sent, so other edits never clear it.
+      // The kind of a custom (typed) service: 护肤 / 医美 / 美睫 / Spa. Stored only when sent.
+      // Several services booked together: [{ service, durationMin, price, category }] (the first is the main one); [] for a single service.
+      ...('items' in b ? { items: (Array.isArray(b.items) ? b.items : []).slice(0, 6).map((x) => ({
+        service: str(x && x.service, 160), durationMin: Math.max(0, Math.min(1440, num((x && x.durationMin) || 0) || 0)), price: Math.max(0, num((x && x.price) || 0) || 0),
+        category: ['skincare', 'medical', 'lash', 'spa'].includes(x && x.category) ? x.category : '',
+      })).filter((x) => x.service) } : {}),
+      ...('category' in b ? { category: ['skincare', 'medical', 'lash', 'spa'].includes(b.category) ? b.category : '' } : {}),
       ...('source' in b ? { source: SOURCES.includes(b.source) ? b.source : '' } : {}),
     },
   };

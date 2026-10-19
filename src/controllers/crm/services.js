@@ -5,7 +5,9 @@ const { makeCrud } = require('./crud');
 function serviceInput(b) {
   const name = str(b.name, 80);
   if (!name) return { error: 'name is required' };
-  return { data: { name } };
+  // 项目类别 of a custom service that was remembered from a booking (skincare / medical / lash / spa); stored only when sent.
+  const category = ['skincare', 'medical', 'lash', 'spa'].includes(b.category) ? b.category : '';
+  return { data: { name, ...('category' in b ? { category } : {}) } };
 }
 
 module.exports = makeCrud('services', serviceInput, {

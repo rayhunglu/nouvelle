@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, CalendarPlus, Check, Clock, HandCoins, LayoutList, Pencil, Plus, Trash2 } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Check, Clock, HandCoins, LayoutList, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { business, categories } from '../data/site'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -44,6 +44,13 @@ const HIDDEN_IN_ROOM = {
 const EXTRA_SERVICES = [{ after: 'BTL 磁波塑肌燃脂', value: '热拉提', search: 'Thermage lift 热玛吉 拉提' }]
 
 // Services that have a fixed operator: picking one on a new booking fills in 负责员工 (still changeable by hand).
+// 项目类别 for a service typed by hand (not on the website list): it decides the usual room, like the website's own categories do.
+const CUSTOM_CATEGORIES = [
+  { id: 'skincare', label: '护肤项目', room: 'room1' },
+  { id: 'medical', label: '医美项目', room: 'room2' },
+  { id: 'lash', label: '美睫项目', room: 'room3' },
+  { id: 'spa', label: 'Spa 项目', room: 'room4' },
+]
 const SERVICE_STAFF = [{ re: /拔罐/, staff: 'Rina' }] // 背部拔罐 is Rina's
 
 // Which room a service belongs in. `must` rooms are the only choice (the equipment / bed is there); the others are the
@@ -113,7 +120,7 @@ function ServiceCombo({ value, onChange, options, placeholder }) {
             </li>
           )}
           {shown.map((o) => {
-            const hint = [o.durationMin && `${o.durationMin} 分钟`, o.price && `$${o.price}`].filter(Boolean).join(' · ')
+            const hint = [o.tag, o.durationMin && `${o.durationMin} 分钟`, o.price && `$${o.price}`].filter(Boolean).join(' · ')
             return (
               <li key={o.value} role="option" aria-selected={o.value === value}>
                 <button
@@ -291,7 +298,7 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
   const staffSuggestions = withStaff(appointments.map((a) => a.staff), roster)
   const [f, setF] = useState({
     customerId: appt?.customerId || '', // new bookings start with nobody chosen: search first, then add
-    service: appt?.service || '',
+    service: (appt?.items?.length > 1 ? appt.items[0].service : appt?.service) || '',
     start: appt ? toLocalInput(appt.start) : draftStart ? toLocalInput(draftStart) : defaultOpenStart(hours),
     durationMin: appt?.durationMin || draftDuration || 60,
     price: appt?.price ?? '',
@@ -303,7 +310,11 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
     staff: lockStaff && user?.staffName ? user.staffName : appt ? appt.staff || '' : ROOM_DEFAULT_STAFF[appt?.room || draftRoom || ''] || '',
     notes: appt?.notes || '',
     source: appt?.source || '', // 客户来源
+    category: (appt?.items?.length > 1 ? appt.items[0].category : appt?.category) || '', // 项目类别 (only for a service typed by hand)
   })
+  // More services booked together (the 加号 under 服务项目): each has its own length and price; the length and price boxes below
+  // hold the totals. An existing booking brings its extra services back from `items` (the first item is the main service).
+  const [extras, setExtras] = useState(() => (appt?.items?.length > 1 ? appt.items.slice(1).map((x) => ({ service: x.service || '', durationMin: Number(x.durationMin) || 0, price: Number(x.price) || 0, category: x.category || '' })) : []))
   // 备注 follows the customer: choosing a customer fills in the notes kept for them (from their last visit), and saving updates those notes.
   const notesTouched = useRef(false)
   const [nc, setNc] = useState({ firstName: '', lastName: '', gender: 'female', wechatId: '', wechatNo: '', phone: '', email: '' }) // the customer being added
@@ -337,7 +348,16 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
   const priceByTier = (hit, tier) => (tier === 'regular' ? hit?.regularPrice ?? hit?.price : hit?.price)
   const priceOfHit = (hit, member = isMember, customerId = f.customerId, picked = tierPicked) => priceByTier(hit, (picked !== 'manual' && picked) || tierFor(customerId, member, hit))
   const priced = useMemo(() => catalog.map((o) => ({ ...o, price: priceOfHit(o) })), [catalog, isMember, f.customerId, appointments, tierPicked]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Custom services that were typed before are remembered (in the CRM's own service list, with their 项目类别) and offered in the menu.
+  const customMem = useMemo(() => Object.fromEntries(services.filter((x) => x.category).map((x) => [x.name, x])), [services])
+  const menuOptions = useMemo(() => {
+    if (!catalog.length) return services.map((x) => ({ value: x.name }))
+    const known = new Set(catalog.map((o) => o.value))
+    const label = (id) => CUSTOM_CATEGORIES.find((c) => c.id === id)?.label
+    return [...priced, ...Object.values(customMem).filter((x) => !known.has(x.name)).map((x) => ({ value: x.name, tag: label(x.category) }))]
+  }, [catalog, priced, services, customMem])
   const serviceHit = catalog.find((x) => x.value === f.service)
+  const customService = !!f.service.trim() && !serviceHit // typed by hand: ask which kind of service it is
   const mustRule = (() => { const r = roomRule(f.service, serviceHit?.cat); return r?.must ? r : null })()
   const tier = (tierPicked !== 'manual' && tierPicked) || tierFor(f.customerId, isMember, serviceHit)
   const TIERS = [['first', '初次体验价'], ['member', '会员再来价'], ['regular', '非会员再来价']]
@@ -372,7 +392,37 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
       : {}
     const fixedStaff = SERVICE_STAFF.find((r) => r.re.test(value))?.staff
     const staff = fixedStaff && !appt && !staffPicked && !lockStaff ? { staff: fixedStaff } : {}
-    setF({ ...f, service: value, price, ...roomChange, ...staff, ...(mins ? { durationMin: mins } : {}) })
+    const exMin = extras.reduce((n, x) => n + x.durationMin, 0)
+    const exPrice = extras.reduce((n, x) => n + x.price, 0)
+    if (extras.length && price !== '') price = String(Math.round((Number(price) + exPrice) * 100) / 100) // the box shows the total of every service
+    else if (extras.length && exPrice) price = String(exPrice)
+    setF({ ...f, service: value, price, ...roomChange, ...staff, category: hit ? '' : customMem[value]?.category ?? f.category, ...(mins ? { durationMin: mins + exMin } : {}) })
+  }
+  // Extra services: adding / changing / removing one moves the total length and price by that service's share.
+  const addExtra = () => setExtras([...extras, { service: '', durationMin: 0, price: 0, category: '' }])
+  const changeExtra = (i, patch) => {
+    const old = extras[i]
+    const next = { ...old, ...patch }
+    setExtras(extras.map((x, n) => (n === i ? next : x)))
+    setF({ ...f, durationMin: Math.max(15, Number(f.durationMin) + next.durationMin - old.durationMin), price: String(Math.max(0, Math.round(((Number(f.price) || 0) + next.price - old.price) * 100) / 100)) })
+  }
+  const pickExtra = (i, value) => {
+    const hit = catalog.find((x) => x.value === value)
+    changeExtra(i, { service: value, durationMin: hit?.durationMin ?? durationFor(value) ?? 0, price: Number(priceOfHit(hit, isMember, f.customerId, null)) || 0, category: hit ? '' : customMem[value]?.category ?? extras[i]?.category ?? '' })
+  }
+  const removeExtra = (i) => {
+    const old = extras[i]
+    setExtras(extras.filter((_, n) => n !== i))
+    setF({ ...f, durationMin: Math.max(15, Number(f.durationMin) - old.durationMin), price: String(Math.max(0, Math.round(((Number(f.price) || 0) - old.price) * 100) / 100)) })
+  }
+  // Choosing the kind of a custom service moves the booking to that kind's usual room (unless a room was picked by hand).
+  const pickCategory = (id) => {
+    const cat = CUSTOM_CATEGORIES.find((c) => c.id === id)
+    const room = cat && !roomPicked && !mustRule ? cat.room : f.room
+    const roomChange = room !== f.room
+      ? { room, fullRoom: !appt && !fullPicked ? (roomOf(room).beds || 1) > 1 : f.fullRoom && (roomOf(room).beds || 1) > 1, ...(!appt && !staffPicked && !lockStaff ? { staff: ROOM_DEFAULT_STAFF[room] || '' } : {}) }
+      : {}
+    setF({ ...f, category: id, ...roomChange })
   }
   // Picking another customer switches a website price between member and regular, unless the price was typed by hand.
   // Typed text that matches nobody becomes the new customer's details: a phone number, an email, or a name.
@@ -414,8 +464,25 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
         const made = await save('customers', null, { ...nc, name: [nc.firstName.trim(), nc.lastName.trim()].filter(Boolean).join(' '), notes: f.notes })
         customerId = made.id
       }
-      const body = { ...f, customerId, start: new Date(f.start).toISOString(), durationMin: Number(f.durationMin), price: f.price === '' ? 0 : Number(f.price) }
+      const added = extras.filter((x) => x.service.trim())
+      const exMin = added.reduce((n, x) => n + x.durationMin, 0)
+      const exPrice = added.reduce((n, x) => n + x.price, 0)
+      const total = Number(f.durationMin)
+      // The main service keeps what is left of the totals; the booking's own name lists every service.
+      const items = added.length ? [{ service: f.service, durationMin: Math.max(0, total - exMin), price: Math.max(0, Math.round(((Number(f.price) || 0) - exPrice) * 100) / 100), category: customService ? f.category : '' }, ...added.map((x) => ({ ...x, service: x.service.trim(), category: catalog.some((c) => c.value === x.service) ? '' : x.category }))] : []
+      const body = { ...f, service: added.length ? [f.service, ...added.map((x) => x.service.trim())].join(' + ') : f.service, items, category: customService ? f.category : '', customerId, start: new Date(f.start).toISOString(), durationMin: Number(f.durationMin), price: f.price === '' ? 0 : Number(f.price) }
       const saved = await save('appointments', appt?.id, body)
+      // Remember the custom services typed here (with their 项目类别): they join the service menu from now on.
+      const everyone = catalogFor('').map((o) => o.value)
+      const customs = [{ service: f.service, category: customService ? f.category : '' }, ...added.map((x) => ({ service: x.service.trim(), category: x.category }))]
+        .filter((x) => x.service && x.category && !everyone.includes(x.service))
+      for (const x of customs) {
+        const have = services.find((y) => y.name === x.service)
+        try {
+          if (!have) await save('services', null, { name: x.service.slice(0, 80), category: x.category })
+          else if (have.category !== x.category) await save('services', have.id, { name: have.name, category: x.category })
+        } catch { /* remembering is a convenience: the booking itself is already saved */ }
+      }
       // Keep the customer's notes up to date, so the next booking (any date) starts from them.
       const known = customerById[customerId]
       if (known && (notesTouched.current || !appt) && (f.notes || '') !== (known.notes || '')) await save('customers', customerId, { ...known, notes: f.notes })
@@ -482,10 +549,38 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
             value={f.service}
             onChange={(value) => pickService({ target: { value } })}
             placeholder={catalog.length ? '点开选择，或输入搜索（中/英文）' : '选择或输入'}
-            options={catalog.length ? priced : services.map((x) => ({ value: x.name }))}
+            options={menuOptions}
           />
-          {catalog.length > 0 && <span className="mt-1.5 block text-xs text-gold">已链接官网项目：自动带出时长与价格（{manualPrice ? '手动价格' : TIERS.find(([k]) => k === tier)[1]}）</span>}
+          {catalog.length > 0 && !customService && <span className="mt-1.5 block text-xs text-gold">已链接官网项目：自动带出时长与价格（{manualPrice ? '手动价格' : TIERS.find(([k]) => k === tier)[1]}）</span>}
         </Field>
+        {customService && (
+          <Field label="项目类别 *">
+            <select className={inputCls} value={f.category} onChange={(e) => pickCategory(e.target.value)} required={!appt || f.service !== appt.service}>
+              <option value="">请选择这个自定义项目属于哪一类</option>
+              {CUSTOM_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </Field>
+        )}
+        {extras.map((x, i) => {
+          const custom = !!x.service.trim() && !catalog.some((c) => c.value === x.service)
+          return (
+            <div key={i} className="rounded-2xl border border-ink/10 p-3">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted">
+                <span>第 {i + 2} 个项目</span>
+                <button type="button" onClick={() => removeExtra(i)} className="inline-flex items-center gap-1 text-rose-700" aria-label="删除这个项目"><X size={14} /> 删除</button>
+              </div>
+              <ServiceCombo value={x.service} onChange={(value) => pickExtra(i, value)} placeholder="点开选择，或输入搜索（中/英文）" options={menuOptions} />
+              {custom && (
+                <select className={`${inputCls} mt-2`} value={x.category} onChange={(e) => changeExtra(i, { category: e.target.value })} required aria-label="项目类别">
+                  <option value="">请选择这个自定义项目属于哪一类</option>
+                  {CUSTOM_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              )}
+              {x.service.trim() && <p className="mt-1.5 text-xs text-muted">这个项目：{x.durationMin ? `${x.durationMin} 分钟` : '时长未定'}{x.price ? ` · $${x.price}` : ''}（已计入下面的合计，可在下面改）</p>}
+            </div>
+          )
+        })}
+        <button type="button" onClick={addExtra} className="inline-flex items-center gap-1.5 self-start rounded-full border border-dashed border-gold px-3.5 py-1.5 text-sm text-gold hover:bg-gold hover:text-ivory"><Plus size={15} /> 增加项目（同时预约多个）</button>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="日期 *"><input className={inputCls} type="date" value={date} onChange={(e) => e.target.value && setF({ ...f, start: `${e.target.value}T${f.start.slice(11, 16)}` })} required  onClick={openPicker} onFocus={openPicker} /></Field>
           <Field label="时长">

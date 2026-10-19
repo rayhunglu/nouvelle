@@ -52,7 +52,7 @@ async function createAppointment(input) {
   try {
     const error = validateInput(input, {
       customerId: { required: true, type: 'string', nonEmpty: true },
-      service: { required: true, type: 'string', nonEmpty: true, max: 160 },
+      service: { required: true, type: 'string', nonEmpty: true, max: 400 },
       start: { required: true, type: 'string', nonEmpty: true },
       durationMin: { required: true, type: 'number', min: 1, max: 1440 },
       price: { required: true, type: 'number', min: 0 },
@@ -62,6 +62,8 @@ async function createAppointment(input) {
       notes: { required: true, type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
       source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
+      items: { type: 'array' }, // services booked together: [{ service, durationMin, price, category }]
+      category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] }, // 项目类别 of a custom (typed) service
       googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
       googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
     });
@@ -95,7 +97,7 @@ async function updateAppointment(id, input) {
     if (!validId(id)) return null;
     const error = validateInput(input, {
       customerId: { type: 'string', nonEmpty: true },
-      service: { type: 'string', nonEmpty: true, max: 160 },
+      service: { type: 'string', nonEmpty: true, max: 400 },
       start: { type: 'string', nonEmpty: true },
       durationMin: { type: 'number', min: 1, max: 1440 },
       price: { type: 'number', min: 0 },
@@ -105,6 +107,8 @@ async function updateAppointment(id, input) {
       notes: { type: 'string', max: 2000 },
       fullRoom: { type: 'boolean' },
       source: { type: 'string', enum: ['', 'Yingna', 'Rina', 'Dayu', '其他'] }, // 客户来源
+      items: { type: 'array' }, // services booked together: [{ service, durationMin, price, category }]
+      category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] }, // 项目类别 of a custom (typed) service
       googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
       googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
       paymentDeleted: { type: 'boolean' },

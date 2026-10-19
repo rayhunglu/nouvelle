@@ -26,9 +26,9 @@ async function getServices() {
 
 async function createService(input) {
   try {
-    const error = validateInput(input, { name: { required: true, type: 'string', nonEmpty: true, max: 80 } });
+    const error = validateInput(input, { name: { required: true, type: 'string', nonEmpty: true, max: 80 }, category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] } });
     if (error) throw error;
-    const query = newRecord({ name: input.name });
+    const query = newRecord({ name: input.name, ...(input.category ? { category: input.category } : {}) });
     await dbClient.insertOne(COLLECTION, query);
     return query;
   } catch (err) {
@@ -40,9 +40,9 @@ async function createService(input) {
 async function updateService(id, input) {
   try {
     if (!validId(id)) return null;
-    const error = validateInput(input, { name: { type: 'string', nonEmpty: true, max: 80 } });
+    const error = validateInput(input, { name: { type: 'string', nonEmpty: true, max: 80 }, category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] } });
     if (error) throw error;
-    return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...(input.name !== undefined ? { name: input.name } : {}), id, updatedAt: new Date().toISOString() });
+    return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...(input.name !== undefined ? { name: input.name } : {}), ...(input.category !== undefined ? { category: input.category } : {}), id, updatedAt: new Date().toISOString() });
   } catch (err) {
     console.error('[services.model] updateService failed:', err.message);
     throw err;
