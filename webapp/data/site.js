@@ -3557,8 +3557,8 @@ export const beforeAfterPhotos = [
 // Medical treatments regrouped by what they do for the client (the categories above group them by method).
 export const medicalFunctions = [
   { id: 'lifting', name: { en: 'Anti-wrinkle & Lifting', zh: '除皱 · 紧致提升' }, short: { en: 'Smooth lines and firm the face', zh: '抚平皱纹、紧致提拉' }, keys: ['injectables-1', 'injectables-5', 'collagen-stimulator', 'skin-1', 'skin-7'] },
-  { id: 'contour', name: { en: 'Filler & Contouring', zh: '填充 · 轮廓塑形' }, short: { en: 'Restore volume and refine facial proportions', zh: '补充容量、优化面部比例' }, keys: ['injectables-2', 'injectables-4', 'injectables-3'] },
-  { id: 'renewal', name: { en: 'Skin Renewal & Brightening', zh: '嫩肤 · 祛斑 · 焕肤' }, short: { en: 'Even tone, refine texture, restore glow', zh: '均匀肤色、细腻肤质、焕发光泽' }, keys: ['skin-3', 'skin-4', 'skin-5', 'skin-2', 'iv-therapy-2', 'body-2'] },
+  { id: 'contour', name: { en: 'Filler & Contouring', zh: '填充 · 轮廓塑形' }, short: { en: 'Restore volume and refine facial proportions', zh: '补充容量、优化面部比例' }, keys: ['injectables-2', 'injectables-4', 'injectables-3', 'collagen-filler'] },
+  { id: 'renewal', name: { en: 'Skin Renewal & Brightening', zh: '嫩肤 · 祛斑 · 焕肤' }, short: { en: 'Even tone, refine texture, restore glow', zh: '均匀肤色、细腻肤质、焕发光泽' }, keys: ['skin-3', 'skin-4', 'skin-5', 'skin-2', 'iv-therapy-2', 'body-2', 'acne-microneedling'] },
   { id: 'body', name: { en: 'Body Sculpting & Weight', zh: '身体塑形 · 体重管理' }, short: { en: 'Reduce stubborn fat and build muscle tone', zh: '减少顽固脂肪、紧实肌肉线条' }, keys: ['body-3', 'hair-3', 'tirzepatide'] },
   { id: 'scalp', name: { en: 'Scalp & Hair Growth', zh: '头皮 · 生发' }, short: { en: 'Revive the scalp and support thicker hair', zh: '焕活头皮、支持头发浓密' }, keys: ['hair-2', 'body-1'] },
   { id: 'vitality', name: { en: 'Whole-body Anti-aging & Vitality', zh: '全身抗衰 · 活力调理' }, short: { en: 'Energy, hormone balance and cellular renewal', zh: '能量、荷尔蒙平衡与细胞焕新' }, keys: ['iv-therapy-1', 'hormone-stem-cell-2', 'stem-cell', 'wellness-2', 'hormone-stem-cell-1', 'wellness-1'] },
