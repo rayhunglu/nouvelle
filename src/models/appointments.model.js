@@ -80,6 +80,8 @@ async function createAppointment(input) {
       notes: input.notes,
       fullRoom: input.fullRoom,
       source: input.source,
+      category: input.category,
+      items: input.items,
       googleEventId: input.googleEventId,
       googleCalendarId: input.googleCalendarId,
     }));
@@ -127,6 +129,8 @@ async function updateAppointment(id, input) {
       notes: input.notes,
       fullRoom: input.fullRoom,
       source: input.source,
+      category: input.category,
+      items: input.items,
       googleEventId: input.googleEventId,
       googleCalendarId: input.googleCalendarId,
       paymentDeleted: input.paymentDeleted,

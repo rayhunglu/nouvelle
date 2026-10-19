@@ -22,7 +22,7 @@ async function paymentInput(b) {
   const topUpGifts = Array.isArray(b.topUpGifts) ? [...new Set(b.topUpGifts)].filter((g) => GIFTS.includes(g)) : [];
   if (topUpGifts.length > allowed) return { error: `this top-up includes at most ${allowed} gift(s)` };
   const giftUsed = ['photofacial', 'thermage'].includes(b.giftUsed) ? b.giftUsed : ''; // a free top-up gift session redeemed at this visit
-  if (amount + tipAmount + topUp <= 0 && !giftUsed) return { error: 'amount or tip must be greater than 0' };
+  // A $0 payment is fine: the visit may be used up from a package the customer already bought, so nothing is collected.
   const serviceIds = Array.isArray(b.serviceIds) ? [...new Set(b.serviceIds)] : [];
   const known = new Set((await store.list('services')).map((x) => x.id));
   if (serviceIds.some((id) => !known.has(id))) return { error: 'unknown serviceIds' };
