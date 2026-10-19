@@ -124,7 +124,7 @@ async function undoTopUpBlocked(appointmentId) {
   const all = await store.list('payments');
   const mine = all.filter((x) => x.appointmentId === appointmentId);
   if (!mine.some((p) => p.topUp > 0)) return null;
-  const cardNet = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length - (p.paymentMethod === 'member_card' ? p.amount : 0) - ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0);
+  const cardNet = (p) => (p.topUp || 0) + (p.topUpGifts || []).reduce((n, g) => n + ({ cash200: 200, cash300: 300 }[g] || 0), 0) - (p.paymentMethod === 'member_card' ? p.amount : 0) - ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0);
   for (const customerId of new Set(mine.map((p) => p.customerId))) {
     const remaining = all.filter((p) => p.customerId === customerId && p.appointmentId !== appointmentId).reduce((n, p) => n + cardNet(p), 0);
     if (remaining < 0) return '撤销充值后，会员卡余额会变成负数（这笔充值已经被其他消费用掉了），请先处理那些消费';

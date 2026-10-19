@@ -17,7 +17,7 @@ async function paymentInput(b) {
   if (topUp > 0 && !METHODS.includes(topUpMethod)) return { error: `topUpMethod must be one of ${METHODS.join(', ')}` };
   if (topUp > 0 && (topUpMethod === 'member_card' || topUpMethod === 'unsettled')) return { error: 'a card top-up must be paid by a real payment method' };
   // Top-up gifts: from $2,000 up, any of $200 card credit / 光子嫩肤 / 热拉提 (as many as wanted, each once).
-  const GIFTS = ['cash200', 'photofacial', 'thermage'];
+  const GIFTS = ['cash200', 'cash300', 'photofacial', 'thermage'];
   const allowed = topUp >= 2000 ? GIFTS.length : 0;
   const topUpGifts = Array.isArray(b.topUpGifts) ? [...new Set(b.topUpGifts)].filter((g) => GIFTS.includes(g)) : [];
   if (topUpGifts.length > allowed) return { error: `this top-up includes at most ${allowed} gift(s)` };
@@ -43,7 +43,8 @@ async function paymentInput(b) {
 
 // Member card balance = everything loaded onto the card minus everything paid with it (the amount and/or the tip, each by its own method).
 const cardSpent = (p) => (p.paymentMethod === 'member_card' ? p.amount : 0) + ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0);
-const cardLoaded = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length; // top-up plus any $200 gift credit
+const CASH_GIFTS = { cash200: 200, cash300: 300 };
+const cardLoaded = (p) => (p.topUp || 0) + (p.topUpGifts || []).reduce((n, g) => n + (CASH_GIFTS[g] || 0), 0); // top-up plus any $200 / $300 gift credit
 const cardBalance = (payments, customerId, exceptId) => payments
   .filter((p) => p.customerId === customerId && p.id !== exceptId)
   .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0);

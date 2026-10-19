@@ -15,8 +15,12 @@ for (const c of categories) {
   for (const n of names) if (n && n.zh) byName.set(n.zh, kind)
 }
 
+// CRM-only services (not on the website, see EXTRA_SERVICES in Appointments.jsx) that are 医美 too.
+byName.set('热拉提', 'medical')
+
 export const projectKind = (serviceName) => {
   const name = String(serviceName || '')
+  if (name.includes('、')) return name.split('、').map(projectKind).find(Boolean) || null // services joined for display
   if (name.includes(' + ')) return name.split(' + ').map(projectKind).find(Boolean) || null // several services booked together: the first one that has a kind
   if (byName.has(name)) return byName.get(name)
   if (/睫/.test(name)) return 'lash'

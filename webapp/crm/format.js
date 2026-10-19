@@ -98,19 +98,24 @@ export const cardSpent = (p) => (p.paymentMethod === 'member_card' ? p.amount : 
 // Top-up gifts: $200 card credit, or a free 光子嫩肤 / 热拉提 session.
 export const GIFT_OPTIONS = [
   { id: 'cash200', label: '赠送 $200 余额' },
+  { id: 'cash300', label: '赠送 $300 余额' }, // with a $3,000 top-up
   { id: 'photofacial', label: '赠送光子嫩肤' },
   { id: 'thermage', label: '赠送热拉提' },
 ]
 export const giftLabel = (id) => GIFT_OPTIONS.find((g) => g.id === id)?.label.replace('赠送', '').trim() || id
 export const TOPUP_AMOUNTS = [1000, 2000, 3000]
 export const giftsAllowed = (topUp) => (topUp >= 2000 ? GIFT_OPTIONS.length : 0) // $2,000 and up: any of the gifts, as many as wanted
-export const cardLoaded = (p) => (p.topUp || 0) + 200 * (p.topUpGifts || []).filter((g) => g === 'cash200').length
+// Cash gifts load money onto the card: $200 (cash200) or $300 (cash300, for a $3,000 top-up).
+export const CASH_GIFTS = { cash200: 200, cash300: 300 }
+export const isCashGift = (g) => g in CASH_GIFTS
+export const giftCash = (gifts) => (gifts || []).reduce((n, g) => n + (CASH_GIFTS[g] || 0), 0)
+export const cardLoaded = (p) => (p.topUp || 0) + giftCash(p.topUpGifts)
 // Free sessions earned from top-ups (光子嫩肤 / 热拉提) minus the ones already used, as { id: count } (zero counts left out).
 export const giftItems = (payments, customerId, exceptId) => {
   const m = {}
   for (const p of payments) {
     if (p.customerId !== customerId || p.id === exceptId) continue
-    for (const g of p.topUpGifts || []) if (g !== 'cash200') m[g] = (m[g] || 0) + 1
+    for (const g of p.topUpGifts || []) if (!isCashGift(g)) m[g] = (m[g] || 0) + 1
     if (p.giftUsed) m[p.giftUsed] = (m[p.giftUsed] || 0) - 1
   }
   return Object.fromEntries(Object.entries(m).filter(([, n]) => n > 0))
@@ -118,15 +123,18 @@ export const giftItems = (payments, customerId, exceptId) => {
 // Which gift a service redeems: services whose name contains the gift's project.
 export const GIFT_SERVICE = { photofacial: /光子嫩肤/, thermage: /热拉提/ }
 export const giftForService = (name) => Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || ''
-// Staff performance of a payment. A customer who topped up $2,000 and received the $200 cash gift is on the 2000 / 2200 rule:
-// money they spend from the member card counts for 2000 / 2200 of the amount (a $198 service counts as 198 × 2000 / 2200 = $180).
-// Everyone else, and every other way of paying, counts for the amount actually paid.
-// The rule is the same for every payment of that customer from the day of the top-up on, whatever else they topped up.
-const RULE_NUM = 2000
-const RULE_DEN = 2200
+// Staff performance of a payment. A customer who topped up with a cash gift is on a ratio rule: money they spend from the member card
+// counts for topUp / (topUp + gift) of the amount. $2,000 + the $200 gift = 2000 / 2200 (a $198 service counts as 198 × 2000 / 2200 = $180);
+// $3,000 + the $300 gift = 3000 / 3300. Everyone else, and every other way of paying, counts for the amount actually paid.
+// The rule is the same for every payment of that customer from the day of the top-up on, whatever else they topped up
+// (when they have both, the earliest top-up decides).
+const CARD_RULES = [{ topUp: 2000, gift: 'cash200', num: 2000, den: 2200 }, { topUp: 3000, gift: 'cash300', num: 3000, den: 3300 }]
 export const cardRatio = (payments, p) => {
-  const onRule = payments.some((x) => x.customerId === p.customerId && x.datetime <= p.datetime && x.topUp === 2000 && (x.topUpGifts || []).filter((g) => g === 'cash200').length === 1)
-  return onRule ? RULE_NUM / RULE_DEN : 1
+  const hits = payments
+    .filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime)
+    .flatMap((x) => CARD_RULES.filter((r) => x.topUp === r.topUp && (x.topUpGifts || []).filter((g) => g === r.gift).length === 1).map((r) => ({ at: x.datetime, r })))
+    .sort((a, b) => a.at.localeCompare(b.at))
+  return hits.length ? hits[0].r.num / hits[0].r.den : 1
 }
 // A payment counts toward revenue and staff performance only when it is settled (see paidAmount) and, if it belongs to an
 // appointment, that appointment is completed (checked in and out). apptById maps appointment id -> appointment.

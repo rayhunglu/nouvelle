@@ -227,7 +227,7 @@ function ApptDetail({ appt, customer, fx, onClose, only }) {
                 {p.paymentMethod !== 'unsettled' && performanceOf(p, payments) !== p.amount && <Row k="员工业绩">{money(performanceOf(p, payments))}</Row>}
                 {(p.tipAmount || 0) > 0 && <Row k="小费">{money(p.tipAmount)}（{methodLabel(p.tipMethod || p.paymentMethod)}）</Row>}
                 {(p.topUp || 0) > 0 && <Row k="本次充值">{money(p.topUp)}（{methodLabel(p.topUpMethod)}）</Row>}
-                {(p.topUpGifts || []).length > 0 && <Row k="充值赠送">{p.topUpGifts.map((g) => (g === 'cash200' ? '$200 余额' : giftLabel(g))).join('、')}</Row>}
+                {(p.topUpGifts || []).length > 0 && <Row k="充值赠送">{p.topUpGifts.map((g) => (g === 'cash200' ? '$200 余额' : g === 'cash300' ? '$300 余额' : giftLabel(g))).join('、')}</Row>}
                 {p.giftUsed && <Row k="使用赠送项目">{giftLabel(p.giftUsed)}</Row>}
                 <Row k="收款时间">{fmtDateTime(p.datetime)}</Row>
                 {p.notes && <Row k="备注">{p.notes}</Row>}

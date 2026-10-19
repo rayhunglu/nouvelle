@@ -23,7 +23,7 @@ const REFERRER_LINKS = { medical: ['Rina'], lash: ['Yingna', 'Rina'] }
 const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
 
 export default function Finance() {
-  const { payments: allPayments, appointments, customerById, serviceById, remove, roster } = useCrm()
+  const { payments: allPayments, appointments, customerById, serviceById, services, remove, roster } = useCrm()
   // `hidden` payments are the owner's, which an admin may not see: they stay out of every list, total and export. The full list is only
   // kept for the member-card rules (a top-up recorded under the owner still counts for the customer's 2000 / 2200 rate).
   const payments = useMemo(() => allPayments.filter((p) => !p.hidden), [allPayments])
@@ -59,7 +59,19 @@ export default function Finance() {
   // 介绍人 of a payment = the 客户来源 of its appointment. What was typed in the payment's own 介绍人 box (if anything) wins.
   const referrerOf = (p) => p.referralSource || apptById[p.appointmentId]?.source || ''
   // The service a payment settled, by name (the same text the list shows), to tell 医美 from 美睫.
-  const projectKind = (name, p) => projectKindOfName(name) || kindOfCategory(apptById[p.appointmentId]?.category) || kindOfCategory((apptById[p.appointmentId]?.items || []).find((x) => kindOfCategory(x.category))?.category) // a service typed by hand uses the kind chosen on its booking
+  // 医美 / 美睫 by name first; a service typed by hand (not on the website list) uses the 项目类别 chosen when it was booked: the booking's
+  // own, any of its services', or the one remembered for that name in the service menu.
+  const memKind = (name) => kindOfCategory(services.find((x) => x.name === name)?.category)
+  const projectKind = (name, p) => {
+    const named = projectKindOfName(name)
+    if (named) return named
+    const appt = apptById[p.appointmentId]
+    return kindOfCategory(appt?.category)
+      || kindOfCategory((appt?.items || []).find((x) => kindOfCategory(x.category))?.category)
+      || String(name || '').split(/ \+ |、/).map(memKind).find(Boolean)
+      || (p.serviceIds || []).map((id) => kindOfCategory(serviceById[id]?.category)).find(Boolean)
+      || null
+  }
   const serviceNameOf = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
   const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p), p)]?.includes(staff) && sameName(referrerOf(p), staff)
   const rows = useMemo(

@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Field, Modal, inputCls } from './ui'
-import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftItems, giftLabel, giftsAllowed, money, toLocalInput } from './format'
+import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftCash, giftItems, giftLabel, giftsAllowed, isCashGift, money, toLocalInput } from './format'
 import { openPicker } from '../lib/util'
 
 // Dropdown of known people. "其他" reveals a text box for anyone not in the list.
@@ -34,6 +34,13 @@ function PersonSelect({ value, onChange, groups, placeholder }) {
 }
 
 // Payment form. With `completeAppointment`, saving also marks the appointment completed.
+const SERVICE_CATEGORIES = [
+  { id: 'skincare', label: '护肤项目' },
+  { id: 'medical', label: '医美项目' },
+  { id: 'lash', label: '美睫项目' },
+  { id: 'spa', label: 'Spa 项目' },
+]
+
 export default function PaymentForm({ payment, fromAppointment, completeAppointment = false, onClose }) {
   const { customers, appointments, services, payments, save, reload } = useCrm()
   const noAssign = !useAuth().can('assignOthers') // recording for another staff member needs permission
@@ -65,6 +72,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   }))
   const notesTouched = useRef(false)
   const [newService, setNewService] = useState('')
+  const [newCategory, setNewCategory] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
@@ -107,14 +115,21 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   const toggleService = (id) =>
     setF({ ...f, serviceIds: f.serviceIds.includes(id) ? f.serviceIds.filter((x) => x !== id) : [...f.serviceIds, id] })
 
+  // A service made here also needs its 项目类别, so 医美 / 美睫 work counts correctly in 账目 (and the service joins the booking menu).
   const addService = async () => {
     const name = newService.trim()
     if (!name) return
+    if (!newCategory) { setError('请先选择这个新服务的项目类别'); return }
     try {
-      const row = await api('/crm/services', { method: 'POST', body: { name } })
+      const have = services.find((x) => x.name === name)
+      const row = have
+        ? await api(`/crm/services/${have.id}`, { method: 'PUT', body: { name, category: newCategory } })
+        : await api('/crm/services', { method: 'POST', body: { name, category: newCategory } })
       await reload()
-      setF((cur) => ({ ...cur, serviceIds: [...cur.serviceIds, row.id] }))
+      setF((cur) => ({ ...cur, serviceIds: cur.serviceIds.includes(row.id) ? cur.serviceIds : [...cur.serviceIds, row.id] }))
       setNewService('')
+      setNewCategory('')
+      setError('')
     } catch (err) {
       setError(err.message)
     }
@@ -201,6 +216,10 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           <div className="mt-2 flex gap-2">
             <input className={inputCls} placeholder="没有想要的？输入新服务名称" value={newService} onChange={(e) => setNewService(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addService() } }} />
+            <select className={`${inputCls} !w-auto shrink-0`} value={newCategory} onChange={(e) => setNewCategory(e.target.value)} aria-label="项目类别">
+              <option value="">项目类别</option>
+              {SERVICE_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
             <button type="button" onClick={addService} className="btn-ghost !py-2 shrink-0">新增</button>
           </div>
         </div>
@@ -277,7 +296,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
                 <div className="sm:col-span-2">
                   <span className="mb-1.5 block text-xs font-medium text-muted">赠送（任选，可多选，已选 {f.topUpGifts.length} 项）</span>
                   <div className="flex flex-wrap gap-2">
-                    {GIFT_OPTIONS.map((g) => {
+                    {GIFT_OPTIONS.filter((g) => f.topUpGifts.includes(g.id) || (g.id === 'cash300' ? Number(f.topUp || 0) >= 3000 : g.id === 'cash200' ? Number(f.topUp || 0) < 3000 : true)).map((g) => {
                       const on = f.topUpGifts.includes(g.id)
                       return (
                         <button type="button" key={g.id} onClick={() => toggleGift(g.id)} aria-pressed={on}
@@ -295,14 +314,14 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
             const before = cardBalance(payments, f.customerId, payment?.id)
             const load = Number(f.topUp || 0)
             const gifts = f.topUpGifts.slice(0, giftsAllowed(load))
-            const bonus = 200 * gifts.filter((g) => g === 'cash200').length
-            const freeItems = gifts.filter((g) => g !== 'cash200')
+            const bonus = giftCash(gifts)
+            const freeItems = gifts.filter((g) => !isCashGift(g))
             const spend = Number(f.amount || 0) + Number(f.tipAmount || 0)
             const tipBy = f.tipMethod || f.paymentMethod
             const deduct = (f.paymentMethod === 'member_card' ? Number(f.amount || 0) : 0) + (tipBy === 'member_card' ? Number(f.tipAmount || 0) : 0)
             const after = before + load + bonus - deduct
             const remain = giftItems(payments, f.customerId, payment?.id)
-            for (const g of gifts.filter((x) => x !== 'cash200')) remain[g] = (remain[g] || 0) + 1 // earned in this same checkout
+            for (const g of gifts.filter((x) => !isCashGift(x))) remain[g] = (remain[g] || 0) + 1 // earned in this same checkout
             if (f.giftUsed) remain[f.giftUsed] = (remain[f.giftUsed] || 0) - 1
             const left = Object.entries(remain).filter(([, n]) => n > 0)
             return (
@@ -355,7 +374,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
             <button type="button" onClick={(e) => submit(e, true)} disabled={busy || !(Number(f.amount) > 0)} title="先完成这次服务，金额记为应收，暂不计入营收、小费和员工业绩"
               className="rounded-full border border-amber-600 px-5 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-40">未结算</button>
           )}
-          <button className="btn-primary !py-2.5" disabled={busy || (cardBalance(payments, f.customerId, payment?.id) + Number(f.topUp || 0) + 200 * f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0))).filter((g) => g === 'cash200').length - (f.paymentMethod === 'member_card' ? Number(f.amount || 0) : 0) - ((f.tipMethod || f.paymentMethod) === 'member_card' ? Number(f.tipAmount || 0) : 0) < -0.004)}>{quick ? '确认结算' : completeAppointment ? '保存并完成预约' : '保存'}</button>
+          <button className="btn-primary !py-2.5" disabled={busy || (cardBalance(payments, f.customerId, payment?.id) + Number(f.topUp || 0) + giftCash(f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0)))) - (f.paymentMethod === 'member_card' ? Number(f.amount || 0) : 0) - ((f.tipMethod || f.paymentMethod) === 'member_card' ? Number(f.tipAmount || 0) : 0) < -0.004)}>{quick ? '确认结算' : completeAppointment ? '保存并完成预约' : '保存'}</button>
         </div>
         {quick && <p className="text-right text-xs text-amber-700">「未结算」：先完成这次服务，金额记为应收，暂不计入营收、小费和员工业绩；收到款后到账目里改成实际付款方式。</p>}
         {completeAppointment && (
