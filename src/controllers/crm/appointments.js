@@ -153,30 +153,35 @@ async function syncPaymentsOf(row, prev) {
   }
 }
 
-// Keeps the Google Calendar in step with the appointment (CRM -> Google, see services/googleCalendar.js). Each staff member's
-// bookings go to their own calendar when one is set on their page, otherwise to the default calendar. A cancelled or no-show
-// booking has its event removed, and an event moves when the booking is handed to someone with a different calendar.
-// A failed sync is only logged: the appointment itself is already saved.
+// Keeps the Google Calendar in step with the appointment (CRM -> Google, see services/googleCalendar.js). One appointment can be on
+// several calendars: Yingna's has every booking, Rina's has hers (operator, 介绍人, and every 美睫 project), Dayu's only hers. Each
+// calendar has its own event, kept in `googleEvents`. A cancelled or no-show booking has all its events removed, and events move
+// when the booking is handed to someone else. A failed sync is only logged: the appointment itself is already saved.
 async function syncCalendar(row) {
   if (!calendar.enabled()) return;
-  const oldCal = row.googleCalendarId || calendar.defaultCalendarId();
+  const have = calendar.eventsOf(row);
+  const save = (events) => store.update('appointments', row.id, { googleEvents: events, googleEventId: events[0] ? events[0].eventId : '', googleCalendarId: events[0] ? events[0].calendarId : '' });
   if (row.status === 'cancelled' || row.status === 'no-show') {
-    if (row.googleEventId) {
-      const r = await calendar.remove(row.googleEventId, oldCal);
-      if (!r.error) await store.update('appointments', row.id, { googleEventId: '', googleCalendarId: '' });
-    }
+    const left = [];
+    for (const e of have) if ((await calendar.remove(e.eventId, e.calendarId)).error) left.push(e);
+    if (have.length) await save(left);
     return;
   }
-  const target = await calendar.calendarFor(row.staff);
-  if (!target) return;
-  let appt = row;
-  if (row.googleEventId && oldCal !== target) { // handed over to a staff member with another calendar: move the event
-    await calendar.remove(row.googleEventId, oldCal);
-    appt = { ...row, googleEventId: '' };
-  }
+  const targets = await calendar.calendarsFor(row);
   const customer = await store.get('customers', row.customerId);
-  const r = await calendar.upsert(appt, customer && customer.name, target);
-  if (r.id && (r.id !== row.googleEventId || target !== row.googleCalendarId)) await store.update('appointments', row.id, { googleEventId: r.id, googleCalendarId: target });
+  const next = [];
+  for (const e of have) { // events on calendars this booking no longer belongs to
+    if (targets.includes(e.calendarId)) continue;
+    if ((await calendar.remove(e.eventId, e.calendarId)).error) next.push(e); // could not remove: keep it so it is tried again
+  }
+  for (const calId of targets) {
+    const old = have.find((e) => e.calendarId === calId);
+    const r = await calendar.upsert({ ...row, googleEventId: old ? old.eventId : '' }, customer && customer.name, calId);
+    if (r.id) next.push({ calendarId: calId, eventId: r.id });
+    else if (old) next.push(old);
+  }
+  const same = next.length === have.length && next.every((e) => have.some((h) => h.calendarId === e.calendarId && h.eventId === e.eventId));
+  if (!same || !Array.isArray(row.googleEvents)) await save(next);
 }
 
 const reminderDone = wrap(async (req, res) => {
@@ -202,7 +207,7 @@ const crud = makeCrud('appointments', appointmentInput, {
     const a = await store.get('appointments', id);
     const undoTopUp = !!req && req.query.undoTopUp === '1';
     if (undoTopUp) { const blocked = await undoTopUpBlocked(id); if (blocked) return blocked; }
-    if (a && a.googleEventId) await calendar.remove(a.googleEventId, a.googleCalendarId || calendar.defaultCalendarId()); // the calendar event goes too
+    if (a) for (const e of calendar.eventsOf(a)) await calendar.remove(e.eventId, e.calendarId); // the calendar events go too
     await dropPaymentsOf(id, undoTopUp); // so does deleting
     await require('./customerFiles').removeAllOfAppointment(id); // and its documents in Drive
     return null;

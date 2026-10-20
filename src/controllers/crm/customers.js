@@ -26,7 +26,7 @@ module.exports = makeCrud('customers', customerInput, {
   // Deleting a customer removes everything of theirs: appointments and payment records (the member card goes with them).
   async beforeDelete(id) {
     for (const a of (await store.list('appointments')).filter((x) => x.customerId === id)) {
-      if (a.googleEventId) await calendar.remove(a.googleEventId, a.googleCalendarId || calendar.defaultCalendarId()); // their calendar events go with them
+      for (const e of calendar.eventsOf(a)) await calendar.remove(e.eventId, e.calendarId); // their calendar events go with them
       await store.remove('appointments', a.id);
     }
     for (const p of (await store.list('payments')).filter((x) => x.customerId === id)) await store.remove('payments', p.id);

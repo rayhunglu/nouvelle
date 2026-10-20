@@ -46,6 +46,34 @@ async function calendarFor(staffName) {
   }
 }
 
+// Which calendars an appointment shows up on:
+//   Yingna's: every appointment of the shop.
+//   Rina's: appointments she is connected to (she is the operator, or the 介绍人 / 客户来源) and every 美睫 project.
+//   Dayu's: only 美睫 projects that are hers (she is the operator or the 介绍人); she does lashes only.
+//   Anyone else with their own calendar: only appointments that are theirs (operator or 介绍人).
+// A person without a calendar id uses the default calendar, which is also where Yingna's goes when she has none.
+const LASH_NAMES = new Set(['单根扁毛', 'YY睫毛', '三叶草', '妈生太阳花', '仙女C+婴儿弯', '盐系鱼尾柳叶', '泰式猫系', '欧美浓密', '国风狐系', '日式漫画系', '下睫毛', '补睫毛（2-3周内）', '经典单根睫毛嫁接', '人气特色款式嫁接', '下睫毛与补睫毛', '睫毛护理']);
+const isLash = (appt) => {
+  const names = String(appt.service || '').split(' + ').map((x) => x.trim());
+  return appt.category === 'lash' || (appt.items || []).some((x) => x && x.category === 'lash') || names.some((n) => LASH_NAMES.has(n) || /睫/.test(n));
+};
+const LASH_ONLY = new Set(['Dayu']); // people whose calendar holds 美睫 projects only
+async function calendarsFor(appt) {
+  const row = (await store.list('settings')).find((x) => x.key === 'profiles');
+  const profiles = (row && row.staff) || {};
+  const own = (name) => (name && profiles[name] && profiles[name].calendarId) || '';
+  const ids = new Set();
+  const add = (id) => { if (id) ids.add(id); };
+  add(own('Yingna') || defaultCalendarId()); // the whole shop
+  if (appt.staff === 'Rina' || appt.source === 'Rina' || isLash(appt)) add(own('Rina') || defaultCalendarId());
+  for (const name of [appt.staff, appt.source]) if (name && name !== 'Yingna' && name !== 'Rina' && (!LASH_ONLY.has(name) || isLash(appt))) add(own(name));
+  return [...ids];
+}
+// The calendar events an appointment already has: [{ calendarId, eventId }] (older rows keep a single googleEventId / googleCalendarId).
+const eventsOf = (appt) => (Array.isArray(appt.googleEvents) && appt.googleEvents.length
+  ? appt.googleEvents
+  : appt.googleEventId ? [{ calendarId: appt.googleCalendarId || defaultCalendarId(), eventId: appt.googleEventId }] : []);
+
 const b64url = (v) => Buffer.from(typeof v === 'string' ? v : JSON.stringify(v)).toString('base64url');
 
 let token = { value: '', exp: 0 };
@@ -154,4 +182,4 @@ async function check(calId) {
   }
 }
 
-module.exports = { enabled, defaultCalendarId, calendarFor, upsert, remove, check, serviceAccountEmail: () => (credentials() || {}).client_email || '' };
+module.exports = { enabled, defaultCalendarId, calendarFor, calendarsFor, eventsOf, isLash, upsert, remove, check, serviceAccountEmail: () => (credentials() || {}).client_email || '' };

@@ -66,6 +66,7 @@ async function createAppointment(input) {
       category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] }, // 项目类别 of a custom (typed) service
       googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
       googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
+      googleEvents: { type: 'array' }, // every synced event: [{ calendarId, eventId }]
     });
     if (error) throw error;
     const query = newRecord(compact({
@@ -84,6 +85,7 @@ async function createAppointment(input) {
       items: input.items,
       googleEventId: input.googleEventId,
       googleCalendarId: input.googleCalendarId,
+      googleEvents: input.googleEvents,
     }));
     await dbClient.insertOne(COLLECTION, query);
     return query;
@@ -113,6 +115,7 @@ async function updateAppointment(id, input) {
       category: { type: 'string', enum: ['', 'skincare', 'medical', 'lash', 'spa'] }, // 项目类别 of a custom (typed) service
       googleEventId: { type: 'string', max: 200 }, // the synced Google Calendar event ('' when none)
       googleCalendarId: { type: 'string', max: 200 }, // the calendar that event lives in
+      googleEvents: { type: 'array' }, // every synced event: [{ calendarId, eventId }]
       paymentDeleted: { type: 'boolean' },
       reminded: { type: 'boolean' }, // the day-before reminder to the customer was sent (ticked on the dashboard)
     });
@@ -133,6 +136,7 @@ async function updateAppointment(id, input) {
       items: input.items,
       googleEventId: input.googleEventId,
       googleCalendarId: input.googleCalendarId,
+      googleEvents: input.googleEvents,
       paymentDeleted: input.paymentDeleted,
       reminded: input.reminded,
     });
