@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, CalendarPlus, Check, Clock, HandCoins, LayoutList, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { CalendarDays, CalendarPlus, Check, Clock, FileSignature, HandCoins, LayoutList, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { business, categories } from '../data/site'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -287,7 +287,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
   )
 }
 
-function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheckedIn }) {
+function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheckedIn, onDocs }) {
   const { customers, appointments, services, payments, save, remove, customerById, hours, isClosed, worksOn, staffHours, staffRest, roomWindow, roster } = useCrm()
   const { user, can } = useAuth()
   const lockStaff = !can('assignOthers') // booking for another staff member needs permission: the staff field stays on themselves
@@ -630,6 +630,9 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
         </Field>
         <Field label="备注"><textarea className={inputCls} rows={2} value={f.notes} onChange={(e) => { notesTouched.current = true; set('notes')(e) }} /></Field>
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
+        {appt && onDocs && ['scheduled', 'checked-in', 'in-service', 'completed'].includes(appt.status) && (
+          <button type="button" onClick={() => { onClose(); onDocs(appt) }} className="inline-flex items-center gap-1.5 text-sm text-gold underline underline-offset-4"><FileSignature size={15} /> 文件签署 / Before After 照片</button>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>
           <button className="btn-primary !py-2.5" disabled={busy}>保存</button>
@@ -871,6 +874,9 @@ export default function Appointments() {
                           {a.status === 'scheduled' && (
                               <button onClick={() => setCompleting(a)} className="grid h-9 w-9 place-items-center rounded-full text-emerald-700 hover:bg-emerald-50" aria-label="完成并记账" title="完成并记账"><Check size={16} /></button>
                             )}
+                            {['scheduled', 'checked-in', 'in-service', 'completed'].includes(a.status) && (
+                              <button onClick={() => setDocsFor({ appt: a, mode: 'all' })} className="grid h-9 w-9 place-items-center rounded-full text-gold hover:bg-sand" aria-label="文件签署 / 照片" title="文件签署 / Before After 照片"><FileSignature size={16} /></button>
+                            )}
                             <a href={googleCalendarUrl(a, name, LOCATION)} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="加入 Google 日历" title="加入 Google 日历"><CalendarPlus size={16} /></a>
                             <button onClick={() => setEditing(a)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-sand" aria-label="编辑"><Pencil size={16} /></button>
                             {canDelete && <button onClick={() => del(a)} className="grid h-9 w-9 place-items-center rounded-full text-rose-700 hover:bg-rose-50" aria-label="删除"><Trash2 size={16} /></button>}
@@ -919,6 +925,7 @@ export default function Appointments() {
           draftDuration={editing.draftDuration}
           onClose={() => setEditing(null)}
           onCheckedIn={askDocs}
+          onDocs={(a) => setDocsFor({ appt: a, mode: 'all' })}
         />
       )}
       {docsFor && <CheckInDocs key={`${docsFor.appt.id}-${docsFor.mode}`} appt={docsFor.appt} mode={docsFor.mode} customer={customerById[docsFor.appt.customerId]} onClose={() => setDocsFor(null)} />}

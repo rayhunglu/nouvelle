@@ -3,6 +3,8 @@ import { Camera, Check, FileText } from 'lucide-react'
 import { Modal } from './ui'
 import { fmtDateTime } from './format'
 import { listCustomerFiles, uploadCustomerFile } from './files'
+import { consentFormsFor } from '../data/consents'
+import ConsentSigner from './ConsentSigner'
 
 // Opens right after a booking is checked in (mode 'checkin': the signed consent form and the before photos: front / left / right)
 // or put in service (mode 'service': the after photos). Each one is uploaded as soon as it is chosen and saved as 客户名_<name>.ext
@@ -10,15 +12,26 @@ import { listCustomerFiles, uploadCustomerFile } from './files'
 const photo = (set, side) => ({ label: `${set}${side}`, title: `${set} ${side}`, accept: 'image/*', icon: Camera })
 const MODES = {
   checkin: { title: '签到资料', slots: [{ label: '同意书', title: '同意书', accept: '.pdf,.doc,.docx,image/*', icon: FileText }, photo('Before', '正面'), photo('Before', '左面'), photo('Before', '右面')] },
+  // opened from the list: the consent form (signed on screen or uploaded) and both sets of photos, whatever the booking's status
+  all: { title: '文件签署 / 照片', slots: [{ label: '同意书', title: '同意书', accept: '.pdf,.doc,.docx,image/*', icon: FileText }, photo('Before', '正面'), photo('Before', '左面'), photo('Before', '右面'), photo('After', '正面'), photo('After', '左面'), photo('After', '右面')] },
   service: { title: 'After 照片', slots: [photo('After', '正面'), photo('After', '左面'), photo('After', '右面')] },
 }
 
+// A 医美 booking's consent is done when every project's own form was signed on screen (客户名_同意书-项目名.pdf), or when a signed copy
+// was uploaded by hand (客户名_同意书.ext), which covers the whole booking.
+const consentDone = (files, customerName, forms) => {
+  const n = customerName || ''
+  return files.some((f) => f.name.startsWith(`${n}_同意书.`)) || forms.every((fm) => files.some((f) => f.name.startsWith(`${n}_同意书-${fm.name}`)))
+}
+
 // The dialog only opens when nothing of its kind is on the record yet (no consent / before photo at check in, no after photo in
-// service). Once something was uploaded the booking is not asked again, even if some photos were skipped.
+// service). Once something was uploaded the booking is not asked again, even if some photos were skipped. A 医美 project needs its
+// signed consent form: while that one is missing, check in asks again whatever else was uploaded.
 export async function docsMissing(appt, customerName, mode) {
   try {
     const mine = (await listCustomerFiles(appt.customerId)).filter((f) => f.appointmentId === appt.id)
-    return !MODES[mode].slots.some(({ label }) => mine.some((f) => f.name.startsWith(`${customerName || ''}_${label}.`)))
+    if (mode === 'checkin' && consentFormsFor(appt.service).length) return !consentDone(mine, customerName, consentFormsFor(appt.service))
+    return !MODES[mode].slots.some(({ label }) => mine.some((f) => f.name.startsWith(`${customerName || ''}_${label}`)))
   } catch {
     return true // cannot tell: ask
   }
@@ -29,6 +42,9 @@ export default function CheckInDocs({ appt, customer, mode = 'checkin', onClose 
   const [files, setFiles] = useState([])
   const [busy, setBusy] = useState('')
   const [errors, setErrors] = useState({})
+  const [signing, setSigning] = useState(null) // the consent form being signed on screen
+  const [warned, setWarned] = useState(false) // 完成 was pressed once without the required consent form
+  const forms = mode === 'checkin' || mode === 'all' ? consentFormsFor(appt.service) : [] // 医美 projects: their consent forms to open / print
   const [picked, setPicked] = useState({}) // label -> { file, url }: chosen (or just taken with the camera) but not uploaded yet
   const prefix = `${customer?.name || ''}_`
 
@@ -65,12 +81,34 @@ export default function CheckInDocs({ appt, customer, mode = 'checkin', onClose 
     setBusy('')
   }
 
+  if (signing) {
+    return (
+      <Modal inset wide title={signing.view ? '已签署的同意书' : '签字'} onClose={onClose}>
+        <ConsentSigner form={signing} viewRow={signing.view} appt={appt} customer={customer} onBack={() => setSigning(null)} onSaved={(row) => { setFiles((list) => [...list, row]); setSigning(null) }} />
+      </Modal>
+    )
+  }
+
   return (
     <Modal inset title={MODES[mode].title} onClose={onClose} loading={!!busy} loadingText="上传中…">
       <p className="mb-4 text-sm text-muted">{customer?.name} · {appt.service} · {fmtDateTime(appt.start)}</p>
+      {forms.length > 0 && (
+        <div className="mb-4 rounded-xl border border-gold/40 bg-gold/5 px-4 py-3">
+          <p className="text-sm font-medium">医美项目需要先签署同意书</p>
+          <p className="mt-0.5 text-xs text-muted">每个项目对应各自的同意书。点「签字」打开文件，客人在屏幕上签名，确认后提交；也可以打开 PDF 打印签署后，拍照 / 扫描上传到下面的「同意书」。</p>
+          <ul className="mt-2 space-y-1.5">
+            {forms.map((f) => (
+              <li key={f.file} className="flex flex-wrap items-center justify-between gap-2">
+                <a href={f.file} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gold underline decoration-gold/40 underline-offset-4 hover:decoration-gold"><FileText size={15} /> {f.name}同意书（PDF）</a>
+                {files.some((x) => x.name.startsWith(`${prefix}同意书-${f.name}`)) ? <button type="button" onClick={() => setSigning({ ...f, view: [...files].reverse().find((x) => x.name.startsWith(`${prefix}同意书-${f.name}`)) })} className="inline-flex items-center gap-1 text-xs text-emerald-700 underline underline-offset-4"><Check size={14} /> 已签署，点击查看</button> : <button type="button" onClick={() => setSigning(f)} className="btn-primary !px-3.5 !py-1.5 text-sm">签字</button>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <ul className="space-y-3">
         {SLOTS.map((slot) => {
-          const done = files.filter((f) => f.name.startsWith(`${prefix}${slot.label}.`))
+          const done = files.filter((f) => f.name.startsWith(`${prefix}${slot.label}`))
           const p = picked[slot.label]
           const Icon = slot.icon
           const isPhoto = slot.icon === Camera
@@ -79,7 +117,7 @@ export default function CheckInDocs({ appt, customer, mode = 'checkin', onClose 
               <div className="flex items-center gap-3">
                 <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${done.length ? 'bg-emerald-100 text-emerald-700' : 'bg-sand text-muted'}`}>{done.length ? <Check size={16} /> : <Icon size={16} />}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{slot.title}</p>
+                  <p className="text-sm font-medium">{slot.title}{forms.length > 0 && slot.label === '同意书' ? <span className="ml-1.5 rounded-full bg-gold/15 px-2 py-0.5 text-[0.65rem] font-normal text-gold">医美项目必传</span> : null}</p>
                   <p className="truncate text-xs text-muted">{p ? '确认后点「上传」' : done.length ? `已上传 ${done.length} 个` : '未上传'}</p>
                 </div>
                 {/* A photo slot has two entrances: 拍照 opens the back camera, 上传 opens the photo library. The consent form is one file chooser (a file or a photo). */}
@@ -120,9 +158,10 @@ export default function CheckInDocs({ appt, customer, mode = 'checkin', onClose 
           )
         })}
       </ul>
-      <p className="mt-4 text-xs text-muted">可以先跳过，之后在「客户」里这条预约记录下面补传。</p>
+      <p className="mt-4 text-xs text-muted">{mode === 'all' ? '拍照 / 上传的文件会存到这条预约的客户档案里。' : '可以先跳过，之后在「客户」里这条预约记录下面补传，或在预约列表里点这条预约的「文件签署 / 照片」。'}</p>
+      {warned && <p role="alert" className="mt-2 text-xs text-rose-700">这条医美预约还没有上传已签的同意书。确定先跳过的话，再点一次「完成」。</p>}
       <div className="mt-4 flex justify-end">
-        <button type="button" onClick={onClose} className="btn-primary !py-2.5">完成</button>
+        <button type="button" onClick={() => { if (forms.length && !consentDone(files, customer?.name, forms) && !warned) setWarned(true); else onClose() }} className="btn-primary !py-2.5">完成</button>
       </div>
     </Modal>
   )
