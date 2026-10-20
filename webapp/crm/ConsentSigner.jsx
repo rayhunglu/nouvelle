@@ -169,7 +169,7 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
           }
           found = {
             name: found.name || at(/Responsible Party Name/),
-            patient: found.patient || at(/Responsible Party Signature/),
+            patient: found.patient || at(/^(?!.*Witness).*Signature\s*$/i), // "Patient / Responsible Party Signature" or just "Signature"
             witness: found.witness || at(/Witness Name/),
             date: found.date || at('Date', true),
           }

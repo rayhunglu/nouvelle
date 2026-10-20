@@ -851,7 +851,10 @@ export default function Appointments() {
                     {rows.map((a) => {
                       const name = customerById[a.customerId]?.name || '（已删除客户）'
                       return (
-                        <li key={a.id} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-4">
+                        <li key={a.id}
+                          // Tapping anywhere on the row opens the booking to edit; the little buttons and links on it keep their own jobs.
+                          onClick={(e) => { if (!e.target.closest('button, a')) setEditing(a) }}
+                          className="flex cursor-pointer flex-wrap items-center gap-x-5 gap-y-2 px-5 py-4 transition hover:bg-sand/40">
                           <div className="w-24 shrink-0 text-sm"><p className="font-medium">{fmtTime(a.start)}</p><p className="text-xs text-muted">{a.durationMin} 分钟</p></div>
                           <div className="min-w-0 flex-1 basis-48">
                             <p className={`truncate font-medium ${a.paymentDeleted ? 'line-through opacity-60' : ''}`}>{a.service}</p>

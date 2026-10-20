@@ -354,7 +354,7 @@ function CustomerForm({ customer, onClose }) {
         </div>
       )}
       <form id="customer-form" onSubmit={submit} className="space-y-4">
-        <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
+        <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus={!customer} placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="电话"><input className={inputCls} value={f.phone} onChange={set('phone')} type="tel" /></Field>
           <Field label="微信名"><input className={inputCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" /></Field>

@@ -278,13 +278,17 @@ export default function Finance() {
 
       {byStaff.length > 0 && (
         <Card className="mb-3 px-3 py-2.5">
-          <h2 className="mb-2 text-sm font-medium">员工业绩{from || to ? `（${from || '…'} ~ ${to || '…'}）` : ''}<span className="ml-2 hidden text-xs font-normal text-muted sm:inline">会员卡充 2000 送 200 的，业绩 = 实收金额 × 2000/2200；其他都按实收金额</span></h2>
+          <h2 className="mb-2 text-sm font-medium">员工业绩{from || to ? `（${from || '…'} ~ ${to || '…'}）` : ''}<span className="ml-2 hidden text-xs font-normal text-muted sm:inline">会员卡充 2000 送 200 的，业绩 = 实收金额 × 2000/2200；充 3000 送 300 的，× 3000/3300；其他都按实收金额。点一个人可只看 TA 的记录</span></h2>
           <ul className="grid grid-cols-3 gap-1.5">
             {byStaff.map((s) => (
-              <li key={s.name} className="rounded-lg bg-sand px-2.5 py-1.5 text-sm leading-tight">
-                <span className="block truncate font-medium">{s.name}</span>
-                <span className="block text-[0.7rem] text-muted">{s.count} 笔 · <b className="text-ink">{money(s.revenue)}</b></span>
-                <span className="block text-[0.65rem] text-muted">小费 {money(s.tips)}</span>
+              <li key={s.name}>
+                {/* Tapping a person lists that person's records below (Rina shows Rina, Yingna shows Yingna, Dayu shows Dayu); tap again for everyone. */}
+                <button type="button" disabled={!seeAllStaff || s.name === '未指定'} onClick={() => setStaffFilter(staffFilter === s.name ? '' : s.name)} aria-pressed={staffFilter === s.name}
+                  className={`block w-full rounded-lg px-2.5 py-1.5 text-left text-sm leading-tight transition ${staffFilter === s.name ? 'bg-ink text-ivory' : 'bg-sand hover:bg-sand/70'} disabled:cursor-default`}>
+                  <span className="block truncate font-medium">{s.name}</span>
+                  <span className={`block text-[0.7rem] ${staffFilter === s.name ? 'text-ivory/70' : 'text-muted'}`}>{s.count} 笔 · <b className={staffFilter === s.name ? 'text-ivory' : 'text-ink'}>{money(s.revenue)}</b></span>
+                  <span className={`block text-[0.65rem] ${staffFilter === s.name ? 'text-ivory/70' : 'text-muted'}`}>小费 {money(s.tips)}</span>
+                </button>
               </li>
             ))}
           </ul>
