@@ -52,8 +52,8 @@ function ShopHours() {
         <span className="ml-auto text-xs text-muted">全店 {hm(hours.openMin)} – {hm(hours.closeMin)}</span>
         <ChevronRight size={16} className={`shrink-0 text-muted transition ${expanded ? 'rotate-90' : ''}`} />
       </button>
-      {expanded && (
-      <div className="mt-3">
+      {expanded && (<Modal title="店铺营业时间管理" wide onClose={() => setExpanded(false)}>
+      <div>
       <p className="mb-4 text-xs text-muted">设置几点开门、几点关门。所有房间的预约时间轴会跟着变（营业时间以外是灰色，不能预约），官网客人能选的预约时间也按这里的时间。</p>
       {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">{error}</p>}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
@@ -79,7 +79,7 @@ function ShopHours() {
         })}
       </ul>
       </div>
-      )}
+      </Modal>)}
     </Card>
   )
 }
@@ -130,8 +130,8 @@ function ServiceSettings() {
         <span className="ml-auto text-xs text-muted">{items === null ? '' : closedCount ? `${closedCount} 项已关闭` : '全部开放'}</span>
         <ChevronRight size={16} className={`shrink-0 text-muted transition ${expanded ? 'rotate-90' : ''}`} />
       </button>
-      {expanded && (
-        <div className="mt-3">
+      {expanded && (<Modal title="服务项目管理" wide onClose={() => setExpanded(false)}>
+        <div>
           <p className="mb-3 text-xs text-muted">按大项目管理官网能预约的服务。关闭的项目官网不能预约；每个项目选好可操作人员，官网只会显示他们有空的时间，这些人都休息的日子客人就约不到。</p>
           {error && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">{error}</p>}
           {items === null ? <p className="text-sm text-muted">加载中…</p> : groups.map((g) => (
@@ -193,7 +193,7 @@ function ServiceSettings() {
             </section>
           ))}
         </div>
-      )}
+      </Modal>)}
     </Card>
   )
 }
@@ -236,8 +236,8 @@ export default function StaffAccounts() {
           <span className="ml-auto truncate text-xs text-muted">{roster.join(' · ')}</span>
           <ChevronRight size={16} className={`shrink-0 text-muted transition ${staffOpen ? 'rotate-90' : ''}`} />
         </button>
-        {staffOpen && (
-          <div className="mt-3">
+        {staffOpen && (<Modal title="员工管理" wide onClose={() => setStaffOpen(false)}>
+          <div>
             <p className="mb-3 text-xs text-muted">先添加员工的名字，再进入 TA 的页面设置登录账号、联系方式和出勤</p>
             {error && <p role="alert" className="mb-4 rounded-xl bg-rose-100 px-4 py-2.5 text-sm text-rose-800">{error}</p>}
             <div className="mb-4">
@@ -262,7 +262,7 @@ export default function StaffAccounts() {
         })}
       </ul>
           </div>
-        )}
+        </Modal>)}
       </Card>
     </>
   )

@@ -687,6 +687,11 @@ export default function Appointments() {
   const [filter, setFilter] = useState('upcoming')
   const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows every booking related to them (they serve it, or they referred the customer), in every view
   const [editing, setEditing] = useState(null)
+  // An admin's list shows the owner's payments blanked out; to change or delete one the real row is fetched.
+  const openOwnerPayment = async (a) => {
+    const stub = payments.find((p) => p.appointmentId === a.id)
+    try { setCompleting({ ...a, fullPayment: await api(`/crm/payments/${stub.id}`) }) } catch (err) { alert(err.message) }
+  }
   const [completing, setCompleting] = useState(null) // appointment being completed via the payment form
   const [docsFor, setDocsFor] = useState(null) // { appt, mode }: just checked in (consent form + before photos) or put in service (after photos)
   const [error, setError] = useState('')
@@ -872,7 +877,9 @@ export default function Appointments() {
                           <p className="w-16 text-right text-sm text-muted">{a.price && a.status !== 'cancelled' && a.status !== 'no-show' ? money(a.price) : ''}</p>
                           <div className="flex gap-1">
                             {a.status === 'completed' && (paidIds.has(a.id)
-                            ? <span className="px-2 text-xs text-emerald-700">已记账</span>
+                            ? (payments.find((p) => p.appointmentId === a.id)?.hidden
+                              ? <button onClick={() => openOwnerPayment(a)} className="px-2 text-xs text-emerald-700 underline" title="修改或删除这笔收款">已记账</button>
+                              : <span className="px-2 text-xs text-emerald-700">已记账</span>)
                             : <button onClick={() => navigate('/crm/finance', { state: { appointmentId: a.id } })} className="grid h-9 w-9 place-items-center rounded-full text-gold hover:bg-sand" aria-label="记账" title="记账"><HandCoins size={16} /></button>)}
                           {a.status === 'scheduled' && (
                               <button onClick={() => setCompleting(a)} className="grid h-9 w-9 place-items-center rounded-full text-emerald-700 hover:bg-emerald-50" aria-label="完成并记账" title="完成并记账"><Check size={16} /></button>
@@ -917,7 +924,7 @@ export default function Appointments() {
           </div>
         </Modal>
       )}
-      {completing && <PaymentForm key={completing.id} fromAppointment={completing} payment={payments.find((p) => p.appointmentId === completing.id)} completeAppointment onClose={() => setCompleting(null)} />}
+      {completing && <PaymentForm key={completing.id} fromAppointment={completing} payment={completing.fullPayment || payments.find((p) => p.appointmentId === completing.id)} canRemove={!!completing.fullPayment} completeAppointment onClose={() => setCompleting(null)} />}
 
       {editing && editing.block && <BlockForm key={editing.block.id} block={editing.block} onClose={() => setEditing(null)} />}
       {editing && !editing.block && (

@@ -26,7 +26,14 @@ export default function Finance() {
   const { payments: allPayments, appointments, customerById, serviceById, services, remove, roster } = useCrm()
   // `hidden` payments are the owner's, which an admin may not see: they stay out of every list, total and export. The full list is only
   // kept for the member-card rules (a top-up recorded under the owner still counts for the customer's 2000 / 2200 rate).
-  const payments = useMemo(() => allPayments.filter((p) => !p.hidden), [allPayments])
+  const [staffFilter, setStaffFilter] = useState('')
+  // An owner's payment that is connected to the person being looked at (operator or 介绍人) shows in that person's accounts (`ownerRelated`);
+  // otherwise it stays out, so it never adds to the shop-wide figures.
+  const payments = useMemo(() => {
+    const byId = Object.fromEntries(appointments.map((a) => [a.id, a]))
+    const mine = (p, who) => !!who && (byId[p.appointmentId]?.staff === who || (p.referralSource || byId[p.appointmentId]?.source || '') === who)
+    return allPayments.filter((p) => !p.hidden && (!p.ownerRelated || mine(p, staffFilter)))
+  }, [allPayments, appointments, staffFilter])
   const { can } = useAuth()
   const seeAllStaff = can('viewAllFinance') // the staff filter only matters when other staff's payments are visible
   const canDelete = can('deletePayments')
@@ -36,7 +43,6 @@ export default function Finance() {
   const [range, setRange] = useState(() => monthRange(monthKey()))
   const { from, to } = range
   const endBox = useRef(null)
-  const [staffFilter, setStaffFilter] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | payment | { fromAppointment }
   const [error, setError] = useState('')
 
@@ -51,7 +57,7 @@ export default function Finance() {
     }
   }, [location, appointments, navigate])
 
-  const hiddenStaff = useMemo(() => new Set(allPayments.filter((p) => p.hidden).map((p) => p.staff)), [allPayments]) // the owner: not shown to an admin
+  const hiddenStaff = useMemo(() => new Set(allPayments.filter((p) => p.hidden || p.ownerRelated).map((p) => p.staff)), [allPayments]) // the owner: not shown to an admin
   const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])].filter((n) => !hiddenStaff.has(n)), [payments, roster, hiddenStaff])
   const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
@@ -76,7 +82,7 @@ export default function Finance() {
   const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p), p)]?.includes(staff) && sameName(referrerOf(p), staff)
   const rows = useMemo(
     () => payments
-      .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || referredTo(p, staffFilter)))
+      .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || p.ownerRelated || referredTo(p, staffFilter)))
       .sort((a, b) => b.datetime.localeCompare(a.datetime)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [payments, appointments, apptById, serviceById, from, to, staffFilter],
@@ -89,7 +95,7 @@ export default function Finance() {
 
   const byStaff = useMemo(() => {
     const m = new Map()
-    for (const p of payments.filter((x) => inMonth(x) && counted(x))) {
+    for (const p of payments.filter((x) => inMonth(x) && counted(x) && !x.ownerRelated)) { // an owner's payment never makes a card of its own
       const k = p.staff || '未指定'
       const cur = m.get(k) || { name: k, count: 0, revenue: 0, tips: 0 }
       if (p.paymentMethod !== 'unsettled') cur.count += 1; cur.revenue += performanceOf(p, allPayments); cur.tips += paidTip(p)
@@ -304,7 +310,7 @@ export default function Finance() {
                 <button type="button" onClick={() => setDetailPay(p)} className="min-w-0 flex-1 basis-56 text-left" aria-label="查看订单详情">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${bonusCash(p) > 0 || (p.topUpGifts || []).some((g) => !isCashGift(g)) ? `（赠送 ${[bonusCash(p) > 0 && money(bonusCash(p)), ...(p.topUpGifts || []).filter((g) => !isCashGift(g)).map(giftLabel)].filter(Boolean).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
+                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.ownerRelated ? ' · 老板的预约，和你有关' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${bonusCash(p) > 0 || (p.topUpGifts || []).some((g) => !isCashGift(g)) ? `（赠送 ${[bonusCash(p) > 0 && money(bonusCash(p)), ...(p.topUpGifts || []).filter((g) => !isCashGift(g)).map(giftLabel)].filter(Boolean).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
                 </button>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>

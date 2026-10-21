@@ -78,7 +78,7 @@ const cleanOrphansOnce = wrap(async (req, res, next) => {
 async function ownerStaffNames() {
   return new Set((await store.list('users')).filter((u) => u.role === 'owner').map((u) => u.staffName).filter(Boolean));
 }
-// What an admin gets of a payment recorded under an owner: only what the member card sums and the 2000/2200 rule need (top-ups,
+// What an admin gets of a payment recorded under an owner (one not connected to them, see visibleRows): only what the member card sums and the 2000/2200 rule need (top-ups,
 // gifts, card payments), flagged `hidden`; the screens leave hidden rows out of every list, total and export.
 function redactPayment(p) {
   const card = p.paymentMethod === 'member_card';
@@ -94,7 +94,18 @@ const isHiddenFor = async (req, collection, row) => collection === 'payments' &&
 async function visibleRows(req, collection, rows) {
   if (collection === 'payments' && req.session.user.role === 'admin') {
     const owners = await ownerStaffNames();
-    return owners.size ? rows.map((p) => (owners.has(p.staff) ? redactPayment(p) : p)) : rows;
+    if (!owners.size) return rows;
+    // An owner's payment stays hidden from an admin, unless it is connected to that admin: they are the operator of the booking, or its
+    // 介绍人 (the payment's own, else the booking's 客户来源). Those come through in full, flagged `ownerRelated`, so they show in the
+    // admin's own accounts but never count in the shop-wide totals.
+    const me = req.session.user.staffName;
+    const apptById = new Map((await store.list('appointments')).map((a) => [a.id, a]));
+    return rows.map((p) => {
+      if (!owners.has(p.staff)) return p;
+      const a = apptById.get(p.appointmentId);
+      const mine = !!me && ((a && a.staff === me) || (p.referralSource || (a && a.source) || '') === me);
+      return mine ? { ...p, ownerRelated: true } : redactPayment(p);
+    });
   }
   if (!isStaff(req)) return rows;
   const { staffName, username } = req.session.user;

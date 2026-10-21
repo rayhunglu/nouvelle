@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
@@ -42,8 +42,8 @@ const SERVICE_CATEGORIES = [
   { id: 'spa', label: 'Spa 项目' },
 ]
 
-export default function PaymentForm({ payment, fromAppointment, completeAppointment = false, onClose }) {
-  const { customers, appointments, services, payments, save, reload } = useCrm()
+export default function PaymentForm({ payment, fromAppointment, completeAppointment = false, canRemove = false, onClose }) {
+  const { customers, appointments, services, payments, save, remove, reload } = useCrm()
   const noAssign = !useAuth().can('assignOthers') // recording for another staff member needs permission
   const appt = fromAppointment || null
 
@@ -139,6 +139,19 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
       setError('')
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  const removePayment = async () => {
+    if (!window.confirm('删除这笔收款？')) return
+    setBusy(true)
+    setError('')
+    try {
+      await remove('payments', payment.id)
+      onClose()
+    } catch (err) {
+      setError(err.message)
+      setBusy(false)
     }
   }
 
@@ -398,6 +411,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
 
         {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
+          {canRemove && payment && <button type="button" onClick={removePayment} disabled={busy} className="mr-auto rounded-full border border-rose-300 px-5 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-40">删除收款</button>}
           <button type="button" onClick={onClose} className="btn-ghost !py-2.5">取消</button>
           {quick && (
             <button type="button" onClick={(e) => submit(e, true)} disabled={busy || !(Number(f.amount) > 0)} title="先完成这次服务，金额记为应收，暂不计入营收、小费和员工业绩"

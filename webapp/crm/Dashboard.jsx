@@ -78,7 +78,7 @@ export default function Dashboard() {
     const sums = {}
     const counts = {}
     for (const p of payments) {
-      if (p.hidden || p.paymentMethod === 'unsettled' || !countsForPerformance(p, apptById)) continue
+      if (p.hidden || p.ownerRelated || p.paymentMethod === 'unsettled' || !countsForPerformance(p, apptById)) continue
       const key = dayKey(p.datetime).slice(0, 7)
       sums[key] = (sums[key] || 0) + performanceOf(p, payments)
       if (p.amount > 0) counts[key] = (counts[key] || 0) + 1 // a pure card top-up is not a visit

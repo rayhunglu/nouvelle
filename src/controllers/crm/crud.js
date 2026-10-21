@@ -2,8 +2,9 @@ const store = require('../../services/store');
 const { wrap } = require('./common');
 const { isStaff, isHiddenFor, visibleRows } = require('../../middleware/crmAccess');
 
-// An admin may not change a payment recorded under the owner (they cannot see it either).
-const lockedForAdmin = async (req, collection, id) => { const row = collection === 'payments' ? await store.get(collection, id) : null; return !!row && (await isHiddenFor(req, collection, row)) };
+// An admin may not change a payment recorded under the owner (they cannot see it either), except one that belongs to a booking:
+// they check those out, so afterwards they may open, edit and delete that one payment (it still stays out of every list and total).
+const lockedForAdmin = async (req, collection, id) => { const row = collection === 'payments' ? await store.get(collection, id) : null; return !!row && !row.appointmentId && (await isHiddenFor(req, collection, row)) };
 
 // The five handlers every collection shares (list / get / create / update / remove). Each collection passes its own validator and hooks:
 //   validate(body) -> { error } | { data }      hooks: conflict(data, selfId), afterWrite(row, isNew, req, prev), beforeDelete(id, req)
