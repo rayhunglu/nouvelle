@@ -86,7 +86,7 @@ function redactPayment(p) {
   return {
     id: p.id, hidden: true, appointmentId: p.appointmentId || null, customerId: p.customerId, datetime: p.datetime, createdAt: p.createdAt,
     paymentMethod: p.paymentMethod, tipMethod: p.tipMethod || p.paymentMethod, amount: card ? p.amount : 0, tipAmount: tipCard ? p.tipAmount || 0 : 0,
-    topUp: p.topUp || 0, topUpMethod: p.topUpMethod || '', topUpGifts: p.topUpGifts || [], giftUsed: p.giftUsed || '', staff: p.staff, serviceIds: [], serviceName: '', referralSource: '', notes: '',
+    topUp: p.topUp || 0, topUpMethod: p.topUpMethod || '', topUpGifts: p.topUpGifts || [], topUpBonus: p.topUpBonus || 0, giftUsed: p.giftUsed || '', staff: p.staff, serviceIds: [], serviceName: '', referralSource: '', notes: '',
   };
 }
 const isHiddenFor = async (req, collection, row) => collection === 'payments' && req.session.user.role === 'admin' && (await ownerStaffNames()).has(row.staff);

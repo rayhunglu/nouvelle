@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Field, Modal, inputCls } from './ui'
-import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftCash, giftItems, giftLabel, giftsAllowed, isCashGift, money, toLocalInput } from './format'
+import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftCash, giftItems, giftLabel, giftsAllowed, isCashGift, isServiceGift, money, SERVICE_GIFT, toLocalInput } from './format'
+import { categories } from '../data/site'
 import { openPicker } from '../lib/util'
 
 // Dropdown of known people. "其他" reveals a text box for anyone not in the list.
@@ -50,7 +51,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   const matchedServiceIds = (name) => services.filter((x) => x.name === name).map((x) => x.id)
 
   // A booking for a service that the customer holds a free gift for (光子嫩肤 / 热拉提) redeems it by default.
-  const giftOfService = appt && giftForService(appt.service)
+  const giftOfService = appt && giftForService(appt.service, giftItems(payments, appt.customerId))
   const startGift = giftOfService && !payment && (giftItems(payments, appt.customerId)[giftOfService] || 0) > 0 ? giftOfService : ''
   const [f, setF] = useState(() => ({
     customerId: payment?.customerId || appt?.customerId || customers[0]?.id || '',
@@ -66,7 +67,8 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
     // 备注 follows the customer: a new checkout starts from the booking's notes, else the notes kept for the customer.
     notes: payment ? payment.notes || '' : appt?.notes || customers.find((c) => c.id === (appt?.customerId || customers[0]?.id))?.notes || '',
     topUp: payment?.topUp || '',
-    topUpGifts: payment?.topUpGifts || [],
+    topUpGifts: (payment?.topUpGifts || []).filter((g) => !isCashGift(g)), // free sessions; the cash credit is the amount box below
+    topUpBonus: String(giftCash(payment?.topUpGifts) + (Number(payment?.topUpBonus) || 0) || ''), // gift amount ($), typed by hand
     topUpMethod: payment?.topUpMethod || 'credit_card',
     staff: payment?.staff || appt?.staff || '',
   }))
@@ -81,7 +83,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   // Picking an amount keeps only as many gifts as that amount earns.
   const pickTopUp = (v) => {
     setCustomTopUp(!TOPUP_AMOUNTS.includes(Number(v)) && v !== '')
-    setF((cur) => ({ ...cur, topUp: v, topUpGifts: cur.topUpGifts.slice(0, giftsAllowed(Number(v || 0))) }))
+    setF((cur) => (giftsAllowed(Number(v || 0)) ? { ...cur, topUp: v } : { ...cur, topUp: v, topUpGifts: [], topUpBonus: '' }))
   }
   // Amount buttons step by $100 and never go below zero.
   const stepTopUp = (d) => pickTopUp(String(Math.max(0, Math.round((Number(f.topUp || 0) + d) * 100) / 100)))
@@ -90,11 +92,16 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   const redeemGift = (on) => setF((cur) => (on
     ? { ...cur, giftUsed: giftOfService, amount: '0', paymentMethod: 'member_card' }
     : { ...cur, giftUsed: '', amount: String(appt?.price || ''), paymentMethod: 'credit_card' }))
-  const toggleGift = (id) => setF((cur) => {
-    if (cur.topUpGifts.includes(id)) return { ...cur, topUpGifts: cur.topUpGifts.filter((x) => x !== id) }
-    const max = giftsAllowed(Number(cur.topUp || 0))
-    return { ...cur, topUpGifts: [...cur.topUpGifts, id].slice(-Math.max(1, max)) }
-  })
+  const toggleGift = (id) => setF((cur) => (cur.topUpGifts.includes(id) ? { ...cur, topUpGifts: cur.topUpGifts.filter((x) => x !== id) } : { ...cur, topUpGifts: [...cur.topUpGifts, id] }))
+  // Free sessions can be any service: pick or type its name, then 添加.
+  const [giftPick, setGiftPick] = useState('')
+  const addGiftService = () => {
+    const name = giftPick.trim().slice(0, 80)
+    if (!name) return
+    setF((cur) => (cur.topUpGifts.includes(SERVICE_GIFT + name) ? cur : { ...cur, topUpGifts: [...cur.topUpGifts, SERVICE_GIFT + name] }))
+    setGiftPick('')
+  }
+  const giftServiceNames = useMemo(() => [...new Set([...categories.flatMap((c) => (c.treatments || []).flatMap((t) => [t.name.zh, ...(t.packages || []).map((pk) => pk.name.zh)])), ...services.map((x) => x.name)])].filter(Boolean), [services])
   const quick = completeAppointment && !!appt // check-out from the calendar: only amount, tip and payment method
 
   const customerAppts = appointments
@@ -154,7 +161,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
     try {
       await save('payments', payment?.id, {
         ...f, ...(unsettled ? { paymentMethod: 'unsettled', tipMethod: 'unsettled' } : {}), appointmentId: f.appointmentId || null, datetime: new Date(f.datetime).toISOString(),
-        amount: Number(f.amount || 0), tipAmount: Number(f.tipAmount || 0), topUp: Number(f.topUp || 0), topUpGifts: f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0))), giftUsed: unsettled ? '' : f.giftUsed, serviceName: appt?.service || payment?.serviceName || '', tipMethod: unsettled ? 'unsettled' : f.tipMethod || f.paymentMethod,
+        amount: Number(f.amount || 0), tipAmount: Number(f.tipAmount || 0), topUp: Number(f.topUp || 0), topUpGifts: giftsAllowed(Number(f.topUp || 0)) ? f.topUpGifts : [], topUpBonus: giftsAllowed(Number(f.topUp || 0)) ? Number(f.topUpBonus || 0) : 0, giftUsed: unsettled ? '' : f.giftUsed, serviceName: appt?.service || payment?.serviceName || '', tipMethod: unsettled ? 'unsettled' : f.tipMethod || f.paymentMethod,
       })
       if (completeAppointment && appt) await save('appointments', appt.id, { ...appt, status: 'completed', notes: f.notes, ...(CUSTOMER_SOURCES.includes(f.referralSource) ? { source: f.referralSource } : {}) }) // the booking keeps what was written at check out
       // The notes belong to the customer too: save them so the next booking (any date) starts from them.
@@ -291,18 +298,40 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
                   {METHODS.filter((m) => m.id !== 'member_card' && m.id !== 'unsettled').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select>
               </Field>
-              <p className="self-end text-xs text-muted">$1,000 无赠送；$2,000、$3,000 可任选赠送项目（可多选）</p>
               {giftsAllowed(Number(f.topUp || 0)) > 0 && (
-                <div className="sm:col-span-2">
-                  <span className="mb-1.5 block text-xs font-medium text-muted">赠送（任选，可多选，已选 {f.topUpGifts.length} 项）</span>
-                  <div className="flex flex-wrap gap-2">
-                    {GIFT_OPTIONS.filter((g) => f.topUpGifts.includes(g.id) || (g.id === 'cash300' ? Number(f.topUp || 0) >= 3000 : g.id === 'cash200' ? Number(f.topUp || 0) < 3000 : true)).map((g) => {
-                      const on = f.topUpGifts.includes(g.id)
-                      return (
-                        <button type="button" key={g.id} onClick={() => toggleGift(g.id)} aria-pressed={on}
-                          className={`rounded-full border px-3.5 py-1.5 text-sm transition ${on ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-ink/15 hover:border-ink/40'}`}>{g.label}</button>
-                      )
-                    })}
+                <div className="space-y-3 sm:col-span-2">
+                  <div>
+                    <span className="mb-1.5 block text-xs font-medium text-muted">赠送金额（$，手动输入，会加到会员卡余额）</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input className={`${inputCls} !w-32`} type="number" min="0" step="any" value={f.topUpBonus} onChange={set('topUpBonus')} placeholder="0" aria-label="赠送金额" />
+                      {[200, 300].map((n) => (
+                        <button type="button" key={n} onClick={() => setF({ ...f, topUpBonus: String(n) })} aria-pressed={Number(f.topUpBonus) === n}
+                          className={`rounded-full border px-3 py-1.5 text-sm transition ${Number(f.topUpBonus) === n ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-ink/15 hover:border-ink/40'}`}>${n}</button>
+                      ))}
+                      {Number(f.topUpBonus) > 0 && <button type="button" onClick={() => setF({ ...f, topUpBonus: '' })} className="text-xs text-muted underline">清除</button>}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="mb-1.5 block text-xs font-medium text-muted">赠送项目（可多选，也可手动选择任意服务项目，已选 {f.topUpGifts.length} 项）</span>
+                    <div className="flex flex-wrap gap-2">
+                      {GIFT_OPTIONS.filter((g) => !isCashGift(g.id)).map((g) => {
+                        const on = f.topUpGifts.includes(g.id)
+                        return (
+                          <button type="button" key={g.id} onClick={() => toggleGift(g.id)} aria-pressed={on}
+                            className={`rounded-full border px-3.5 py-1.5 text-sm transition ${on ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-ink/15 hover:border-ink/40'}`}>{g.label}</button>
+                        )
+                      })}
+                      {f.topUpGifts.filter(isServiceGift).map((g) => (
+                        <button type="button" key={g} onClick={() => toggleGift(g)} aria-label={`取消赠送 ${giftLabel(g)}`}
+                          className="rounded-full border border-emerald-600 bg-emerald-600 px-3.5 py-1.5 text-sm text-white">{giftLabel(g)} ×</button>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <input className={`${inputCls} min-w-0 flex-1`} list="gift-service-names" value={giftPick} onChange={(e) => setGiftPick(e.target.value)} placeholder="选择或输入服务项目，再点添加"
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addGiftService() } }} aria-label="赠送的服务项目" />
+                      <datalist id="gift-service-names">{giftServiceNames.map((n) => <option key={n} value={n} />)}</datalist>
+                      <button type="button" onClick={addGiftService} className="btn-ghost !py-2 shrink-0">添加</button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -313,8 +342,8 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
           {(f.paymentMethod === 'member_card' || f.tipMethod === 'member_card' || Number(f.topUp) > 0 || f.giftUsed) && (() => {
             const before = cardBalance(payments, f.customerId, payment?.id)
             const load = Number(f.topUp || 0)
-            const gifts = f.topUpGifts.slice(0, giftsAllowed(load))
-            const bonus = giftCash(gifts)
+            const gifts = giftsAllowed(load) ? f.topUpGifts : []
+            const bonus = giftsAllowed(load) ? Number(f.topUpBonus || 0) : 0
             const freeItems = gifts.filter((g) => !isCashGift(g))
             const spend = Number(f.amount || 0) + Number(f.tipAmount || 0)
             const tipBy = f.tipMethod || f.paymentMethod
@@ -374,7 +403,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
             <button type="button" onClick={(e) => submit(e, true)} disabled={busy || !(Number(f.amount) > 0)} title="先完成这次服务，金额记为应收，暂不计入营收、小费和员工业绩"
               className="rounded-full border border-amber-600 px-5 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-40">未结算</button>
           )}
-          <button className="btn-primary !py-2.5" disabled={busy || (cardBalance(payments, f.customerId, payment?.id) + Number(f.topUp || 0) + giftCash(f.topUpGifts.slice(0, giftsAllowed(Number(f.topUp || 0)))) - (f.paymentMethod === 'member_card' ? Number(f.amount || 0) : 0) - ((f.tipMethod || f.paymentMethod) === 'member_card' ? Number(f.tipAmount || 0) : 0) < -0.004)}>{quick ? '确认结算' : completeAppointment ? '保存并完成预约' : '保存'}</button>
+          <button className="btn-primary !py-2.5" disabled={busy || (cardBalance(payments, f.customerId, payment?.id) + Number(f.topUp || 0) + (giftsAllowed(Number(f.topUp || 0)) ? Number(f.topUpBonus || 0) : 0) - (f.paymentMethod === 'member_card' ? Number(f.amount || 0) : 0) - ((f.tipMethod || f.paymentMethod) === 'member_card' ? Number(f.tipAmount || 0) : 0) < -0.004)}>{quick ? '确认结算' : completeAppointment ? '保存并完成预约' : '保存'}</button>
         </div>
         {quick && <p className="text-right text-xs text-amber-700">「未结算」：先完成这次服务，金额记为应收，暂不计入营收、小费和员工业绩；收到款后到账目里改成实际付款方式。</p>}
         {completeAppointment && (

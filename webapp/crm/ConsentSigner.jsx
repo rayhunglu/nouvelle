@@ -22,6 +22,22 @@ const WITNESS = 'Yingna Jiang' // the 见证人 line is filled with this name un
 
 const clinicDate = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(new Date()) // YYYY-MM-DD
 
+// A name that is too long for its line is shown smaller, never wider than the line: `fitFont` gives the font size (CSS px) at which the
+// text fits `boxPx` (the normal size when it already fits, never below 6px).
+const FONT_FAMILY = '"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif'
+let measureCtx = null
+const textWidth = (text, px) => {
+  measureCtx = measureCtx || document.createElement('canvas').getContext('2d')
+  measureCtx.font = `${px}px ${FONT_FAMILY}`
+  return measureCtx.measureText(text).width
+}
+const fitFont = (text, boxPx, base = 13) => {
+  const target = boxPx * 0.92 // a little room: small text is not exactly proportional to the size
+  const w = textWidth(text, base)
+  return w > target ? Math.max(6, (base * target) / w) : base
+}
+const lineLen = (f) => Math.max(60, (f && f.lw) || 260) // how long the blank's line is, in PDF points
+
 // Text as a picture (the PDF has no Chinese font to draw with): a transparent PNG.
 function textPng(text) {
   const c = document.createElement('canvas')
@@ -216,9 +232,10 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
             const lab = items.find((i) => (exact ? i.str.trim() === re : re.test(i.str)))
             if (!lab) return null
             const y = lab.transform[5]
-            const below = lines.filter((l) => l.transform[5] < y).map((l) => l.transform[5])
-            const line = below.length ? Math.max(...below) : y - 33
-            return { page: n, x: lab.transform[4], y: line, gap: y - line } // gap: label baseline to its line, the blank space there
+            const under = lines.filter((l) => l.transform[5] < y)
+            const own = under.length ? under.reduce((a, b) => (b.transform[5] > a.transform[5] ? b : a)) : null // the line right under the label
+            const line = own ? own.transform[5] : y - 33
+            return { page: n, x: lab.transform[4], y: line, gap: y - line, lw: own ? own.width : 260 } // gap: label baseline to its line (the blank space there); lw: how long the line is
           }
           found = {
             name: found.name || at(/Responsible Party Name/),
@@ -276,8 +293,8 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
         const w = Math.min(maxW, h * ratio) // fitted inside maxW × h, keeping its proportions
         doc.getPage(f.page - 1).drawImage(img, { x: f.x + 3, y: f.y + 3, width: w, height: w / ratio })
       }
-      if (name && layout.name) await put(textPng(name), layout.name, 300, 16)
-      await put(sig.patient, layout.patient, 300, sigH)
+      if (name && layout.name) await put(textPng(name), layout.name, lineLen(layout.name) - 6, 16)
+      await put(sig.patient, layout.patient, Math.min(300, lineLen(layout.patient) - 6), sigH)
       if (layout.witness) await put(sig.witness || textPng(WITNESS), layout.witness, 300, sig.witness ? sigH : 16)
       if (layout.date) await put(textPng(today), layout.date, 120, 16)
       const out = await doc.save()
@@ -314,8 +331,8 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
               <>
                 {layout.name?.page === i + 1 && (
                   <button type="button" onClick={() => setNameOpen(true)} aria-label="点击修改姓名"
-                    className="absolute flex items-end overflow-hidden rounded border border-dashed border-transparent text-left text-[13px] leading-none text-ink hover:border-gold/60 hover:bg-gold/5"
-                    style={{ ...boxStyle(pg, layout.name, 300, 16), paddingLeft: 3 * pg.k }}>
+                    className="absolute flex items-end overflow-hidden whitespace-nowrap rounded border border-dashed border-transparent text-left text-[13px] leading-none text-ink hover:border-gold/60 hover:bg-gold/5"
+                    style={{ ...boxStyle(pg, layout.name, lineLen(layout.name), 16), paddingLeft: 3 * pg.k, fontSize: name ? fitFont(name, (lineLen(layout.name) - 6) * pg.k - 2) : undefined }}>
                     {name || <span className="text-xs text-gold">点击输入姓名</span>}
                   </button>
                 )}

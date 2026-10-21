@@ -65,6 +65,7 @@ async function createPayment(input) {
       topUp: { required: true, type: 'number', min: 0 },
       topUpMethod: { required: true, type: 'string' },
       topUpGifts: { required: true, type: 'array' },
+      topUpBonus: { type: 'number', min: 0 }, // cash credit given with the top-up, typed by hand
       giftUsed: { required: true, type: 'string' },
     });
     if (error) throw error;
@@ -84,6 +85,7 @@ async function createPayment(input) {
       topUp: input.topUp,
       topUpMethod: input.topUpMethod,
       topUpGifts: input.topUpGifts,
+      topUpBonus: input.topUpBonus,
       giftUsed: input.giftUsed,
     });
     await dbClient.insertOne(COLLECTION, query);
@@ -113,6 +115,7 @@ async function updatePayment(id, input) {
       topUp: { type: 'number', min: 0 },
       topUpMethod: { type: 'string' },
       topUpGifts: { type: 'array' },
+      topUpBonus: { type: 'number', min: 0 },
       giftUsed: { type: 'string' },
     });
     if (error) throw error;
@@ -132,6 +135,7 @@ async function updatePayment(id, input) {
       topUp: input.topUp,
       topUpMethod: input.topUpMethod,
       topUpGifts: input.topUpGifts,
+      topUpBonus: input.topUpBonus,
       giftUsed: input.giftUsed,
     });
     return await dbClient.findOneAndUpdate(COLLECTION, { id }, { ...query, id, updatedAt: new Date().toISOString() });

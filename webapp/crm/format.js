@@ -102,14 +102,19 @@ export const GIFT_OPTIONS = [
   { id: 'photofacial', label: '赠送光子嫩肤' },
   { id: 'thermage', label: '赠送热拉提' },
 ]
-export const giftLabel = (id) => GIFT_OPTIONS.find((g) => g.id === id)?.label.replace('赠送', '').trim() || id
+// A free session can be any service picked by hand: it is stored as 'svc:<service name>' (the two presets keep their own ids).
+export const SERVICE_GIFT = 'svc:'
+export const isServiceGift = (g) => String(g).startsWith(SERVICE_GIFT)
+export const giftLabel = (id) => (isServiceGift(id) ? String(id).slice(SERVICE_GIFT.length) : GIFT_OPTIONS.find((g) => g.id === id)?.label.replace('赠送', '').trim() || id)
 export const TOPUP_AMOUNTS = [1000, 2000, 3000]
-export const giftsAllowed = (topUp) => (topUp >= 2000 ? GIFT_OPTIONS.length : 0) // $2,000 and up: any of the gifts, as many as wanted
+export const giftsAllowed = (topUp) => (topUp > 0 ? GIFT_OPTIONS.length : 0) // any top-up can come with gifts: a cash amount and / or free sessions, as many as wanted
 // Cash gifts load money onto the card: $200 (cash200) or $300 (cash300, for a $3,000 top-up).
 export const CASH_GIFTS = { cash200: 200, cash300: 300 }
 export const isCashGift = (g) => g in CASH_GIFTS
 export const giftCash = (gifts) => (gifts || []).reduce((n, g) => n + (CASH_GIFTS[g] || 0), 0)
-export const cardLoaded = (p) => (p.topUp || 0) + giftCash(p.topUpGifts)
+// The cash credit a top-up brings: the ready-made $200 / $300 gifts of older records plus the amount typed by hand (`topUpBonus`).
+export const bonusCash = (p) => giftCash(p.topUpGifts) + (Number(p.topUpBonus) || 0)
+export const cardLoaded = (p) => (p.topUp || 0) + bonusCash(p)
 // Free sessions earned from top-ups (光子嫩肤 / 热拉提) minus the ones already used, as { id: count } (zero counts left out).
 export const giftItems = (payments, customerId, exceptId) => {
   const m = {}
@@ -120,21 +125,20 @@ export const giftItems = (payments, customerId, exceptId) => {
   }
   return Object.fromEntries(Object.entries(m).filter(([, n]) => n > 0))
 }
-// Which gift a service redeems: services whose name contains the gift's project.
+// Which gift a service redeems: a free session picked for exactly this service (when the customer still has one, `items` = giftItems), else
+// the preset whose project the name contains.
 export const GIFT_SERVICE = { photofacial: /光子嫩肤/, thermage: /热拉提/ }
-export const giftForService = (name) => Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || ''
+export const giftForService = (name, items) => (items && (items[SERVICE_GIFT + name] || 0) > 0 ? SERVICE_GIFT + name : Object.keys(GIFT_SERVICE).find((g) => GIFT_SERVICE[g].test(name || '')) || '')
 // Staff performance of a payment. A customer who topped up with a cash gift is on a ratio rule: money they spend from the member card
-// counts for topUp / (topUp + gift) of the amount. $2,000 + the $200 gift = 2000 / 2200 (a $198 service counts as 198 × 2000 / 2200 = $180);
-// $3,000 + the $300 gift = 3000 / 3300. Everyone else, and every other way of paying, counts for the amount actually paid.
-// The rule is the same for every payment of that customer from the day of the top-up on, whatever else they topped up
-// (when they have both, the earliest top-up decides).
-const CARD_RULES = [{ topUp: 2000, gift: 'cash200', num: 2000, den: 2200 }, { topUp: 3000, gift: 'cash300', num: 3000, den: 3300 }]
+// counts for topUp / (topUp + gift) of the amount. $2,000 + a $200 gift = 2000 / 2200 (a $198 service counts as 198 × 2000 / 2200 = $180);
+// $3,000 + a $300 gift = 3000 / 3300; any other gift amount typed by hand works the same way. Everyone else, and every other way of paying,
+// counts for the amount actually paid. The rule is the same for every payment of that customer from the day of the top-up on, whatever
+// else they topped up (when there are several, the earliest top-up decides).
 export const cardRatio = (payments, p) => {
   const hits = payments
-    .filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime)
-    .flatMap((x) => CARD_RULES.filter((r) => x.topUp === r.topUp && (x.topUpGifts || []).filter((g) => g === r.gift).length === 1).map((r) => ({ at: x.datetime, r })))
-    .sort((a, b) => a.at.localeCompare(b.at))
-  return hits.length ? hits[0].r.num / hits[0].r.den : 1
+    .filter((x) => x.customerId === p.customerId && x.datetime <= p.datetime && (x.topUp || 0) > 0 && bonusCash(x) > 0)
+    .sort((a, b) => a.datetime.localeCompare(b.datetime))
+  return hits.length ? hits[0].topUp / (hits[0].topUp + bonusCash(hits[0])) : 1
 }
 // A payment counts toward revenue and staff performance only when it is settled (see paidAmount) and, if it belongs to an
 // appointment, that appointment is completed (checked in and out). apptById maps appointment id -> appointment.

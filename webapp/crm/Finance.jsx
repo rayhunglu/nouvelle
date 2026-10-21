@@ -6,7 +6,7 @@ import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
 import { projectKind as projectKindOfName, kindOfCategory } from './projectKind'
 import { Card, Empty, Modal, PageTitle, StatCard, inputCls } from './ui'
-import { dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
+import { bonusCash, dayKey, downloadCsv, downloadXlsx, fmtDateTime, giftLabel, isCashGift, countsForPerformance, methodLabel, money, monthKey, paidAmount, paidTip, performanceOf } from './format'
 import { openPicker } from '../lib/util'
 import { OrderDetail } from './Customers'
 
@@ -304,7 +304,7 @@ export default function Finance() {
                 <button type="button" onClick={() => setDetailPay(p)} className="min-w-0 flex-1 basis-56 text-left" aria-label="查看订单详情">
                   <p className="truncate text-sm font-medium">{customerById[p.customerId]?.name || '（已删除客户）'}<span className="font-normal text-muted"> · {serviceNames(p) || '未选服务'}</span></p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${(p.topUpGifts || []).length ? `（赠送 ${p.topUpGifts.map((g) => (g === 'cash200' ? '$200' : giftLabel(g))).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
+                    {fmtDateTime(p.datetime)}{p.staff ? ` · 员工 ${p.staff}` : ''}{referrerOf(p) ? ` · 介绍人 ${referrerOf(p)}` : ''}{staffFilter && p.staff !== staffFilter && referredTo(p, staffFilter) ? '（介绍人关联）' : ''}{p.appointmentId ? '' : ' · 临时消费'}{!counted(p) && p.paymentMethod !== 'unsettled' ? ' · 预约未完成，不计业绩' : ''}{p.giftUsed ? ` · 使用赠送 ${giftLabel(p.giftUsed)}` : ''}{p.topUp > 0 ? ` · 充值会员卡 +${money(p.topUp)}${bonusCash(p) > 0 || (p.topUpGifts || []).some((g) => !isCashGift(g)) ? `（赠送 ${[bonusCash(p) > 0 && money(bonusCash(p)), ...(p.topUpGifts || []).filter((g) => !isCashGift(g)).map(giftLabel)].filter(Boolean).join('、')}）` : ''}` : ''}{p.notes ? ` · 备注 ${p.notes}` : ''}
                   </p>
                 </button>
                 <span className="rounded-full bg-sand px-2.5 py-0.5 text-xs">{methodLabel(p.paymentMethod)}</span>

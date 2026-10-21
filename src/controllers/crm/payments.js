@@ -16,12 +16,18 @@ async function paymentInput(b) {
   const topUpMethod = topUp > 0 ? b.topUpMethod : '';
   if (topUp > 0 && !METHODS.includes(topUpMethod)) return { error: `topUpMethod must be one of ${METHODS.join(', ')}` };
   if (topUp > 0 && (topUpMethod === 'member_card' || topUpMethod === 'unsettled')) return { error: 'a card top-up must be paid by a real payment method' };
-  // Top-up gifts: from $2,000 up, any of $200 card credit / 光子嫩肤 / 热拉提 (as many as wanted, each once).
+  // Top-up gifts, for any top-up amount. A cash credit typed by hand (topUpBonus), or free sessions: the presets, or any service picked by hand
+  // ('svc:<name>'). The old ready-made $200 / $300 credits are still read.
   const GIFTS = ['cash200', 'cash300', 'photofacial', 'thermage'];
-  const allowed = topUp >= 2000 ? GIFTS.length : 0;
-  const topUpGifts = Array.isArray(b.topUpGifts) ? [...new Set(b.topUpGifts)].filter((g) => GIFTS.includes(g)) : [];
+  const clean = (g) => (typeof g === 'string' && g.startsWith('svc:') ? `svc:${str(g.slice(4), 80)}` : g);
+  const okGift = (g) => GIFTS.includes(g) || (typeof g === 'string' && g.startsWith('svc:') && g.length > 4);
+  const allowed = topUp > 0 ? 24 : 0;
+  const topUpGifts = Array.isArray(b.topUpGifts) ? [...new Set(b.topUpGifts.map(clean))].filter(okGift) : [];
   if (topUpGifts.length > allowed) return { error: `this top-up includes at most ${allowed} gift(s)` };
-  const giftUsed = ['photofacial', 'thermage'].includes(b.giftUsed) ? b.giftUsed : ''; // a free top-up gift session redeemed at this visit
+  const topUpBonus = b.topUpBonus === '' || b.topUpBonus == null ? 0 : num(b.topUpBonus);
+  if (!Number.isFinite(topUpBonus) || topUpBonus < 0 || topUpBonus > 100000) return { error: 'topUpBonus must be between 0 and 100000' };
+  if (topUpBonus > 0 && topUp <= 0) return { error: 'a gift amount needs a top-up' };
+  const giftUsed = b.giftUsed && okGift(clean(b.giftUsed)) && !String(b.giftUsed).startsWith('cash') ? clean(b.giftUsed) : ''; // a free top-up gift session redeemed at this visit
   // A $0 payment is fine: the visit may be used up from a package the customer already bought, so nothing is collected.
   const serviceIds = Array.isArray(b.serviceIds) ? [...new Set(b.serviceIds)] : [];
   const known = new Set((await store.list('services')).map((x) => x.id));
@@ -34,7 +40,7 @@ async function paymentInput(b) {
       serviceIds, amount: cents(amount), tipAmount: cents(tipAmount), paymentMethod: b.paymentMethod,
       referralSource: str(b.referralSource, 80), staff: str(b.staff, 60), notes: str(b.notes, 500),
       // Member card: `topUp` is money loaded onto the customer's card at this visit (paid by `topUpMethod`).
-      topUp: cents(topUp), topUpMethod, topUpGifts, giftUsed,
+      topUp: cents(topUp), topUpMethod, topUpGifts, topUpBonus: cents(topUpBonus), giftUsed,
       serviceName: str(b.serviceName, 160), // what was settled, as named on the appointment
       tipMethod: METHODS.includes(b.tipMethod) ? b.tipMethod : b.paymentMethod,
     },
@@ -44,7 +50,7 @@ async function paymentInput(b) {
 // Member card balance = everything loaded onto the card minus everything paid with it (the amount and/or the tip, each by its own method).
 const cardSpent = (p) => (p.paymentMethod === 'member_card' ? p.amount : 0) + ((p.tipMethod || p.paymentMethod) === 'member_card' ? p.tipAmount || 0 : 0);
 const CASH_GIFTS = { cash200: 200, cash300: 300 };
-const cardLoaded = (p) => (p.topUp || 0) + (p.topUpGifts || []).reduce((n, g) => n + (CASH_GIFTS[g] || 0), 0); // top-up plus any $200 / $300 gift credit
+const cardLoaded = (p) => (p.topUp || 0) + (p.topUpGifts || []).reduce((n, g) => n + (CASH_GIFTS[g] || 0), 0) + (Number(p.topUpBonus) || 0); // top-up plus any gift credit (older $200 / $300 gifts, or the amount typed by hand)
 const cardBalance = (payments, customerId, exceptId) => payments
   .filter((p) => p.customerId === customerId && p.id !== exceptId)
   .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0);

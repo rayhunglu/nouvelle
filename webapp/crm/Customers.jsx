@@ -5,7 +5,7 @@ import { uploadCustomerFile } from './files'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
-import { MEMBER_TIERS, cardBalance, fmtDateTime, giftItems, giftLabel, methodLabel, money, paidAmount, paidTip, performanceOf, tierOf } from './format'
+import { MEMBER_TIERS, bonusCash, cardBalance, fmtDateTime, giftItems, giftLabel, isCashGift, methodLabel, money, paidAmount, paidTip, performanceOf, tierOf } from './format'
 import { roomOf } from './rooms'
 
 function TierBadge({ c }) {
@@ -227,7 +227,7 @@ function ApptDetail({ appt, customer, fx, onClose, only }) {
                 {p.paymentMethod !== 'unsettled' && performanceOf(p, payments) !== p.amount && <Row k="员工业绩">{money(performanceOf(p, payments))}</Row>}
                 {(p.tipAmount || 0) > 0 && <Row k="小费">{money(p.tipAmount)}（{methodLabel(p.tipMethod || p.paymentMethod)}）</Row>}
                 {(p.topUp || 0) > 0 && <Row k="本次充值">{money(p.topUp)}（{methodLabel(p.topUpMethod)}）</Row>}
-                {(p.topUpGifts || []).length > 0 && <Row k="充值赠送">{p.topUpGifts.map((g) => (g === 'cash200' ? '$200 余额' : g === 'cash300' ? '$300 余额' : giftLabel(g))).join('、')}</Row>}
+                {(bonusCash(p) > 0 || (p.topUpGifts || []).some((g) => !isCashGift(g))) && <Row k="充值赠送">{[bonusCash(p) > 0 && `${money(bonusCash(p))} 余额`, ...(p.topUpGifts || []).filter((g) => !isCashGift(g)).map(giftLabel)].filter(Boolean).join('、')}</Row>}
                 {p.giftUsed && <Row k="使用赠送项目">{giftLabel(p.giftUsed)}</Row>}
                 <Row k="收款时间">{fmtDateTime(p.datetime)}</Row>
                 {p.notes && <Row k="备注">{p.notes}</Row>}
