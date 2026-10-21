@@ -13,9 +13,12 @@ const store = require('./store');
 const TIME_ZONE = 'America/Los_Angeles';
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const TIMEOUT_MS = 8000;
-// Google's event colours. A staff member's colour wins (Rina brown, Yingna purple); anyone else gets the room's colour
-// (brown, purple, dark green, blue in the CRM). Google has no brown for events, so "Tangerine" (6, the closest) stands in.
-const STAFF_COLOR = { Rina: '6', Yingna: '3' };
+// Google's event colours. An event is coloured by the staff member the booking belongs to, the same on every calendar it appears on:
+// Yingna light purple (Grape, #dbadff), Rina birch-ash grey (Graphite, #e1e1e1), Dayu light green (Sage, #7ae7bf).
+// Google's calendar API only knows eleven fixed event colours (ids 1-11: #a4bdfc, #7ae7bf, #dbadff, #ff887c, #fbd75b, #ffb878, #46d6db,
+// #e1e1e1, #5484ed, #51b749, #dc2127); there is no brown, and "Lavender" (1) is a periwinkle blue, not purple. Anyone else gets the room's
+// colour (brown, purple, dark green, blue in the CRM).
+const STAFF_COLOR = { Yingna: '3', Rina: '8', Dayu: '2' };
 const ROOM_COLOR = { room1: '6', room2: '3', room3: '10', room4: '9' };
 const ROOM_NAME = { room1: '美容单人房', room2: '医美双人房', room3: '美睫单人房', room4: '头疗双人房' };
 
@@ -182,4 +185,4 @@ async function check(calId) {
   }
 }
 
-module.exports = { enabled, defaultCalendarId, calendarFor, calendarsFor, eventsOf, isLash, upsert, remove, check, serviceAccountEmail: () => (credentials() || {}).client_email || '' };
+module.exports = { enabled, defaultCalendarId, calendarFor, calendarsFor, eventsOf, eventOf, isLash, upsert, remove, check, serviceAccountEmail: () => (credentials() || {}).client_email || '' };
