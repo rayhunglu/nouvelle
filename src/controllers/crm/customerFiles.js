@@ -57,12 +57,16 @@ const download = wrap(async (req, res) => {
   const f = c && (await fileOf(req, c.id));
   if (!f) return res.status(404).json({ error: 'Not found' });
   const stream = await drive.download(f.driveId);
+  // ?inline=1 shows a PDF / picture in the browser's own viewer (a new tab on an iPad); otherwise it is saved as a file.
+  const inline = req.query.inline === '1' && (f.mimeType === 'application/pdf' || String(f.mimeType).startsWith('image/'));
   res.set({
     'Content-Type': f.mimeType,
-    'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(f.name)}`,
+    'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(f.name)}`,
     'Content-Length': String(f.size),
     'X-Content-Type-Options': 'nosniff',
   });
+  // A browser's own PDF viewer is a plugin: the site-wide policy (object-src 'none') would stop it from showing the file.
+  if (inline) res.set('Content-Security-Policy', "default-src 'self'; object-src 'self'; frame-ancestors 'self'");
   stream.on('error', (err) => { console.error('[customerFiles] download failed:', err.message); res.destroy(err); });
   stream.pipe(res);
 });

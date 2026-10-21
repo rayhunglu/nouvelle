@@ -33,7 +33,9 @@ module.exports.createServer = () => {
 
   // UI: serve the Vite build output (no-cache is set above, so express does not add its own Cache-Control)
   app.use(express.static(path.join(__dirname, '..', 'dist'), { cacheControl: false }));
-  app.get(/^\/(?!api).*/, (req, res) => {
+  // A missing build file (/assets/...) is a real 404: answering it with the page would make a page left open across an update fail with
+  // a confusing "Failed to fetch dynamically imported module" instead of a plain missing file.
+  app.get(/^\/(?!api|assets\/).*/, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'), { cacheControl: false });
   });
 

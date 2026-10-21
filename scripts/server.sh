@@ -5,13 +5,15 @@
 #   ./scripts/server.sh restart   rebuild + restart (use after code changes)
 #   ./scripts/server.sh status
 #   ./scripts/server.sh logs      follow the log (Ctrl-C to leave; the server keeps running)
-# Port: PORT env var (default 3000). Log: logs/server.log. PID: logs/server.pid
+# Port: PORT env var, else the port it was last started on (logs/server.port), else 3000. Log: logs/server.log. PID: logs/server.pid
 set -u
 cd "$(dirname "$0")/.."
 mkdir -p logs
 PID_FILE=logs/server.pid
 LOG_FILE=logs/server.log
-PORT="${PORT:-3000}"
+PORT_FILE=logs/server.port
+# Without PORT the last used port is kept, so a plain "restart" does not jump back to 3000 (another project may be on it).
+PORT="${PORT:-$( [ -f "$PORT_FILE" ] && cat "$PORT_FILE" || echo 3000 )}"
 
 running() { [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; }
 
@@ -24,6 +26,7 @@ start() {
   echo "building..."
   npm run build-ui >>"$LOG_FILE" 2>&1 || { echo "build failed, see $LOG_FILE"; return 1; }
   # nohup + new session so it survives closing the terminal; restarts are manual.
+  echo "$PORT" >"$PORT_FILE"
   PORT="$PORT" nohup node -r dotenv/config src/index.js >>"$LOG_FILE" 2>&1 &
   echo $! >"$PID_FILE"
   disown 2>/dev/null || true

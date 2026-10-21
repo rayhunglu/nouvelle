@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "start": "npm run build-ui && node -r dotenv/config src/index.js",
-    "server": "./scripts/server.sh"
+    "server": "./scripts/server.sh",
+    "consents": "node scripts/render-consents.mjs"
   },
   "dependencies": {
     "connect-mongo": "^6.0.0",
@@ -32,6 +33,7 @@
     "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.12",
     "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

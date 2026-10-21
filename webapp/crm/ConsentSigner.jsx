@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Check, PenLine } from 'lucide-react'
 import { uploadCustomerFile } from './files'
+import { loadPdfjs, readPageTextItems } from '../lib/pdfSupport'
+import CONSENT_LAYOUT from '../data/consentLayout.json' // made by `npm run consents`: page pictures and where the blanks are, for every form
 
-// Signing a consent form on screen. The form's PDF (public/consent/<key>.pdf) is drawn page by page; the customer signs in the
+// Signing a consent form on screen. The form is shown page by page from prepared pictures (public/consent/pages, see scripts/render-consents.mjs),
+// so a tablet does not have to draw the PDF itself (an older iPad could not); a saved signed copy, or a form without pictures, is drawn from
+// its PDF by pdf.js instead. the customer signs in the
 // 顾客／合法代理人签字 box on the last page (a finger, a pen or the mouse), and the 姓名 and 日期 lines are filled in. 员工 can sign
 // the 见证人 line too (optional). Saving writes the pictures into the PDF itself and uploads it as the customer's 同意书.
 //
 // The forms put each blank as a label with an underscore line below it: Patient / Responsible Party Name, Patient / Responsible Party
 // Signature, Date (older versions also had Witness Name & Signature). Every label is found in the PDF's text (on whichever page it is) and
 // the nearest underscore line under it is where the picture goes, so a form that is re-laid out keeps working. 
+
+const formKey = (file) => String(file).replace(/^.*\//, '').replace(/\.pdf$/, '') // '/consent/skin-2.pdf' -> 'skin-2'
 
 const SIG_H_MAX = 40 // the signing box above its line, in PDF points; a signature is fitted inside it (300 wide) and never leaves it
 
@@ -123,6 +129,9 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
   const [pages, setPages] = useState([]) // [{ canvas data url, w, h }] in CSS px
   const [layout, setLayout] = useState(null) // PDF-point positions found on the last page
   const [err, setErr] = useState('')
+  const [step, setStep] = useState('') // where the loading is, shown while it runs and in the timeout message (to see where a device stalls)
+  const stepRef = useRef('')
+  const mark = (t) => { stepRef.current = t; setStep(t) }
   const [pad, setPad] = useState('') // 'patient' | 'witness': which signing pad is open
   const [sig, setSig] = useState({ patient: null, witness: null })
   const [busy, setBusy] = useState(false)
@@ -133,30 +142,74 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
 
   useEffect(() => {
     let dead = false
+    let finished = false
+    let loadingTask = null
+    let renderTask = null
+    let destroying = null
+    const controller = new AbortController()
+    const destroy = () => {
+      if (loadingTask && !destroying) destroying = loadingTask.destroy().catch(() => {})
+      return destroying
+    }
+    setPages([])
+    setLayout(null)
+    setErr('')
+    setSig({ patient: null, witness: null })
+    bytes.current = null
+    // Prepared pictures: no PDF library needed. The original PDF is fetched in the background, for writing the signature into it later.
+    const prepared = !viewRow && CONSENT_LAYOUT[formKey(form.file)]
+    if (prepared) {
+      const cssW = Math.max(1, Math.min((wrap.current?.clientWidth || 560) - 20, 720))
+      const k = cssW / prepared.w
+      const key = formKey(form.file)
+      setPages(Array.from({ length: prepared.pages }, (_, i) => ({ url: `/consent/pages/${key}-${i + 1}.jpg`, w: cssW, h: prepared.h * k, k, pw: prepared.w, ph: prepared.h })))
+      setLayout({ name: prepared.name, patient: prepared.patient, witness: prepared.witness, date: prepared.date })
+      fetch(form.file, { credentials: 'same-origin', signal: controller.signal }).then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { if (b && !dead) bytes.current = new Uint8Array(b) }).catch(() => {})
+      return () => { dead = true; controller.abort() }
+    }
+    const timer = setTimeout(() => { if (!finished && !dead) setErr(`加载太久没有完成，停在：${stepRef.current || '开始'}`) }, 30000)
     ;(async () => {
       try {
-        const pdfjs = await import('pdfjs-dist')
-        const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
-        pdfjs.GlobalWorkerOptions.workerSrc = worker
-        const res = await fetch(viewRow ? `/api/crm/customers/${appt.customerId}/files/${viewRow.id}` : form.file, { credentials: 'same-origin' })
+        mark('载入 PDF 组件')
+        const pdfjs = await loadPdfjs() // works on an older iPad too (see lib/pdfSupport.js)
+        if (dead) return
+        mark('下载同意书')
+        const res = await fetch(viewRow ? `/api/crm/customers/${appt.customerId}/files/${viewRow.id}` : form.file, { credentials: 'same-origin', signal: controller.signal })
         if (!res.ok) throw new Error('打不开这份同意书')
-        bytes.current = new Uint8Array(await res.arrayBuffer())
-        const doc = await pdfjs.getDocument({ data: bytes.current.slice(), useSystemFonts: true }).promise
-        const cssW = Math.min(wrap.current?.clientWidth || 560, 720)
+        const data = new Uint8Array(await res.arrayBuffer())
+        if (dead) return
+        bytes.current = data
+        mark('解析文件')
+        loadingTask = pdfjs.getDocument({ data: data.slice(), useSystemFonts: true, isEvalSupported: false, isOffscreenCanvasSupported: false, isImageDecoderSupported: false }) // no eval: the site's CSP does not allow it
+        const doc = await loadingTask.promise
+        if (dead) return
+        const cssW = Math.max(1, Math.min((wrap.current?.clientWidth || 560) - 20, 720))
         const dpr = Math.min(window.devicePixelRatio || 1, 2)
         const out = []
         let found = {}
         for (let n = 1; n <= doc.numPages; n += 1) {
+          if (dead) return
+          mark(`第 ${n}/${doc.numPages} 页`)
           const page = await doc.getPage(n)
           const base = page.getViewport({ scale: 1 })
           const k = cssW / base.width
           const vp = page.getViewport({ scale: k * dpr })
           const c = document.createElement('canvas')
-          c.width = vp.width
-          c.height = vp.height
-          await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
+          c.width = Math.ceil(vp.width)
+          c.height = Math.ceil(vp.height)
+          mark(`第 ${n}/${doc.numPages} 页：绘制`)
+          renderTask = page.render({ canvasContext: c.getContext('2d'), viewport: vp })
+          await renderTask.promise
+          renderTask = null
+          if (dead) return
+          mark(`第 ${n}/${doc.numPages} 页：读取文字`)
           out.push({ url: c.toDataURL('image/jpeg', 0.9), w: cssW, h: base.height * k, k, pw: base.width, ph: base.height })
-          const items = (await page.getTextContent()).items.filter((i) => i.str.trim())
+          c.width = 0
+          c.height = 0
+          // Viewing a saved copy needs no text extraction or signature layout.
+          if (viewRow) { page.cleanup(); continue }
+          const items = await readPageTextItems(page, controller.signal)
+          if (dead) return
           const lines = items.filter((i) => /^_+$/.test(i.str.trim()))
           // x / y of the underscore line under a label (its baseline), on the same page; a plain 33pt below when none is drawn
           const at = (re, exact) => {
@@ -173,27 +226,49 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
             witness: found.witness || at(/Witness Name/),
             date: found.date || at('Date', true),
           }
+          page.cleanup()
         }
         if (!viewRow && !found.patient) throw new Error('这份同意书里找不到签名位置')
+        finished = true
         if (dead) return
+        setErr('')
         setPages(out)
         setLayout(found)
       } catch (e) {
-        if (!dead) setErr(e.message || '同意书加载失败')
+        // Say where it broke (the first lines of the stack), so a failure on one device can be traced from a screenshot.
+        // A page left open across an update asks for a file that no longer exists: say to reload it.
+        const stale = /dynamically imported|importing a module script|Loading chunk|error loading dynamically/i.test(String(e.message))
+        if (!dead) setErr(`${stale ? '页面已更新，请刷新页面（或重新打开 App）后再试。' : ''}${e.message || '同意书加载失败'}${e.stack ? ' — ' + String(e.stack).split('\n').slice(0, 2).join(' | ').slice(0, 220) : ''}`)
+      } finally {
+        finished = true
+        clearTimeout(timer)
+        await destroy()
       }
     })()
-    return () => { dead = true }
-  }, [form.file, viewRow?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      dead = true
+      clearTimeout(timer)
+      controller.abort()
+      renderTask?.cancel()
+      void destroy()
+    }
+  }, [form.file, viewRow?.id, appt.customerId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The signing box fills the blank between the label and its line, with room left for the label's own text.
-  const sigH = layout ? Math.max(18, Math.min(SIG_H_MAX, (layout.patient.gap || 53) - 16)) : SIG_H_MAX
+  const sigH = layout?.patient ? Math.max(18, Math.min(SIG_H_MAX, (layout.patient.gap || 53) - 16)) : SIG_H_MAX
   // A box on a page, from the underscore line it sits on (PDF points, origin bottom-left) to CSS px.
   const boxStyle = (pg, f, w, h) => ({ left: f.x * pg.k, top: (pg.ph - (f.y + 3 + h)) * pg.k, width: w * pg.k, height: h * pg.k })
 
   const save = async () => {
+    if (busy || viewRow || !layout?.patient || !sig.patient) return
     setBusy(true)
     setErr('')
     try {
+      if (!bytes.current) { // not fetched yet (or the early fetch failed)
+        const res = await fetch(form.file, { credentials: 'same-origin' })
+        if (!res.ok) throw new Error('打不开这份同意书')
+        bytes.current = new Uint8Array(await res.arrayBuffer())
+      }
       const { PDFDocument } = await import('pdf-lib')
       const doc = await PDFDocument.load(bytes.current)
       const put = async ({ url, ratio }, f, maxW, h) => {
@@ -222,10 +297,15 @@ export default function ConsentSigner({ form, appt, customer, viewRow, onBack, o
         <p className="truncate text-sm font-medium">{form.name}同意书{viewRow ? '（已签署）' : ''}</p>
       </div>
       {viewRow
-        ? <p className="mb-3 text-xs text-muted">这是客人已签署的文件（{viewRow.name}）。<a href={`/api/crm/customers/${appt.customerId}/files/${viewRow.id}`} className="ml-1 text-gold underline underline-offset-4">下载</a></p>
+        ? <p className="mb-3 text-xs text-muted">这是客人已签署的文件（{viewRow.name}）。<a href={`/api/crm/customers/${appt.customerId}/files/${viewRow.id}?inline=1`} target="_blank" rel="noreferrer" className="ml-1 text-gold underline underline-offset-4">在新分页打开</a><a href={`/api/crm/customers/${appt.customerId}/files/${viewRow.id}`} className="ml-3 text-gold underline underline-offset-4">下载</a></p>
         : <p className="mb-3 text-xs text-muted">请客人从头阅读全部页面，到签名处点「点击签名」签字，确认后点「确认提交」。</p>}
-      {err && <p role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">{err}</p>}
-      {!pages.length && !err && <p className="py-10 text-center text-sm text-muted">同意书加载中…</p>}
+      {err && (
+        <div role="alert" className="mb-3 rounded-xl bg-rose-100 px-3 py-2 text-xs text-rose-800">
+          <p className="break-words">{err}</p>
+          <p className="mt-1">这台设备显示不了时，可以<a href={viewRow ? `/api/crm/customers/${appt.customerId}/files/${viewRow.id}?inline=1` : form.file} target="_blank" rel="noreferrer" className="mx-0.5 underline">在新分页打开 PDF</a>看，或把上面这行字截图发给我们。</p>
+        </div>
+      )}
+      {!pages.length && !err && <p className="py-10 text-center text-sm text-muted">同意书加载中…{step ? `（${step}）` : ''}</p>}
       <div className="max-h-[60vh] space-y-3 overflow-y-auto rounded-xl border border-ink/10 bg-sand p-2">
         {pages.map((pg, i) => (
           <div key={i} className="relative mx-auto bg-white shadow-sm" style={{ width: pg.w, height: pg.h }}>
