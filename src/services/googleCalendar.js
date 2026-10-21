@@ -11,14 +11,33 @@ const crypto = require('crypto');
 const store = require('./store');
 
 const TIME_ZONE = 'America/Los_Angeles';
-const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const SCOPE = 'https://www.googleapis.com/auth/calendar'; // events + reading a calendar's colour labels
 const TIMEOUT_MS = 8000;
 // Google's event colours. An event is coloured by the staff member the booking belongs to, the same on every calendar it appears on:
-// Yingna light purple (Grape, #dbadff), Rina birch-ash grey (Graphite, #e1e1e1), Dayu light green (Sage, #7ae7bf).
+// Yingna light purple (Grape, #dbadff), Rina Flamingo (#ff887c), Dayu light green (Sage, #7ae7bf).
 // Google's calendar API only knows eleven fixed event colours (ids 1-11: #a4bdfc, #7ae7bf, #dbadff, #ff887c, #fbd75b, #ffb878, #46d6db,
 // #e1e1e1, #5484ed, #51b749, #dc2127); there is no brown, and "Lavender" (1) is a periwinkle blue, not purple. Anyone else gets the room's
 // colour (brown, purple, dark green, blue in the CRM).
-const STAFF_COLOR = { Yingna: '3', Rina: '8', Dayu: '2' };
+const STAFF_COLOR = { Yingna: '3', Rina: '4', Dayu: '2' };
+// Colours outside the eleven fixed ones come from the newer colour labels (June 2026): every calendar carries Google's 24 default labels
+// ({ id, backgroundColor }), found by their hex colour; an event uses one through `eventLabelId` (with ?eventLabelVersion=1, which makes
+// Google ignore `colorId`). Example: Cocoa (#795548). If the label cannot be found the event falls back to its colorId.
+const STAFF_LABEL = {}; // none at the moment (Rina's Cocoa label was not shown by every Google Calendar client, so she uses Flamingo)
+const labelCache = new Map(); // calendar id -> { '#795548': label id }
+async function labelIdFor(calId, hex) {
+  try {
+    if (!labelCache.has(calId)) {
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}`, { headers: { Authorization: `Bearer ${await accessToken()}` }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((data.error && data.error.message) || res.status);
+      labelCache.set(calId, Object.fromEntries(((data.labelProperties && data.labelProperties.eventLabels) || []).map((l) => [String(l.backgroundColor).toLowerCase(), l.id])));
+    }
+    return labelCache.get(calId)[hex] || '';
+  } catch (err) {
+    console.error('[googleCalendar] colour label lookup failed:', err.message);
+    return '';
+  }
+}
 const ROOM_COLOR = { room1: '6', room2: '3', room3: '10', room4: '9' };
 const ROOM_NAME = { room1: '美容单人房', room2: '医美双人房', room3: '美睫单人房', room4: '头疗双人房' };
 
@@ -99,8 +118,8 @@ async function accessToken() {
   return token.value;
 }
 
-async function call(calId, method, path, body) {
-  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events${path}`, {
+async function call(calId, method, path, body, query = '') {
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events${path}${query}`, {
     method,
     headers: { Authorization: `Bearer ${await accessToken()}`, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
@@ -139,14 +158,17 @@ async function upsert(appt, customerName, calId) {
   if (!credentials() || !calId) return { skipped: true };
   try {
     const body = eventOf(appt, customerName);
+    let query = '';
+    const label = STAFF_LABEL[appt.staff] ? await labelIdFor(calId, STAFF_LABEL[appt.staff]) : '';
+    if (label) { body.eventLabelId = label; delete body.colorId; query = '?eventLabelVersion=1'; }
     if (appt.googleEventId) {
       try {
-        return { id: (await call(calId, 'PUT', `/${encodeURIComponent(appt.googleEventId)}`, body)).id };
+        return { id: (await call(calId, 'PUT', `/${encodeURIComponent(appt.googleEventId)}`, body, query)).id };
       } catch (err) {
         if (err.status !== 404 && err.status !== 410) throw err; // the event was deleted in Google: make a fresh one
       }
     }
-    return { id: (await call(calId, 'POST', '', body)).id };
+    return { id: (await call(calId, 'POST', '', body, query)).id };
   } catch (err) {
     console.error('[googleCalendar] upsert failed:', err.message);
     return { error: err.message };
