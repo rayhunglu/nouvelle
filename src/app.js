@@ -36,6 +36,7 @@ module.exports.createServer = () => {
   // A missing build file (/assets/...) is a real 404: answering it with the page would make a page left open across an update fail with
   // a confusing "Failed to fetch dynamically imported module" instead of a plain missing file.
   app.get(/^\/(?!api|assets\/).*/, (req, res) => {
+    if (/^\/((en|zh)\/(account|login|register|join)|crm|staff-login|forgot-password|reset-password)(\/|$)/.test(req.path)) res.setHeader('X-Robots-Tag', 'noindex, nofollow'); // staff and member pages stay out of search engines
     res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'), { cacheControl: false });
   });
 

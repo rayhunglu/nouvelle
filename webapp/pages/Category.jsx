@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from '../lib/router'
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, MessageCircle, Sparkles, MessageCircleQuestion } from 'lucide-react'
 import { useLang } from '../i18n'
 import { setConsultService } from '../consult'

@@ -1,12 +1,14 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { Camera, ChevronLeft, ChevronRight, Download, FileText, Mail, MessageCircle, Pencil, Phone, Plus, ImagePlus, Search, Trash2, Upload, X } from 'lucide-react'
+import { Camera, ChevronLeft, ChevronRight, Download, FileText, Mail, ClipboardList, MessageCircle, Pencil, UserPen, Phone, Plus, ImagePlus, Search, Trash2, Upload, X } from 'lucide-react'
 import { api } from '../api'
+import { openPicker } from '../lib/util'
 import { uploadCustomerFile } from './files'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
 import { MEMBER_TIERS, bonusCash, cardBalance, fmtDateTime, giftItems, giftLabel, isCashGift, methodLabel, money, paidAmount, paidTip, performanceOf, tierOf } from './format'
 import { roomOf } from './rooms'
+import Questionnaire, { HEARD_FROM, emptyQuestionnaire } from './Questionnaire'
 
 function TierBadge({ c }) {
   const { payments } = useCrm()
@@ -308,12 +310,38 @@ export function OrderDetail({ payment, onClose }) {
   return <ApptDetail appt={shown} customer={customer || { id: payment.customerId, name: '' }} fx={fx} only={payment} onClose={onClose} />
 }
 
-function CustomerForm({ customer, onClose }) {
+// "新增客户" first asks who fills it in: the staff (the details + membership / tags / notes) or the customer themselves (their own details and the
+// health questionnaires, nothing staff-only). Both create the same customer record; the picked mode is only which fields the form shows.
+function NewCustomerChoice({ onPick, onClose }) {
+  const opts = [
+    { mode: 'staff', title: '店员填写客户信息', sub: '店员操作：姓名、联系方式、会员类别、标签、备注', Icon: UserPen },
+    { mode: 'self', title: '客户自己填写资料问卷', sub: '把屏幕交给客人：个人资料、紧急联系人和健康问卷', Icon: ClipboardList },
+  ]
+  return (
+    <Modal inset title="新增客户" onClose={onClose}>
+      <div className="grid gap-3">
+        {opts.map(({ mode, title, sub, Icon }) => (
+          <button key={mode} type="button" onClick={() => onPick({ mode })} className="flex items-center gap-3 rounded-2xl border border-ink/10 bg-white p-4 text-left transition hover:border-gold hover:shadow-sm">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sand text-gold"><Icon size={18} /></span>
+            <span className="min-w-0"><span className="block text-sm font-medium">{title}</span><span className="block text-xs text-muted">{sub}</span></span>
+            <ChevronRight size={16} className="ml-auto shrink-0 text-muted" />
+          </button>
+        ))}
+      </div>
+    </Modal>
+  )
+}
+
+function CustomerForm({ customer, mode, onClose }) {
+  const selfFill = mode === 'self' // the customer fills it in themselves: no staff-only fields
+  const showQuestionnaire = !!customer || selfFill // staff adding a new customer fills the questionnaire later (or hands it to the customer)
   const { save, appointments, payments } = useCrm()
   const fx = useCustomerFiles(customer)
   const [detailId, setDetailId] = useState(null) // the appointment record opened from the history
   const [f, setF] = useState({
     name: customer?.name || '', phone: customer?.phone || '', email: customer?.email || '', wechatId: customer?.wechatId || '', wechatNo: customer?.wechatNo || '',
+    legalName: customer?.legalName || '', dob: customer?.dob || '', emergencyName: customer?.emergencyName || '', emergencyPhone: customer?.emergencyPhone || '', heardFrom: customer?.heardFrom || '',
+    questionnaire: emptyQuestionnaire(customer?.questionnaire),
     tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: customer?.memberTier || (customer?.member ? 'member' : ''),
   })
   const [error, setError] = useState('')
@@ -331,7 +359,7 @@ function CustomerForm({ customer, onClose }) {
     setBusy(true)
     setError('')
     try {
-      await save('customers', customer?.id, { ...f, tags: f.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean) })
+      await save('customers', customer?.id, { ...f, name: f.name.trim() || f.legalName.trim(), tags: f.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean) })
       onClose()
     } catch (err) {
       setError(err.message)
@@ -340,7 +368,7 @@ function CustomerForm({ customer, onClose }) {
   }
 
   return (
-    <Modal inset title={customer ? '客户资料' : '新增客户'} onClose={onClose} wide={!!customer} loading={busy}>
+    <Modal inset title={customer ? '客户资料' : selfFill ? '客户资料问卷' : '新增客户'} onClose={onClose} wide={!!customer} loading={busy}>
       {/* The customer's key details stay pinned at the top while the history below is scrolled. */}
       {customer && (
         <div className="sticky -top-4 z-10 -mx-4 -mt-1 mb-4 border-b border-ink/10 bg-ivory/95 px-4 py-2 backdrop-blur sm:-top-6 sm:-mx-6 sm:-mt-2 sm:px-6">
@@ -354,13 +382,20 @@ function CustomerForm({ customer, onClose }) {
         </div>
       )}
       <form id="customer-form" onSubmit={submit} className="space-y-4">
-        <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus={!customer} placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>
+        {selfFill && <p className="rounded-xl bg-sand px-3 py-2 text-xs text-muted">Welcome to Nouvelle Anti-Aging. Please fill in your details and the questionnaires below. 欢迎光临，请填写您的资料和以下问卷。</p>}
+        {!selfFill && <Field label="姓名（选填）"><input className={inputCls} value={f.name} onChange={set('name')} autoFocus={!customer} placeholder="不填则用微信名 / 电话 / 邮箱代替" /></Field>}
+        <Field label={selfFill ? 'Full Legal Name｜法定姓名｜Required' : 'Full Legal Name｜法定姓名'}><input className={inputCls} value={f.legalName} onChange={set('legalName')} autoComplete="off" autoFocus={selfFill} required={selfFill} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="电话"><input className={inputCls} value={f.phone} onChange={set('phone')} type="tel" /></Field>
-          <Field label="微信名"><input className={inputCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" /></Field>
-          <Field label="微信号"><input className={inputCls} value={f.wechatNo} onChange={set('wechatNo')} autoComplete="off" /></Field>
+          <Field label="Date of Birth｜出生日期｜Required"><input className={inputCls} value={f.dob} onChange={set('dob')} type="date" onClick={openPicker} onFocus={openPicker} max={new Date().toISOString().slice(0, 10)} required /></Field>
+          <Field label="Phone Number｜联系电话｜Required"><input className={inputCls} value={f.phone} onChange={set('phone')} type="tel" required /></Field>
+          <Field label="Email Address｜邮箱｜Required"><input className={inputCls} value={f.email} onChange={set('email')} type="email" required /></Field>
+          {!selfFill && <Field label="微信名"><input className={inputCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" /></Field>}
+          {!selfFill && <Field label="微信号"><input className={inputCls} value={f.wechatNo} onChange={set('wechatNo')} autoComplete="off" /></Field>}
+          <Field label="Emergency Contact Name｜紧急联系人姓名｜Required"><input className={inputCls} value={f.emergencyName} onChange={set('emergencyName')} autoComplete="off" required /></Field>
+          <Field label="Emergency Contact Phone｜紧急联系人电话｜Required"><input className={inputCls} value={f.emergencyPhone} onChange={set('emergencyPhone')} type="tel" required /></Field>
         </div>
-        <Field label="邮箱"><input className={inputCls} value={f.email} onChange={set('email')} type="email" /></Field>
+        <Field label="How Did You Hear About Us?｜获知本店的渠道｜Optional"><select className={inputCls} value={f.heardFrom} onChange={set('heardFrom')}><option value="">—</option>{[...HEARD_FROM, ...(f.heardFrom && !HEARD_FROM.includes(f.heardFrom) ? [f.heardFrom] : [])].map((o) => <option key={o} value={o}>{o}</option>)}</select></Field>
+        {!selfFill && (
         <Field label="会员类别（选了就是会员，预约时自动按会员价）">
           <select className={inputCls} value={f.memberTier} onChange={set('memberTier')}>
             <option value="">非会员</option>
@@ -368,8 +403,12 @@ function CustomerForm({ customer, onClose }) {
           </select>
           {!f.memberTier && customer && tierOf(customer, payments) && <span className="mt-1 block text-xs text-muted">没有手动选择：按充值累计自动显示为「{tierOf(customer, payments).label}」，选一个就以手动选的为准。</span>}
         </Field>
+        )}
+        {showQuestionnaire && <Questionnaire value={f.questionnaire} onChange={(questionnaire) => setF((cur) => ({ ...cur, questionnaire }))} />}
+        {!selfFill && <>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
+        </>}
       </form>
 
       {customer && (
@@ -522,7 +561,8 @@ export default function Customers() {
           </div>
         </Modal>
       )}
-      {editing && <CustomerForm customer={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {editing === 'new' && <NewCustomerChoice onPick={setEditing} onClose={() => setEditing(null)} />}
+      {editing && editing !== 'new' && <CustomerForm key={editing.id || editing.mode} customer={editing.mode ? null : editing} mode={editing.mode} onClose={() => setEditing(null)} />}
     </>
   )
 }

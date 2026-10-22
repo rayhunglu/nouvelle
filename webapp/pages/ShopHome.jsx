@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { ArrowLeft, ArrowRight, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { setConsultService } from '../consult'

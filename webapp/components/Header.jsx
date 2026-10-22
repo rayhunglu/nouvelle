@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
-import { ArrowRight, ChevronDown, LayoutDashboard, LogIn, Menu, Phone, X } from 'lucide-react'
+import { Link, NavLink, useLocation } from '../lib/router'
+import { ArrowRight, ChevronDown, LogIn, Menu, Phone, X } from 'lucide-react'
 import { useLang } from '../i18n'
-import { useAuth } from '../auth'
+import LangToggle from './LangToggle'
 import { business, categories } from '../data/site'
 import { brands } from '../data/shop'
 import { ui } from './ui'
@@ -22,24 +22,6 @@ const skincareItems = categories
 
 // The dropdown descriptions are shown without the closing full stop.
 const dropPeriod = (text) => text.replace(/[。.]\s*$/, '')
-
-function LangToggle({ className = '' }) {
-  const { lang, setLang } = useLang()
-  return (
-    <div className={`flex rounded-full border border-ink/15 p-0.5 text-xs font-medium ${className}`} role="group" aria-label="Language">
-      {[['en', 'EN'], ['zh', '中文']].map(([code, label]) => (
-        <button
-          key={code}
-          onClick={() => setLang(code)}
-          aria-pressed={lang === code}
-          className={`rounded-full px-3.5 py-2 transition ${lang === code ? 'bg-gold text-ivory' : 'text-muted hover:text-ink'}`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 function ServiceDropdown({ label, items, linkCls, to, allTo, allLabel }) {
   const { t } = useLang()
@@ -119,7 +101,6 @@ function MobileGroup({ label, items, homeTo, homeLabel, allTo }) {
 
 export default function Header() {
   const { t } = useLang()
-  const { user } = useAuth()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -156,8 +137,8 @@ export default function Header() {
 
         <div className="hidden items-center gap-4 lg:flex">
           <LangToggle />
-          <Link to={user ? '/crm/appointments' : '/login'} className="btn-ghost !py-2.5">
-            {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
+          <Link to="/account" className="btn-ghost !py-2.5">
+            <LogIn size={15} /> {t({ en: 'Member', zh: '会员' })}
           </Link>
           <a href={business.phoneHref} className="btn-primary hidden !py-2.5 xl:inline-flex">
             <Phone size={15} /> {business.phone}
@@ -188,8 +169,8 @@ export default function Header() {
             {[['/faq', ui.nav.faq], ['/contact', ui.nav.contact]].map(([to, label]) => (
               <NavLink key={to} to={to} end className="border-b border-ink/10 py-4 font-display text-xl">{t(label)}</NavLink>
             ))}
-            <Link to={user ? '/crm/appointments' : '/login'} className="btn-ghost mt-8">
-              {user ? <LayoutDashboard size={15} /> : <LogIn size={15} />} {user ? 'CRM' : t({ en: 'Login', zh: '登录' })}
+            <Link to="/account" className="btn-ghost mt-8">
+              <LogIn size={15} /> {t({ en: 'Member', zh: '会员' })}
             </Link>
             <a href={business.phoneHref} className="btn-primary mt-3"><Phone size={15} /> {business.phone}</a>
           </nav>

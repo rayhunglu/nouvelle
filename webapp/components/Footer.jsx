@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { MapPin, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories } from '../data/site'

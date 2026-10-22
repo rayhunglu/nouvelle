@@ -17,6 +17,7 @@ const { getRoster, addStaff, removeStaff } = require('../controllers/crm/roster'
 const { getSchedule, putSchedule } = require('../controllers/crm/schedule');
 const { getServiceSettings, putServiceSettings } = require('../controllers/crm/serviceSettings');
 const { getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar } = require('../controllers/crm/staffProfile');
+const portal = require('../controllers/portal');
 const mongo = require('../services/mongo');
 const { rateLimit } = require('../middleware/security');
 
@@ -128,6 +129,18 @@ module.exports = (app) => {
   const resetLimit = rateLimit({ windowMs: 10 * 60 * 1000, max: 10 });
   app.post(`${REST_PREFIX}/auth/forgot`, resetLimit, auth.forgotPassword);
   app.post(`${REST_PREFIX}/auth/reset`, resetLimit, auth.resetPassword);
+
+  // Customer portal (members sign in by phone). Separate from the CRM: it never uses session.user. The texting routes are limited per IP.
+  const textLimit = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 });
+  const codeLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
+  app.post(`${REST_PREFIX}/portal/join`, textLimit, portal.join);
+  app.post(`${REST_PREFIX}/portal/register`, textLimit, portal.register);
+  app.post(`${REST_PREFIX}/portal/login/start`, textLimit, portal.loginStart);
+  app.post(`${REST_PREFIX}/portal/login/verify`, codeLimit, portal.loginVerify);
+  app.post(`${REST_PREFIX}/portal/logout`, portal.logout);
+  app.get(`${REST_PREFIX}/portal/me`, portal.requirePortal, portal.me);
+  app.get(`${REST_PREFIX}/portal/history`, portal.requirePortal, portal.history);
+  app.put(`${REST_PREFIX}/portal/me`, portal.requirePortal, portal.updateMe);
 
   // CRM-only API: auth check runs before any CRM handler
   app.use(CRM_PREFIX, requireAuth, crmRouter());

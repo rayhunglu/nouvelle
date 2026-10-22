@@ -231,4 +231,27 @@ async function sendPasswordLink({ to, name, link, kind = 'reset' }) {
   }
 }
 
-module.exports = { enabled, sendPasswordLink, sendContactNotification, sendCareerApplication, sendStaffBooking };
+// The one-time sign-in code of the customer portal. Never throws. Returns 'sent' | 'dry-run' | 'skipped: why' | 'failed: why'.
+// With NOTIFY_DRY_RUN=1 the code is only logged (local testing without sending mail).
+async function sendLoginCode({ to, code }) {
+  if (process.env.NOTIFY_DRY_RUN === '1') {
+    console.log(`[mail dry-run] sign-in code for ${to}: ${code}`);
+    return 'dry-run';
+  }
+  if (!enabled()) return 'skipped: 服务器还没配置 Gmail';
+  try {
+    await getTransporter().sendMail({
+      from: `"Nouvelle Anti-Aging" <${user()}>`,
+      to,
+      subject: `Nouvelle 验证码 Verification code: ${code}`,
+      text: `您的验证码 Your verification code: ${code}\n\n10 分钟内有效。如果这不是您本人的操作，请忽略这封邮件。\nValid for 10 minutes. If this was not you, please ignore this email.`,
+      html: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6"><p>您的验证码 Your verification code</p><p style="font-size:28px;letter-spacing:6px;font-weight:600">${esc(code)}</p><p style="color:#6f625a">10 分钟内有效。如果这不是您本人的操作，请忽略这封邮件。<br>Valid for 10 minutes. If this was not you, please ignore this email.</p></div>`,
+    });
+    return 'sent';
+  } catch (err) {
+    console.error('Failed to email the sign-in code:', err.message);
+    return `failed: ${err.message}`;
+  }
+}
+
+module.exports = { enabled, sendPasswordLink, sendLoginCode, sendContactNotification, sendCareerApplication, sendStaffBooking };

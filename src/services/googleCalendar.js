@@ -14,11 +14,11 @@ const TIME_ZONE = 'America/Los_Angeles';
 const SCOPE = 'https://www.googleapis.com/auth/calendar'; // events + reading a calendar's colour labels
 const TIMEOUT_MS = 8000;
 // Google's event colours. An event is coloured by the staff member the booking belongs to, the same on every calendar it appears on:
-// Yingna light purple (Grape, #dbadff), Rina Flamingo (#ff887c), Dayu light green (Sage, #7ae7bf).
+// Yingna Lavender (#a4bdfc), Rina Flamingo (#ff887c), Dayu light green (Sage, #7ae7bf).
 // Google's calendar API only knows eleven fixed event colours (ids 1-11: #a4bdfc, #7ae7bf, #dbadff, #ff887c, #fbd75b, #ffb878, #46d6db,
 // #e1e1e1, #5484ed, #51b749, #dc2127); there is no brown, and "Lavender" (1) is a periwinkle blue, not purple. Anyone else gets the room's
 // colour (brown, purple, dark green, blue in the CRM).
-const STAFF_COLOR = { Yingna: '3', Rina: '4', Dayu: '2' };
+const STAFF_COLOR = { Yingna: '1', Rina: '4', Dayu: '2' };
 // Colours outside the eleven fixed ones come from the newer colour labels (June 2026): every calendar carries Google's 24 default labels
 // ({ id, backgroundColor }), found by their hex colour; an event uses one through `eventLabelId` (with ?eventLabelVersion=1, which makes
 // Google ignore `colorId`). Example: Cocoa (#795548). If the label cannot be found the event falls back to its colorId.

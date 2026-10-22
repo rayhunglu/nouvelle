@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from '../lib/router'
 import { ArrowLeft, ArrowRight, ChevronDown, Plus, Search } from 'lucide-react'
 import { useLang } from '../i18n'
 import { faqCategories } from '../data/faqs'

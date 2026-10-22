@@ -42,7 +42,7 @@ export default function ResetPassword() {
   if (done) {
     return (
       <AuthShell title="密码已设置" sub="现在可以用新密码登录了。">
-        <Link to="/login" className="btn-primary w-full">去登录</Link>
+        <Link to="/staff-login" className="btn-primary w-full">去登录</Link>
       </AuthShell>
     )
   }

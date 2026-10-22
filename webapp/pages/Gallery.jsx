@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { setConsultService } from '../consult'
 import { useLang } from '../i18n'

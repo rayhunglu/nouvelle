@@ -55,7 +55,7 @@ const cardBalance = (payments, customerId, exceptId) => payments
   .filter((p) => p.customerId === customerId && p.id !== exceptId)
   .reduce((n, p) => n + cardLoaded(p) - cardSpent(p), 0);
 
-module.exports = makeCrud('payments', paymentInput, {
+const crud = makeCrud('payments', paymentInput, {
   // Deleting a payment keeps its appointment, flagged so every screen shows it struck through with payment 未结算;
   // recording a payment for that appointment again clears the flag.
   async beforeDelete(id) {
@@ -82,4 +82,5 @@ module.exports = makeCrud('payments', paymentInput, {
     return Math.round((balance - due) * 100) < 0 ? `会员卡余额不足（余额 $${balance.toFixed(2)}，需扣 $${due.toFixed(2)}）` : null;
   },
 });
-
+crud.cardBalance = cardBalance; // the customer portal shows the same balance
+module.exports = crud;

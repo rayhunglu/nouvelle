@@ -2,6 +2,7 @@ const store = require('../../services/store');
 const { MEMBER_TIERS, str } = require('./common');
 const { makeCrud } = require('./crud');
 const calendar = require('../../services/googleCalendar');
+const { cleanIntake, cleanQuestionnaire } = require('../../services/intake');
 
 function customerInput(b) {
   const firstName = str(b.firstName, 60);
@@ -19,7 +20,12 @@ function customerInput(b) {
   // The category decides membership (any category except '' is a member); `member` stays in step because pricing reads it.
   const tierField = 'memberTier' in b ? { memberTier: MEMBER_TIERS.includes(b.memberTier) ? b.memberTier : '' } : {};
   const memberField = 'memberTier' in b ? { member: tierField.memberTier !== '' } : 'member' in b ? { member: b.member === true } : {};
-  return { data: { name, ...split, ...genderField, ...tierField, ...memberField, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), wechatNo: str(b.wechatNo, 60), notes: str(b.notes, 2000), tags } };
+  // Intake details and the health questionnaire: stored only when sent, so an edit made elsewhere never wipes them.
+  const { error: intakeError, fields: intake } = cleanIntake(b);
+  if (intakeError) return { error: intakeError };
+  const cleaned = cleanQuestionnaire(b.questionnaire);
+  const questionnaire = cleaned ? { questionnaire: cleaned } : {};
+  return { data: { name, ...split, ...intake, ...questionnaire, ...genderField, ...tierField, ...memberField, phone: str(b.phone, 40), email: str(b.email, 160), wechatId: str(b.wechatId, 60), wechatNo: str(b.wechatNo, 60), notes: str(b.notes, 2000), tags } };
 }
 
 module.exports = makeCrud('customers', customerInput, {

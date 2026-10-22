@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { ArrowRight, MapPin, MessageCircle, Phone, ShieldCheck, Stethoscope, UserRound } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, heroImage } from '../data/site'

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from '../lib/router'
 import { CheckCircle2, Clock, MapPin, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, serviceGroups } from '../data/site'

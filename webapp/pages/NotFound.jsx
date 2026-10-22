@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { useLang } from '../i18n'
 import PageHeader from '../components/PageHeader'
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from '../lib/router'
 import { ArrowRight } from 'lucide-react'
 import { useLang } from '../i18n'
 import { categories, medicalFunctions } from '../data/site'

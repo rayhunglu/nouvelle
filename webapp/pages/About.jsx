@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from '../lib/router'
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Clock, MapPin, MessageCircle, Phone, ShoppingBag, ClipboardCheck, Fingerprint, Leaf, HeartHandshake } from 'lucide-react'
 import { useLang } from '../i18n'
 import { business, categories, galleryPhotos } from '../data/site'

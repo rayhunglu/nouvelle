@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams } from '../lib/router'
 import { ArrowLeft, ArrowRight, MessageCircle, Phone } from 'lucide-react'
 import { useLang } from '../i18n'
 import { setConsultService } from '../consult'

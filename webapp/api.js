@@ -7,7 +7,7 @@ export async function api(path, { method = 'GET', body } = {}) {
     credentials: 'same-origin',
   })
   const data = await res.json().catch(() => null)
-  if (res.status === 401 && !path.startsWith('/auth/')) window.dispatchEvent(new Event('auth:expired'))
+  if (res.status === 401 && !path.startsWith('/auth/') && !path.startsWith('/portal/')) window.dispatchEvent(new Event('auth:expired'))
   if (!res.ok) throw Object.assign(new Error(data?.error || res.statusText), { status: res.status })
   return data
 }

@@ -34,7 +34,7 @@ export default function CrmLayout() {
   if (user === undefined) {
     return <div className="grid min-h-screen place-items-center"><Loader2 className="animate-spin text-gold" /></div>
   }
-  if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
+  if (!user) return <Navigate to="/staff-login" state={{ from: location.pathname }} replace />
   const isAdmin = user.role === 'admin' || user.role === 'owner' // both levels manage the store
   const items = isAdmin ? [...nav, ...adminNav] : nav
   if (!isAdmin && location.pathname.startsWith('/crm/staff')) return <Navigate to="/crm/appointments" replace />
