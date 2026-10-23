@@ -7,6 +7,12 @@ React rebuild of https://nouvelle-anti-aging.com/ (originally a GoDaddy Website 
 ## Stack
 Vite + React 19 · React Router · Tailwind CSS v4 · lucide-react icons, served by an Express backend.
 
+Requires Node.js **24.22.1 or newer within 24.x**. This minimum includes the [October 21, 2026 Node.js security fixes](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases), including the Brotli decoder vulnerability. `package.json` declares the supported range; npm normally only warns about an incompatible runtime and does not upgrade Node.js.
+
+With nvm, run `nvm install` and `nvm use` in this directory to use the version in `.nvmrc`. Restart running development or backend processes after upgrading Node.js. Keep the runtime and `.nvmrc` current as new security fixes are released.
+
+On Vercel, `engines.node` selects the Node 24 runtime for new deployments. Vercel manages minor and patch versions, so this range does not force a particular runtime patch there. Redeploy after changing the version setting and verify the actual version in build logs (`node -v`) and function logs (`process.version`); see [Vercel's Node.js security advisory](https://vercel.com/kb/bulletin/node-js-security-advisory).
+
 ```
 webapp/   React app (Vite root is "/", entry is webapp/main.jsx)
 src/      Express backend — builds/serves webapp and handles /api/*
