@@ -132,7 +132,7 @@ const getAvailability = wrap(async (req, res) => {
   const dayStart = clinicInstant(day, 0);
   const dayEnd = dayStart + 36 * 3600000;
   const allBlocks = await store.list('blocks');
-  const allAppts = (await store.list('appointments')).filter((a) => ACTIVE.includes(a.status));
+  const allAppts = (await store.list('appointments', { overlap: { start: dayStart, end: dayEnd } })).filter((a) => ACTIVE.includes(a.status)); // just the bookings running during it
   const overlaps = (a, s, e) => s < Date.parse(a.start) + (a.durationMin || 60) * 60000 && Date.parse(a.start) < e;
   const rooms = roomIds.map((id) => {
     const own = (hours.rooms && hours.rooms[id]) || {};

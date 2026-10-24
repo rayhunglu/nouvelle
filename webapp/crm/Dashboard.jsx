@@ -66,7 +66,7 @@ function Bars({ months }) {
 }
 
 export default function Dashboard() {
-  const { customerById, appointments, payments, reload } = useCrm()
+  const { customerById, apptIndex, payments, reload } = useCrm()
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState('')
 
@@ -74,7 +74,7 @@ export default function Dashboard() {
   // a member-card top-up is not revenue, and a visit paid from the card counts at its performance value. Unsettled payments and
   // visits that are not checked out yet do not count.
   const revenueByMonth = useMemo(() => {
-    const apptById = Object.fromEntries(appointments.map((a) => [a.id, a]))
+    const apptById = apptIndex // id -> { status, ... }
     const sums = {}
     const counts = {}
     for (const p of payments) {
@@ -84,13 +84,13 @@ export default function Dashboard() {
       if (p.amount > 0) counts[key] = (counts[key] || 0) + 1 // a pure card top-up is not a visit
     }
     return { sums, counts }
-  }, [appointments, payments])
+  }, [apptIndex, payments])
 
   // Refetch when appointments/transactions change so the numbers stay current, and again whenever the page comes back into view
   // or every minute, so bookings other staff made (or a day that rolled over) show up without reloading.
   useEffect(() => {
     api('/crm/summary').then(setSummary).catch(() => {})
-  }, [appointments, payments])
+  }, [apptIndex, payments])
   useEffect(() => {
     const refresh = () => { if (document.visibilityState === 'visible') reload().catch(() => {}) }
     const timer = setInterval(refresh, 60000)

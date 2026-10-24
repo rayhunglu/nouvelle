@@ -9,7 +9,27 @@ const lockedForAdmin = async (req, collection, id) => { const row = collection =
 // The five handlers every collection shares (list / get / create / update / remove). Each collection passes its own validator and hooks:
 //   validate(body) -> { error } | { data }      hooks: conflict(data, selfId), afterWrite(row, isNew, req, prev), beforeDelete(id, req)
 function makeCrud(collection, validate, hooks = {}) {
-  const list = wrap(async (req, res) => res.json(await visibleRows(req, collection, await store.list(collection))));
+  // Appointments are read by time: GET ?start=<UTC ISO>&end=<UTC ISO> returns those that start in [start, end) (start included, end not, so
+  // neighbouring days never repeat a booking), oldest first. Both must be ISO 8601 with an explicit zone (Z or +hh:mm) and start < end. Without
+  // them the list is everything. The calendar works out each day / week / month range in the clinic's time zone and sends it here.
+  const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+  const rangeOf = (q) => {
+    if (collection !== 'appointments' || (q.start === undefined && q.end === undefined)) return { range: null };
+    const fix = (v) => String(v).trim().replace(/ (\d{2}:\d{2})$/, '+$1'); // a "+" in a URL arrives as a space
+    const [a, b] = [fix(q.start), fix(q.end)];
+    if (!ISO.test(a) || !ISO.test(b)) return { error: 'start and end must be ISO 8601 date-times with a time zone, e.g. 2026-10-23T07:00:00.000Z' };
+    const [start, end] = [new Date(a).getTime(), new Date(b).getTime()];
+    if (Number.isNaN(start) || Number.isNaN(end)) return { error: 'start and end must be valid dates' };
+    if (start >= end) return { error: 'start must be before end' };
+    return { range: { start, end } };
+  };
+  const list = wrap(async (req, res) => {
+    const { range, error } = rangeOf(req.query);
+    if (error) return res.status(400).json({ error });
+    // ?customerId=<id> returns every booking of that customer (their history), whatever the date.
+    const customerId = collection === 'appointments' && typeof req.query.customerId === 'string' && req.query.customerId ? req.query.customerId : null;
+    res.json(await visibleRows(req, collection, await store.list(collection, customerId ? { customerId } : range ? { range } : undefined)));
+  });
 
   const get = wrap(async (req, res) => {
     const row = await store.get(collection, req.params.id);

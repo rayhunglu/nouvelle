@@ -92,7 +92,8 @@ async function roomConflict(data, selfId) {
   const full = (data.fullRoom !== undefined ? data.fullRoom : !!(stored && stored.fullRoom)) && cap > 1;
   const s = new Date(data.start).getTime();
   const e = s + data.durationMin * 60000;
-  const overlapping = (await store.list('appointments')).filter((a) => {
+  // Only the bookings running at any moment of this one are read.
+  const overlapping = (await store.list('appointments', { overlap: { start: s, end: e } })).filter((a) => {
     if (a.id === selfId || a.room !== data.room || !ACTIVE.includes(a.status)) return false;
     const as = new Date(a.start).getTime();
     return s < as + (a.durationMin || 60) * 60000 && as < e;
@@ -214,4 +215,24 @@ const crud = makeCrud('appointments', appointmentInput, {
   },
 });
 
-module.exports = { ...crud, reminderDone };
+// Per customer: how many bookings they have (`total`), how many were completed and paid for (`visits`), and when the last of those was (`last`).
+// The customer list needs these for everyone at once, without loading every booking into the browser.
+const customerStats = wrap(async (req, res) => {
+  const stats = {};
+  for (const a of await visibleRows(req, 'appointments', await store.list('appointments'))) {
+    const s = stats[a.customerId] || (stats[a.customerId] = { total: 0, visits: 0, last: null });
+    s.total += 1;
+    if (a.status === 'completed' && !a.paymentDeleted) { s.visits += 1; if (!s.last || a.start > s.last) s.last = a.start; }
+  }
+  res.json(stats);
+});
+
+// id -> { status, staff, source, service, category, items } for every booking: the payments screens (dashboard revenue, finance) need to know whether a
+// payment's booking was completed, who served it, who referred the customer and what it was for, without loading the bookings themselves.
+const appointmentIndex = wrap(async (req, res) => {
+  const index = {};
+  for (const a of await visibleRows(req, 'appointments', await store.list('appointments'))) index[a.id] = { status: a.status, staff: a.staff || '', source: a.source || '', service: a.service || '', category: a.category || '', items: (a.items || []).map((x) => ({ category: x.category || '' })) };
+  res.json(index);
+});
+
+module.exports = { ...crud, reminderDone, customerStats, appointmentIndex };

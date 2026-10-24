@@ -116,18 +116,34 @@ function persist() {
   fs.renameSync(tmp, FILE); // atomic replace so a crash can't leave half a file
 }
 
+// Defaults every write carries, on either backend: a new customer starts with `smsOptIn: false` (no text-message consent until they or the
+// staff give it).
+function prepare(name, data, isNew) {
+  if (name === 'customers' && isNew && data.smsOptIn === undefined) return { ...data, smsOptIn: false };
+  return data;
+}
+
+// Appointments can be read by time: `range` { start, end } = those that start in [start, end); `overlap` { start, end } = those running at any
+// moment of [start, end). Times are ms or dates, UTC. Without either, everything is returned.
+const ms = (v) => new Date(v).getTime();
+const inRange = (a, { start, end }) => ms(a.start) >= ms(start) && ms(a.start) < ms(end);
+const overlaps = (a, { start, end }) => ms(a.start) < ms(end) && ms(a.start) + (a.durationMin || 60) * 60000 > ms(start);
+
 // ---- file backend (local development, no MONGODB_URI) ----
 
 const fileStore = {
-  async list(name) {
-    return load()[name];
+  async list(name, { range, overlap, customerId } = {}) {
+    const rows = load()[name];
+    if (name === 'appointments' && customerId) return rows.filter((a) => a.customerId === customerId).sort((a, b) => String(a.start).localeCompare(String(b.start)));
+    if (name !== 'appointments' || !(range || overlap)) return rows;
+    return rows.filter((a) => (range ? inRange(a, range) : overlaps(a, overlap))).sort((a, b) => String(a.start).localeCompare(String(b.start)));
   },
   async get(name, id) {
     if (typeof id !== 'string') return null; // ids are plain strings: rejects query objects such as {"$ne": null}
     return load()[name].find((r) => r.id === id) || null;
   },
   async create(name, data) {
-    const record = { ...data, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    const record = { ...prepare(name, data, true), id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     load()[name].push(record);
     persist();
     return record;
@@ -137,7 +153,7 @@ const fileStore = {
     const rows = load()[name];
     const i = rows.findIndex((r) => r.id === id);
     if (i === -1) return null;
-    rows[i] = { ...rows[i], ...data, id, updatedAt: new Date().toISOString() };
+    rows[i] = { ...rows[i], ...prepare(name, data, false), id, updatedAt: new Date().toISOString() };
     persist();
     return rows[i];
   },
@@ -165,6 +181,7 @@ function init() {
   if (!ready) {
     ready = (async () => {
       await Promise.all(COLLECTIONS.map(async (c) => (await dbClient.getCollection(c)).createIndex({ id: 1 }, { unique: true })));
+      await (await dbClient.getCollection('appointments')).createIndex({ startTime: 1, endTime: 1 }); // reading a time range, and what overlaps one
       if ((await (await dbClient.getCollection('services')).estimatedDocumentCount()) === 0) {
         for (const name of DEFAULT_SERVICES) await models.services.create({ name });
       }
@@ -183,17 +200,17 @@ const model = async (name) => {
 };
 
 const mongoStore = {
-  async list(name) {
-    return (await model(name)).list();
+  async list(name, opts) {
+    return (await model(name)).list(opts);
   },
   async get(name, id) {
     return (await model(name)).get(id);
   },
   async create(name, data) {
-    return (await model(name)).create(data);
+    return (await model(name)).create(prepare(name, data, true));
   },
   async update(name, id, data) {
-    return (await model(name)).update(id, data);
+    return (await model(name)).update(id, prepare(name, data, false));
   },
   async remove(name, id) {
     return (await model(name)).remove(id);

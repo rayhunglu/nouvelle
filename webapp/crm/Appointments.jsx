@@ -4,7 +4,8 @@ import { CalendarDays, CalendarPlus, Check, Clock, FileSignature, HandCoins, Lay
 import { business, categories } from '../data/site'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { useCrm } from './data'
+import { useApptWindow, useCrm, useCustomerAppointments } from './data'
+import { dayRange, monthOffsetRange, upcomingRange } from '../lib/timeRange'
 import CalendarView from './Calendar'
 import PaymentForm from './PaymentForm'
 import TimeAxis from './TimeAxis'
@@ -198,6 +199,7 @@ function CustomerCombo({ customers, value, allowNew, onChange, onTypeNew, autoFo
 const LOCATION = `${business.locations[0].line1}, ${business.locations[0].line2}`
 
 const NEW_CUSTOMER = '__new__' // value of the "＋ 新添客户" choice in the customer list
+const dayOfInput = (date) => { const [y, m, d] = date.split('-').map(Number); return y && m && d ? dayRange(new Date(y, m - 1, d)) : null } // 'YYYY-MM-DD' -> that clinic day as a UTC range
 
 // Switch at the top of the new-booking dialog: a normal appointment, or time blocked off ("有事，不接受预约").
 function EntryTabs({ mode, onMode }) {
@@ -224,6 +226,7 @@ function BlockForm({ block, draftStart, draftRoom, draftDuration, onClose, onMod
   const [busy, setBusy] = useState(false)
   const [askDelete, setAskDelete] = useState(false)
   const date = f.start.slice(0, 10)
+  useApptWindow('blockform', dayOfInput(date)) // the bookings on that day, to warn about the ones inside the blocked stretch
   const startMin = Number(f.start.slice(11, 13)) * 60 + Number(f.start.slice(14, 16))
   const durationMin = Number(f.durationMin) || 60
   const durations = [...new Set([...Array.from({ length: 64 }, (_, i) => (i + 1) * 15), durationMin])].sort((a, b) => a - b)
@@ -445,6 +448,8 @@ function ApptForm({ appt, draftStart, draftRoom, draftDuration, onClose, onCheck
 
   // Start time is edited as a date plus a slot on the day timeline (15-minute steps).
   const date = f.start.slice(0, 10)
+  useApptWindow('form', dayOfInput(date)) // the day timeline shows that day's bookings
+  useCustomerAppointments(f.customerId && f.customerId !== NEW_CUSTOMER ? f.customerId : null) // their earlier bookings decide first-visit / member / regular pricing
   const startMin = Number(f.start.slice(11, 13)) * 60 + Number(f.start.slice(14, 16))
   const durationMin = Number(f.durationMin) || 60
   const pickSlot = (min) => setF({ ...f, start: `${date}T${hhmm(min)}` })
@@ -685,6 +690,9 @@ export default function Appointments() {
   const location = useLocation()
   useEffect(() => { if (location.state?.day) changeView('day') }, [location.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const [filter, setFilter] = useState('upcoming')
+  const [listOffset, setListOffset] = useState(0) // the other lists show one month at a time: months from this one (-1 = last month)
+  const listRange = useMemo(() => (view !== 'list' ? null : filter === 'upcoming' ? upcomingRange() : monthOffsetRange(listOffset)), [view, filter, listOffset])
+  useApptWindow('list', listRange)
   const [staffFilter, setStaffFilter] = useState('') // picking one staff member shows every booking related to them (they serve it, or they referred the customer), in every view
   const [editing, setEditing] = useState(null)
   // An admin's list shows the owner's payments blanked out; to change or delete one the real row is fetched.
@@ -846,6 +854,14 @@ export default function Appointments() {
           ))}
         </div>
   
+        {filter !== 'upcoming' && listRange && (
+          <div className="mb-4 flex items-center justify-center gap-4 text-sm">
+            <button onClick={() => setListOffset((o) => o - 1)} className="rounded-full border border-ink/15 bg-white px-3 py-1.5 hover:border-gold" aria-label="上个月">‹</button>
+            <span className="min-w-28 text-center font-medium">{new Date(listRange.start).toLocaleDateString('zh-CN', { timeZone: 'America/Los_Angeles', year: 'numeric', month: 'long' })}</span>
+            <button onClick={() => setListOffset((o) => o + 1)} className="rounded-full border border-ink/15 bg-white px-3 py-1.5 hover:border-gold" aria-label="下个月">›</button>
+            {listOffset !== 0 && <button onClick={() => setListOffset(0)} className="text-gold hover:underline">本月</button>}
+          </div>
+        )}
         {groups.length === 0 ? <Card><Empty>没有符合的预约</Empty></Card> : (
           <div className="space-y-6">
             {groups.map(([day, rows]) => (

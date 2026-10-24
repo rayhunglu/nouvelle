@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Download, HandCoins, Pencil, Plus, Receipt, Trash2, TrendingUp } from 'lucide-react'
+import { api } from '../api'
 import { useAuth } from '../auth'
 import { useCrm } from './data'
 import PaymentForm from './PaymentForm'
@@ -23,17 +24,17 @@ const REFERRER_LINKS = { medical: ['Rina'], lash: ['Yingna', 'Rina'] }
 const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase()
 
 export default function Finance() {
-  const { payments: allPayments, appointments, customerById, serviceById, services, remove, roster } = useCrm()
+  const { payments: allPayments, apptIndex, customerById, serviceById, services, remove, roster } = useCrm()
   // `hidden` payments are the owner's, which an admin may not see: they stay out of every list, total and export. The full list is only
   // kept for the member-card rules (a top-up recorded under the owner still counts for the customer's 2000 / 2200 rate).
   const [staffFilter, setStaffFilter] = useState('')
   // An owner's payment that is connected to the person being looked at (operator or 介绍人) shows in that person's accounts (`ownerRelated`);
   // otherwise it stays out, so it never adds to the shop-wide figures.
   const payments = useMemo(() => {
-    const byId = Object.fromEntries(appointments.map((a) => [a.id, a]))
+    const byId = apptIndex // id -> { status, staff, source }
     const mine = (p, who) => !!who && (byId[p.appointmentId]?.staff === who || (p.referralSource || byId[p.appointmentId]?.source || '') === who)
     return allPayments.filter((p) => !p.hidden && (!p.ownerRelated || mine(p, staffFilter)))
-  }, [allPayments, appointments, staffFilter])
+  }, [allPayments, apptIndex, staffFilter])
   const { can } = useAuth()
   const seeAllStaff = can('viewAllFinance') // the staff filter only matters when other staff's payments are visible
   const canDelete = can('deletePayments')
@@ -49,19 +50,21 @@ export default function Finance() {
   // Arriving from "记账" on an appointment opens the form prefilled.
   useEffect(() => {
     const id = location.state?.appointmentId
-    if (!id) return
-    const a = appointments.find((x) => x.id === id)
-    if (a) {
+    if (!id) return undefined
+    let off = false
+    api(`/crm/appointments/${id}`).then((a) => { // only this booking is fetched, not all of them
+      if (off || !a) return
       setEditing({ fromAppointment: a })
       navigate(location.pathname, { replace: true, state: null })
-    }
-  }, [location, appointments, navigate])
+    }).catch(() => {})
+    return () => { off = true }
+  }, [location, navigate])
 
   const hiddenStaff = useMemo(() => new Set(allPayments.filter((p) => p.hidden || p.ownerRelated).map((p) => p.staff)), [allPayments]) // the owner: not shown to an admin
   const staffNames = useMemo(() => [...new Set([...roster, ...payments.map((p) => p.staff).filter(Boolean)])].filter((n) => !hiddenStaff.has(n)), [payments, roster, hiddenStaff])
   const inMonth = (p) => { const d = dayKey(p.datetime); return (!from || d >= from) && (!to || d <= to) }
 
-  const apptById = useMemo(() => Object.fromEntries(appointments.map((a) => [a.id, a])), [appointments])
+  const apptById = apptIndex // id -> { status, staff, source, service, category, items }
   // 介绍人 of a payment = the 客户来源 of its appointment. What was typed in the payment's own 介绍人 box (if anything) wins.
   const referrerOf = (p) => p.referralSource || apptById[p.appointmentId]?.source || ''
   // The service a payment settled, by name (the same text the list shows), to tell 医美 from 美睫.
@@ -78,14 +81,14 @@ export default function Finance() {
       || (p.serviceIds || []).map((id) => kindOfCategory(serviceById[id]?.category)).find(Boolean)
       || null
   }
-  const serviceNameOf = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
+  const serviceNameOf = (p) => p.serviceName || apptById[p.appointmentId]?.service || (p.serviceIds || []).map((id) => serviceById[id]?.name).filter(Boolean).join('、')
   const referredTo = (p, staff) => REFERRER_LINKS[projectKind(serviceNameOf(p), p)]?.includes(staff) && sameName(referrerOf(p), staff)
   const rows = useMemo(
     () => payments
       .filter((p) => inMonth(p) && (!staffFilter || p.staff === staffFilter || p.ownerRelated || referredTo(p, staffFilter)))
       .sort((a, b) => b.datetime.localeCompare(a.datetime)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [payments, appointments, apptById, serviceById, from, to, staffFilter],
+    [payments, apptById, serviceById, from, to, staffFilter],
   )
   const counted = (p) => countsForPerformance(p, apptById) // unsettled, or tied to an appointment that is not completed: not counted
   const countedRows = rows.filter(counted)
@@ -106,7 +109,7 @@ export default function Finance() {
   }, [payments, from, to, apptById])
 
   // What was settled: the appointment's service when the payment came from one, otherwise the services picked on the payment.
-  const serviceNames = (p) => p.serviceName || appointments.find((a) => a.id === p.appointmentId)?.service || p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean).join('、')
+  const serviceNames = (p) => p.serviceName || apptById[p.appointmentId]?.service || p.serviceIds.map((id) => serviceById[id]?.name).filter(Boolean).join('、')
 
   const [detailPay, setDetailPay] = useState(null) // payment whose order detail is open
   const [confirmDel, setConfirmDel] = useState(null) // payment waiting for the delete confirmation (an in-page dialog: the browser's own confirm box can be blocked)

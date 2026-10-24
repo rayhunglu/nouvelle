@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Ban, Check, ChevronLeft, ChevronRight, LogIn, Play, X } from 'lucide-react'
 import { useAuth } from '../auth'
-import { useCrm } from './data'
+import { useApptWindow, useCrm } from './data'
+import { rangeFor } from '../lib/timeRange'
 import { Card, Field, Modal, inputCls } from './ui'
 import { dayKey, fmtTime } from './format'
 import { NO_ROOM, ROOMS, STAFF_COLOR, colorOf, roomOf } from './rooms'
@@ -898,6 +899,7 @@ export default function CalendarView({ appointments, customerById, onEdit, onCre
   const [phoneMenu, setPhoneMenu] = useState(null)
   const openAppt = (appt) => { if (touchLike()) setPhoneMenu({ a: appt, x: 0, y: 0 }); else onEdit(appt) }
   const [selected, setSelected] = useState(() => keyOf(new Date()))
+  useApptWindow('calendar', rangeFor(mode, cursor)) // only the day / week / month on screen is loaded, in the clinic's time zone
   const [hiddenRooms, setHiddenRooms] = useState(() => new Set())
   // The staff filter is shared with the list view when the page passes it in; otherwise it is local to this calendar.
   const [staffLocal, setStaffLocal] = useState('')

@@ -35,7 +35,7 @@ const loadPermissions = wrap(async (req, res, next) => {
 });
 
 const STAFF_ALLOWED = (perms) => ({
-  GET: [/^\/(appointments|customers|payments)(\/[^/]+)?$/, /^\/customers\/[^/]+\/files(\/[^/]+)?$/, /^\/services$/, /^\/summary$/, /^\/blocks$/, /^\/settings$/, /^\/schedule$/, /^\/staff-list$/],
+  GET: [/^\/(appointments|customers|payments)(\/[^/]+)?$/, /^\/customers\/[^/]+\/files(\/[^/]+)?$/, /^\/services$/, /^\/summary$/, /^\/customer-stats$/, /^\/appointment-index$/, /^\/blocks$/, /^\/settings$/, /^\/schedule$/, /^\/staff-list$/],
   POST: [/^\/(appointments|customers|payments)$/, /^\/customers\/[^/]+\/files$/, ...(perms.manageBlocks ? [/^\/blocks$/] : [])],
   PUT: [/^\/(appointments|customers|payments)\/[^/]+$/, /^\/appointments\/[^/]+\/reminder$/, ...(perms.manageBlocks ? [/^\/blocks\/[^/]+$/] : [])],
   DELETE: [

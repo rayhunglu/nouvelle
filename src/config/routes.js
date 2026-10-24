@@ -50,6 +50,8 @@ function crmRouter() {
   r.delete('/customers/:id/files/:fileId', customerFiles.remove);
 
   // Appointments
+  r.get('/appointment-index', appointments.appointmentIndex); // id -> status / staff / source, for the payment screens
+  r.get('/customer-stats', appointments.customerStats); // per customer: bookings, completed visits, last visit
   r.get('/appointments', appointments.list);
   r.get('/appointments/:id', appointments.get);
   r.post('/appointments', appointments.create);

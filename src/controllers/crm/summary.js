@@ -15,7 +15,8 @@ const getSummary = wrap(async (req, res) => {
   const monthKey = (d) => d.slice(0, 7);
   const thisMonth = todayKey.slice(0, 7);
 
-  const appts = await visibleRows(req, 'appointments', await store.list('appointments'));
+  // Only today's and tomorrow's bookings are needed here, so only that time range is read.
+  const appts = await visibleRows(req, 'appointments', await store.list('appointments', { range: { start: Date.now() - 24 * 3600000, end: Date.now() + 48 * 3600000 } }));
 
   const today = appts.filter((a) => a.status !== 'cancelled' && dateKey(a.start) === todayKey);
   // Tomorrow's bookings still to be served: these are the ones to remind the customer about.

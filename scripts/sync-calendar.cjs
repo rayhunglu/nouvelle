@@ -17,7 +17,7 @@ const calendar = require('../src/services/googleCalendar');
   await dbClient.connection();
   const since = Date.now() - 24 * 3600 * 1000;
   const live = (a) => a.status !== 'cancelled' && a.status !== 'no-show' && (all || new Date(a.start).getTime() >= since);
-  const every = (await dbClient.findMany('appointments', {}, { sort: { start: 1 } })).filter(live);
+  const every = (await require('../src/models/appointments.model').list()).sort((a, b) => String(a.start).localeCompare(String(b.start))).filter(live); // through the model: `start` is stored as startTime
   // Each appointment goes to every calendar it belongs to (Yingna: all, Rina: hers + lashes, Dayu: hers); missing events are added,
   // and with --refresh the existing ones are updated too.
   const refresh = process.argv.includes('--refresh');

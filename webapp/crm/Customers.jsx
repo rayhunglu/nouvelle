@@ -4,7 +4,7 @@ import { api } from '../api'
 import { openPicker } from '../lib/util'
 import { uploadCustomerFile } from './files'
 import { useAuth } from '../auth'
-import { useCrm } from './data'
+import { useCrm, useCustomerAppointments } from './data'
 import { Card, Empty, Field, Modal, PageTitle, StatusBadge, inputCls } from './ui'
 import { MEMBER_TIERS, bonusCash, cardBalance, fmtDateTime, giftItems, giftLabel, isCashGift, methodLabel, money, paidAmount, paidTip, performanceOf, tierOf } from './format'
 import { roomOf } from './rooms'
@@ -16,10 +16,10 @@ function TierBadge({ c }) {
   return t ? <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-medium ${t.chip}`}>{t.label}</span> : null
 }
 
-// Last visit = most recent completed appointment or recorded payment.
-function lastVisitOf(customerId, appointments, payments) {
+// Last visit = most recent completed appointment (the server's customerStats say when) or recorded payment.
+function lastVisitOf(customerId, customerStats, payments) {
   const times = [
-    ...appointments.filter((a) => a.customerId === customerId && a.status === 'completed' && !a.paymentDeleted).map((a) => a.start),
+    ...(customerStats[customerId]?.last ? [customerStats[customerId].last] : []),
     ...payments.filter((p) => p.customerId === customerId).map((p) => p.datetime),
   ]
   return times.length ? times.reduce((a, b) => (a > b ? a : b)) : null
@@ -304,6 +304,7 @@ export function OrderDetail({ payment, onClose }) {
   const { appointments, customerById, serviceById } = useCrm()
   const customer = customerById[payment.customerId]
   const fx = useCustomerFiles(customer)
+  useCustomerAppointments(payment.customerId) // the payment's booking is among theirs
   const appt = appointments.find((a) => a.id === payment.appointmentId)
   const name = payment.serviceName || (payment.serviceIds || []).map((id) => serviceById?.[id]?.name).filter(Boolean).join('、')
   const shown = appt || { id: null, customerId: payment.customerId, service: name, start: payment.datetime, staff: payment.staff, source: payment.referralSource }
@@ -335,7 +336,8 @@ function NewCustomerChoice({ onPick, onClose }) {
 function CustomerForm({ customer, mode, onClose }) {
   const selfFill = mode === 'self' // the customer fills it in themselves: no staff-only fields
   const showQuestionnaire = !!customer || selfFill // staff adding a new customer fills the questionnaire later (or hands it to the customer)
-  const { save, appointments, payments } = useCrm()
+  const { save, appointments, payments, customerStats } = useCrm()
+  useCustomerAppointments(customer?.id) // their whole booking history
   const fx = useCustomerFiles(customer)
   const [detailId, setDetailId] = useState(null) // the appointment record opened from the history
   const [f, setF] = useState({
@@ -350,7 +352,7 @@ function CustomerForm({ customer, mode, onClose }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value })
 
   const history = customer ? appointments.filter((a) => a.customerId === customer.id).sort((a, b) => b.start.localeCompare(a.start)) : []
-  const lastVisit = customer ? lastVisitOf(customer.id, appointments, payments) : null
+  const lastVisit = customer ? lastVisitOf(customer.id, customerStats, payments) : null
   const gifts = customer ? giftItems(payments, customer.id) : {}
   const cardBal = customer ? cardBalance(payments, customer.id) : 0
   const spent = customer ? payments.filter((p) => p.customerId === customer.id).reduce((s, p) => s + paidAmount(p), 0) : 0
@@ -479,7 +481,7 @@ function CustomerForm({ customer, mode, onClose }) {
 }
 
 export default function Customers() {
-  const { customers, appointments, payments, remove } = useCrm()
+  const { customers, customerStats, payments, remove } = useCrm()
   const noDelete = !useAuth().can('deleteCustomers') // deleting customers needs the manager's permission
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null) // null | 'new' | customer
@@ -497,9 +499,9 @@ export default function Customers() {
   const tierCount = (id) => customers.filter((c) => (id === 'none' ? !tierOf(c, payments) : tierOf(c, payments)?.id === id)).length
 
   const stats = (id) => ({
-    visits: appointments.filter((a) => a.customerId === id && a.status === 'completed' && !a.paymentDeleted).length,
+    visits: customerStats[id]?.visits || 0,
     spent: payments.filter((p) => p.customerId === id).reduce((s, p) => s + paidAmount(p), 0),
-    last: lastVisitOf(id, appointments, payments),
+    last: lastVisitOf(id, customerStats, payments),
   })
 
   const [confirmDel, setConfirmDel] = useState(null) // customer waiting for the delete confirmation
@@ -566,7 +568,7 @@ export default function Customers() {
         <Modal inset title="删除客户" onClose={() => setConfirmDel(null)}>
           <p className="text-sm">确定删除客户「<b>{confirmDel.name}</b>」？</p>
           <p className="mt-2 text-xs text-muted">
-            同时会删除 TA 的 {appointments.filter((a) => a.customerId === confirmDel.id).length} 个预约和 {payments.filter((p) => p.customerId === confirmDel.id).length} 笔账目（收款）记录
+            同时会删除 TA 的 {customerStats[confirmDel.id]?.total || 0} 个预约和 {payments.filter((p) => p.customerId === confirmDel.id).length} 笔账目（收款）记录
             {cardBalance(payments, confirmDel.id) > 0 && `，会员卡余额 ${money(cardBalance(payments, confirmDel.id))} 也会一并清除`}，删除后无法恢复。
           </p>
           <div className="flex justify-end gap-2 pt-5">

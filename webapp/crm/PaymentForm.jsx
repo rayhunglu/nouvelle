@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { useCrm } from './data'
+import { useCrm, useCustomerAppointments } from './data'
 import { Field, Modal, inputCls } from './ui'
 import { CUSTOMER_SOURCES, GIFT_OPTIONS, METHODS, TOPUP_AMOUNTS, cardBalance, fmtDateTime, giftForService, giftCash, giftItems, giftLabel, giftsAllowed, isCashGift, isServiceGift, money, SERVICE_GIFT, toLocalInput } from './format'
 import { categories } from '../data/site'
@@ -104,6 +104,7 @@ export default function PaymentForm({ payment, fromAppointment, completeAppointm
   const giftServiceNames = useMemo(() => [...new Set([...categories.flatMap((c) => (c.treatments || []).flatMap((t) => [t.name.zh, ...(t.packages || []).map((pk) => pk.name.zh)])), ...services.map((x) => x.name)])].filter(Boolean), [services])
   const quick = completeAppointment && !!appt // check-out from the calendar: only amount, tip and payment method
 
+  useCustomerAppointments(f.customerId) // the bookings this payment can be tied to (the chosen customer's)
   const customerAppts = appointments
     .filter((a) => a.customerId === f.customerId && a.status !== 'cancelled')
     .sort((a, b) => b.start.localeCompare(a.start))
