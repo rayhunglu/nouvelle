@@ -343,6 +343,7 @@ function CustomerForm({ customer, mode, onClose }) {
     legalName: customer?.legalName || '', dob: customer?.dob || '', emergencyName: customer?.emergencyName || '', emergencyPhone: customer?.emergencyPhone || '', heardFrom: customer?.heardFrom || '',
     questionnaire: emptyQuestionnaire(customer?.questionnaire),
     tags: (customer?.tags || []).join(', '), notes: customer?.notes || '', memberTier: customer?.memberTier || (customer?.member ? 'member' : ''),
+    smsConsent: customer?.smsOptIn === true,
   })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -405,6 +406,17 @@ function CustomerForm({ customer, mode, onClose }) {
         </Field>
         )}
         {showQuestionnaire && <Questionnaire value={f.questionnaire} onChange={(questionnaire) => setF((cur) => ({ ...cur, questionnaire }))} />}
+        <label className="flex cursor-pointer items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-1" checked={f.smsConsent} onChange={(e) => setF({ ...f, smsConsent: e.target.checked })} />
+          <span>
+            {selfFill
+              ? '我同意 Nouvelle Anti-Aging 通过我提供的手机号码向我发送与预约相关的短信。短信频率不定，可能产生短信和流量费用。回复 STOP 退订，回复 HELP 获取帮助。是否同意不影响服务。'
+              : '接收预约短信（Opt in）：勾选 = 客人已明确同意；取消勾选 = 退订（Opt out）'}
+            {!selfFill && customer?.smsOptIn === true && customer.smsConsentAt && <span className="mt-1 block text-xs text-muted">同意时间 {customer.smsConsentAt.slice(0, 10)}（{{ portal: '网站表单', crm: 'CRM' }[customer.smsConsentSource] || customer.smsConsentSource}）</span>}
+            {!selfFill && customer && customer.smsOptIn !== true && customer.smsOptOutAt && <span className="mt-1 block text-xs text-muted">已于 {customer.smsOptOutAt.slice(0, 10)} 退订。他自己回复 STOP 退订的，要他回复 START 才能重新收到短信。</span>}
+            {!selfFill && customer && customer.smsOptIn !== true && !customer.smsOptOutAt && <span className="mt-1 block text-xs text-muted">还没有同意接收短信，不会给他发短信。</span>}
+          </span>
+        </label>
         {!selfFill && <>
         <Field label="标签（用逗号分隔）"><input className={inputCls} value={f.tags} onChange={set('tags')} placeholder="VIP, 新客" /></Field>
         <Field label="备注"><textarea className={inputCls} rows={3} value={f.notes} onChange={set('notes')} /></Field>
@@ -528,6 +540,8 @@ export default function Customers() {
                       <span className="flex items-center gap-2 truncate text-sm font-medium">{c.name}<TierBadge c={c} />{payments.some((p) => p.customerId === c.id && p.topUp > 0) && <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[0.65rem] font-medium text-white">卡余额 {money(cardBalance(payments, c.id))}</span>}{(c.tags || []).map((t) => <span key={t} className="rounded-full bg-gold/15 px-2 py-0.5 text-[0.65rem] font-normal text-gold">{t}</span>)}</span>
                       <span className="flex flex-wrap gap-x-3 text-[0.7rem] leading-snug text-muted min-[480px]:flex-nowrap min-[480px]:overflow-hidden min-[480px]:whitespace-nowrap">
                         {c.phone && <span className="flex items-center gap-1"><Phone size={12} />{c.phone}</span>}
+                        {c.phone && c.smsOptIn === true && <span className="rounded-full bg-emerald-600/10 px-1.5 text-emerald-700">短信 ✓</span>}
+                        {c.smsOptIn !== true && c.smsOptOutAt && <span className="rounded-full bg-rose-100 px-1.5 text-rose-700">已退订短信</span>}
                         {(c.wechatId || c.wechatNo) && <span className="flex items-center gap-1"><MessageCircle size={12} />{[c.wechatId, c.wechatNo].filter(Boolean).join(' · ')}</span>}
                         {c.email && <span className="flex min-w-0 items-center gap-1"><Mail size={12} className="shrink-0" /><span className="truncate">{c.email}</span></span>}
                       </span>

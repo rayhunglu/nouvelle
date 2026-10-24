@@ -7,13 +7,14 @@ import { useLang } from '../i18n'
 import Questionnaire, { HEARD_FROM, emptyQuestionnaire } from '../crm/Questionnaire'
 import MemberShell, { fieldCls, portalError } from './MemberShell'
 import CodeStep from './CodeStep'
+import SmsConsent from '../components/SmsConsent'
 
 // 信息填写 (the customer fills it in themselves, the same details and health questionnaires as "客户自己填写资料问卷" in the CRM). Sending it
 // confirms the email with a mailed code and then creates the customer's record, so staff see the answers in 客户 and the member can sign in.
 export default function MemberJoin() {
   const { t } = useLang()
   const navigate = useNavigate()
-  const [f, setF] = useState({ legalName: '', dob: '', phone: '', email: '', emergencyName: '', emergencyPhone: '', heardFrom: '', wechatId: '', instagramId: '', agree: false, questionnaire: emptyQuestionnaire() })
+  const [f, setF] = useState({ legalName: '', dob: '', phone: '', email: '', emergencyName: '', emergencyPhone: '', heardFrom: '', wechatId: '', instagramId: '', agree: false, smsConsent: false, questionnaire: emptyQuestionnaire() })
   const [step, setStep] = useState('form')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -66,6 +67,7 @@ export default function MemberJoin() {
             <label className="block"><Label optional>WeChat Name｜微信名</Label><input className={fieldCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" maxLength={60} /></label>
             <label className="block"><Label optional>Instagram ID｜IG ID</Label><input className={fieldCls} value={f.instagramId} onChange={set('instagramId')} autoComplete="off" placeholder="@" maxLength={60} /></label>
           </div>
+          <SmsConsent checked={f.smsConsent} onChange={(smsConsent) => setF((cur) => ({ ...cur, smsConsent }))} />
           <Questionnaire value={f.questionnaire} onChange={(questionnaire) => setF((cur) => ({ ...cur, questionnaire }))} />
           {error && <p role="alert" className="rounded-xl bg-rose/40 px-4 py-2.5 text-sm text-ink">{error}</p>}
           <button className="btn-primary w-full">{t({ en: 'Confirm & submit', zh: '确认提交' })}</button>

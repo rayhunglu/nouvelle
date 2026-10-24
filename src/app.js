@@ -21,7 +21,8 @@ module.exports.createServer = () => {
   const jsonOptions = (limit) => ({ limit, strict: false, type: ['application/json'] });
   app.use('/api/careers', express.json(jsonOptions('5mb')));
   app.use(express.json(jsonOptions('1mb')));
-  app.use(express.urlencoded({ extended: false }));
+  // Twilio signs the exact form it posts, so that route keeps the raw body for checking the signature.
+  app.use(express.urlencoded({ extended: false, verify: (req, res, buf) => { if (req.originalUrl.startsWith('/api/sms/')) req.rawBody = buf; } }));
   app.use(expressSanitizer); // XSS: cleans the body and the query string, refuses a URL that carries markup
   app.use(cookieParser());
 

@@ -5,12 +5,13 @@ import { api } from '../api'
 import { useLang } from '../i18n'
 import MemberShell, { fieldCls, portalError } from './MemberShell'
 import CodeStep from './CodeStep'
+import SmsConsent from '../components/SmsConsent'
 
 // Join as a member: name, phone and email; WeChat name and Instagram are optional. The email is confirmed with a one-time code.
 export default function MemberRegister() {
   const { t } = useLang()
   const navigate = useNavigate()
-  const [f, setF] = useState({ name: '', phone: '', email: '', wechatId: '', instagramId: '', agree: false })
+  const [f, setF] = useState({ name: '', phone: '', email: '', wechatId: '', instagramId: '', agree: false, smsConsent: false })
   const [step, setStep] = useState('form')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -44,6 +45,7 @@ export default function MemberRegister() {
           <label className="block"><Label required>{t({ en: 'Email', zh: '邮箱' })}</Label><input className={fieldCls} type="email" autoComplete="email" value={f.email} onChange={set('email')} required maxLength={160} /></label>
           <label className="block"><Label optional>{t({ en: 'WeChat Name', zh: '微信名' })}</Label><input className={fieldCls} value={f.wechatId} onChange={set('wechatId')} autoComplete="off" maxLength={60} /></label>
           <label className="block"><Label optional>{t({ en: 'Instagram ID', zh: 'IG ID' })}</Label><input className={fieldCls} value={f.instagramId} onChange={set('instagramId')} autoComplete="off" placeholder="@" maxLength={60} /></label>
+          <SmsConsent checked={f.smsConsent} onChange={(smsConsent) => setF({ ...f, smsConsent })} />
           <label className="flex cursor-pointer items-start gap-2 text-sm text-muted">
             <input type="checkbox" className="mt-1" checked={f.agree} onChange={(e) => setF({ ...f, agree: e.target.checked })} required />
             <span>{t({ en: 'I agree to receive a verification email to register as a member.', zh: '我同意接收验证码邮件注册会员。' })}</span>

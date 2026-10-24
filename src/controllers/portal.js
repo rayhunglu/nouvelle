@@ -71,7 +71,7 @@ const register = wrap(async (req, res) => {
   const email = emailOf(b.email);
   if (need(res, name, 'Name is required', 'name') || need(res, toE164(b.phone), 'Enter a valid phone number', 'phone')
     || need(res, EMAIL.test(email), 'Enter a valid email', 'email') || need(res, b.agree === true, 'Please agree to receive the verification email', 'agree')) return;
-  return sendCode(req, res, email, { name, email, legalName: name, phone: str(b.phone, 40), wechatId: str(b.wechatId, 60), instagramId: str(b.instagramId, 60).replace(/^@+/, '') });
+  return sendCode(req, res, email, { name, email, legalName: name, phone: str(b.phone, 40), wechatId: str(b.wechatId, 60), instagramId: str(b.instagramId, 60).replace(/^@+/, ''), smsConsent: b.smsConsent === true });
 });
 
 // The information form (信息填写): the details and health questionnaires, then the same emailed code.
@@ -87,7 +87,7 @@ const join = wrap(async (req, res) => {
   return sendCode(req, res, email, {
     name, email, phone: str(b.phone, 40), wechatId: str(b.wechatId, 60), instagramId: str(b.instagramId, 60).replace(/^@+/, ''),
     legalName: name, dob: fields.dob, emergencyName: fields.emergencyName, emergencyPhone: fields.emergencyPhone, heardFrom: fields.heardFrom || '',
-    questionnaire: cleanQuestionnaire(b.questionnaire),
+    questionnaire: cleanQuestionnaire(b.questionnaire), smsConsent: b.smsConsent === true,
   });
 });
 
@@ -101,10 +101,12 @@ async function completeSignIn(req, email, join_) {
     const fill = {};
     for (const k of ['phone', 'wechatId', 'instagramId', 'legalName', 'dob', 'emergencyName', 'emergencyPhone', 'heardFrom']) if (j[k] && !customer[k]) fill[k] = j[k];
     if (j.questionnaire && !customer.questionnaire) fill.questionnaire = j.questionnaire;
+    // Text-message consent is recorded only for the number the customer typed: a different number on file is not covered by it.
+    if (j.smsConsent && !customer.smsOptIn && (!customer.phone || toE164(customer.phone) === toE164(j.phone))) Object.assign(fill, { smsOptIn: true, smsConsentAt: now, smsConsentSource: 'portal', smsOptOutAt: '' });
     customer = (await store.update('customers', customer.id, { ...fill, emailVerifiedAt: now, joinedAt: customer.joinedAt || now, portalEnabled: true, ...(join_ ? { consentPortalAt: now } : {}) })) || customer;
   } else if (join_) {
     const j = join_;
-    customer = await store.create('customers', { name: j.name, legalName: j.legalName, dob: j.dob, emergencyName: j.emergencyName, emergencyPhone: j.emergencyPhone, questionnaire: j.questionnaire || undefined, phone: j.phone, email, wechatId: j.wechatId, instagramId: j.instagramId, heardFrom: j.heardFrom || '会员注册 Member sign-up', emailVerifiedAt: now, joinedAt: now, portalEnabled: true, consentPortalAt: now, createdBy: 'portal' });
+    customer = await store.create('customers', { name: j.name, legalName: j.legalName, dob: j.dob, emergencyName: j.emergencyName, emergencyPhone: j.emergencyPhone, questionnaire: j.questionnaire || undefined, phone: j.phone, email, wechatId: j.wechatId, instagramId: j.instagramId, heardFrom: j.heardFrom || '会员注册 Member sign-up', emailVerifiedAt: now, joinedAt: now, portalEnabled: true, consentPortalAt: now, createdBy: 'portal', ...(j.smsConsent ? { smsOptIn: true, smsConsentAt: now, smsConsentSource: 'portal' } : {}) });
   } else return null;
   // A fresh session (no old login carries over), kept for 30 days.
   await new Promise((resolve, reject) => req.session.regenerate((err) => (err ? reject(err) : resolve())));
@@ -149,7 +151,7 @@ const giftItems = (payments) => {
   return Object.entries(m).filter(([, n]) => n > 0).map(([id, count]) => ({ id, count }));
 };
 
-const profileOf = (c) => ({ name: c.name, email: c.email || '', phone: c.phone || '', wechatId: c.wechatId || '', instagramId: c.instagramId || '' });
+const profileOf = (c) => ({ name: c.name, email: c.email || '', phone: c.phone || '', wechatId: c.wechatId || '', instagramId: c.instagramId || '', smsOptIn: c.smsOptIn === true, smsOptOutAt: c.smsOptIn === true ? '' : c.smsOptOutAt || '' });
 
 // Name, contact details, member card balance and the free sessions still left.
 const me = wrap(async (req, res) => {
@@ -178,13 +180,19 @@ const history = wrap(async (req, res) => {
   res.json({ visits, upcoming });
 });
 
-// The customer may change their own name, WeChat and Instagram. The email is their sign-in, so it is not editable here (that would need a new verification).
+// The customer may change their own name, WeChat and Instagram, and turn text messages on or off. The email is their sign-in, so it is not editable here (that would need a new verification).
 const updateMe = wrap(async (req, res) => {
   const b = req.body || {};
   const patch = {};
   if ('name' in b) { patch.name = str(b.name, 120); if (!patch.name) return res.status(400).json({ error: 'Name is required' }); }
   if ('wechatId' in b) patch.wechatId = str(b.wechatId, 60);
   if ('instagramId' in b) patch.instagramId = str(b.instagramId, 60).replace(/^@+/, '');
+  // Text messages: the customer turns them on (consent) or off (opt-out) for the phone number on file.
+  if (typeof b.smsOptIn === 'boolean' && b.smsOptIn !== (req.customer.smsOptIn === true)) {
+    const now = new Date().toISOString();
+    if (b.smsOptIn && !toE164(req.customer.phone)) return res.status(400).json({ error: 'Add a phone number first' });
+    Object.assign(patch, b.smsOptIn ? { smsOptIn: true, smsConsentAt: now, smsConsentSource: 'portal', smsOptOutAt: '' } : { smsOptIn: false, smsOptOutAt: now });
+  }
   const row = await store.update('customers', req.customer.id, patch);
   res.json(profileOf(row || req.customer));
 });

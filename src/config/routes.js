@@ -18,6 +18,7 @@ const { getSchedule, putSchedule } = require('../controllers/crm/schedule');
 const { getServiceSettings, putServiceSettings } = require('../controllers/crm/serviceSettings');
 const { getStaffProfile, putStaffProfile, testStaffProfile, checkCalendar } = require('../controllers/crm/staffProfile');
 const portal = require('../controllers/portal');
+const smsIncoming = require('../controllers/smsIncoming');
 const mongo = require('../services/mongo');
 const { rateLimit } = require('../middleware/security');
 
@@ -141,6 +142,9 @@ module.exports = (app) => {
   app.get(`${REST_PREFIX}/portal/me`, portal.requirePortal, portal.me);
   app.get(`${REST_PREFIX}/portal/history`, portal.requirePortal, portal.history);
   app.put(`${REST_PREFIX}/portal/me`, portal.requirePortal, portal.updateMe);
+
+  // Twilio's webhook for texts customers send us (STOP / START). Not a browser call: it is checked by Twilio's signature, not a session.
+  app.post(`${REST_PREFIX}/sms/incoming`, rateLimit({ windowMs: 60 * 1000, max: 120 }), smsIncoming.incoming);
 
   // CRM-only API: auth check runs before any CRM handler
   app.use(CRM_PREFIX, requireAuth, crmRouter());

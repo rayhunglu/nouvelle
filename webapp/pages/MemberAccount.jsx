@@ -41,6 +41,13 @@ export default function MemberAccount() {
     } catch (err) { setError(err.message) } finally { setBusy(false) }
   }
 
+  const [smsError, setSmsError] = useState('')
+  const toggleSms = async (on) => {
+    setBusy(true)
+    setSmsError('')
+    try { setMe({ ...me, ...(await api('/portal/me', { method: 'PUT', body: { smsOptIn: on } })) }) } catch (err) { setSmsError(err.message) } finally { setBusy(false) }
+  }
+
   if (!me || !hist) return <div className="grid min-h-screen place-items-center text-muted"><Loader2 className="animate-spin" /></div>
   const gift = (g) => (GIFTS[g.id] ? T(GIFTS[g.id]) : String(g.id).replace(/^svc:/, ''))
 
@@ -90,6 +97,25 @@ export default function MemberAccount() {
             {[['Phone', '电话', me.phone], ['Email', '信箱', me.email], ['WeChat Name', '微信名', me.wechatId], ['Instagram ID', 'IG ID', me.instagramId]].map(([en, zh, v]) => <div key={en} className="contents"><dt className="text-muted">{t({ en, zh })}</dt><dd>{v || '—'}</dd></div>)}
           </dl>
         )}
+      </section>
+      <section className="mt-8">
+        <h2 className="font-display text-xl">{t({ en: 'Text messages', zh: '短信通知' })}</h2>
+        <div className="mt-3 rounded-2xl border border-ink/10 bg-white p-4 text-sm">
+          <p>{me.smsOptIn
+            ? t({ en: `You receive appointment-related text messages at ${me.phone}.`, zh: `我们会向 ${me.phone} 发送与预约相关的短信。` })
+            : t({ en: 'You are not receiving text messages from us.', zh: '您目前不会收到我们的短信。' })}</p>
+          {!me.smsOptIn && (
+            <p className="mt-3 text-xs text-muted">{t({
+              en: 'By turning on text messages you agree to receive appointment-related texts from Nouvelle Anti-Aging at the phone number above. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.',
+              zh: '开启短信即表示您同意 Nouvelle Anti-Aging 通过上方手机号码向您发送与预约相关的短信。短信频率不定，可能产生短信和流量费用。回复 STOP 退订，回复 HELP 获取帮助。',
+            })}</p>
+          )}
+          {!me.smsOptIn && me.smsOptOutAt && <p className="mt-2 text-xs text-muted">{t({ en: 'If you replied STOP before, reply START to our number to receive texts again.', zh: '如果您之前回复过 STOP，请再向我们的号码回复 START，才能重新收到短信。' })}</p>}
+          {smsError && <p role="alert" className="mt-2 text-sm text-rose-700">{smsError}</p>}
+          <button className={`${me.smsOptIn ? 'btn-ghost' : 'btn-primary'} mt-3`} disabled={busy} onClick={() => toggleSms(!me.smsOptIn)}>
+            {busy && <Loader2 size={16} className="animate-spin" />} {me.smsOptIn ? t({ en: 'Turn off text messages', zh: '关闭短信' }) : t({ en: 'Turn on text messages', zh: '开启短信' })}
+          </button>
+        </div>
       </section>
       <button onClick={logout} className="btn-ghost mt-10 w-full">{t({ en: 'Sign out', zh: '登出' })}</button>
     </MemberShell>

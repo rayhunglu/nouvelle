@@ -29,6 +29,17 @@ function customerInput(b) {
 }
 
 module.exports = makeCrud('customers', customerInput, {
+  // Text-message opt in / out from the CRM form (`smsOptIn` is what the sending code checks; the dates are the record of when). Ticking opts
+  // the customer in, unticking opts them out. Twilio still blocks a number that replied STOP until it replies START.
+  async afterWrite(row, isNew, req) {
+    const b = req.body || {};
+    if (typeof b.smsConsent !== 'boolean' || b.smsConsent === (row.smsOptIn === true)) return;
+    const now = new Date().toISOString();
+    const next = await store.update('customers', row.id, b.smsConsent
+      ? { smsOptIn: true, smsConsentAt: now, smsConsentSource: 'crm', smsOptOutAt: '' }
+      : { smsOptIn: false, smsOptOutAt: now });
+    if (next) Object.assign(row, next); // the answer the CRM gets back already shows it
+  },
   // Deleting a customer removes everything of theirs: appointments and payment records (the member card goes with them).
   async beforeDelete(id) {
     for (const a of (await store.list('appointments')).filter((x) => x.customerId === id)) {
